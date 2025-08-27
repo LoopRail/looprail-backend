@@ -1,4 +1,4 @@
-# src/looprail_backend/core/application/services.py
+# src/looprail_backend/usecases/user_usecases.py
 # This file contains the application services or use cases. It orchestrates the flow of data
 # and calls the domain objects to perform business operations.
 
@@ -8,18 +8,19 @@
 
 # --- Example ---
 # The following is an example of a user service that handles user creation and retrieval.
-# It depends on the AbstractUserRepository defined in the domain layer.
+# It depends on the UserRepository defined in the domain layer.
 
 from typing import Optional
 from uuid import UUID
 
 from ..domain.models import User
-from ..domain.repositories import AbstractUserRepository
+from ..domain.repositories import UserRepository
 
-class UserService:
+
+class UserUseCases:
     """Provides application services related to users."""
 
-    def __init__(self, user_repository: AbstractUserRepository):
+    def __init__(self, user_repository: UserRepository):
         """Initializes the service with a user repository."""
         self._repository = user_repository
 

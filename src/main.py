@@ -10,10 +10,9 @@
 # This is the file you will point your ASGI server (like uvicorn) to.
 # Example: `uvicorn looprail_backend.main:app --reload`
 
-import uvicorn
 from fastapi import FastAPI
 
-from .api import routes as api_routes
+from .api.router import user_router
 
 # Create the FastAPI app instance
 app = FastAPI(
@@ -24,12 +23,14 @@ app = FastAPI(
 
 # Include the API router
 # This makes all the endpoints defined in `api/routes.py` available.
-app.include_router(api_routes.router, prefix="/api", tags=["Users"])
+app.include_router(user_router.router, prefix="/api", tags=["Users"])
+
 
 @app.get("/")
 def read_root():
     """A simple root endpoint to confirm the API is running."""
     return {"message": "Welcome to the Looprail Backend API!"}
+
 
 # --- How to Run ---
 # To run this application, use an ASGI server like uvicorn:

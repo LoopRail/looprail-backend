@@ -14,9 +14,9 @@ from typing import Optional
 from uuid import UUID
 
 from ...core.domain.models import User
-from ...core.domain.repositories import AbstractUserRepository
 
-class InMemoryUserRepository(AbstractUserRepository):
+
+class InMemoryUserRepository:
     """In-memory implementation of the user repository."""
 
     def __init__(self):
@@ -31,7 +31,9 @@ class InMemoryUserRepository(AbstractUserRepository):
         return self._users.get(user_id)
 
     def get_by_username(self, username: str) -> Optional[User]:
-        print(f"Repository: Getting user with username {username} from in-memory store.")
+        print(
+            f"Repository: Getting user with username {username} from in-memory store."
+        )
         for user in self._users.values():
             if user.username == username:
                 return user

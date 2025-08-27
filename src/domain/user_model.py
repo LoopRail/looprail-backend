@@ -10,9 +10,11 @@
 from dataclasses import dataclass
 from uuid import UUID, uuid4
 
+
 @dataclass
 class User:
     """Represents a user in the system."""
+
     id: UUID
     username: str
     email: str
@@ -21,4 +23,3 @@ class User:
     def create(username: str, email: str) -> "User":
         """Factory method to create a new User with a generated ID."""
         return User(id=uuid4(), username=username, email=email)
-
