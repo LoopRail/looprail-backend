@@ -2,3 +2,4 @@
 .venv/
 .env.dev
 .env.prod
+test.py
