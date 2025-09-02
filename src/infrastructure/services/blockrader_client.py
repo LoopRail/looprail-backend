@@ -5,10 +5,15 @@ from pydantic import BaseModel
 
 from src.infrastructure.settings import BlockRaderConfig
 from src.types import Error, HTTPMethod, error
-from src.types.blockrader_types import (WalletAddressDetailResponse,
+from src.types.blockrader_types import (AMLCheckRequest, AMLCheckResponse,
+                                        CreateAddressRequest,
+                                        NetworkFeeRequest, NetworkFeeResponse,
+                                        TransactionResponse,
+                                        WalletAddressDetailResponse,
                                         WalletAddressResponse,
                                         WalletBalanceResponse,
-                                        WalletDetailsResponse)
+                                        WalletDetailsResponse,
+                                        WithdrawalRequest, WithdrawalResponse)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -30,24 +35,18 @@ class BlockRaderCLient:
         method: str,
         *,
         data: dict[str, any] = None,
-        req_parms: dict[str, any] = None,
+        req_params: dict[str, any] = None,
     ) -> Response:
         headers = {"x-api-key": self.config.blockrader_api_key}
         async with AsyncClient() as client:
             res = await client.request(
-                method, url, headers=headers, json=data, params=req_parms
+                method, url, headers=headers, json=data, params=req_params
             )
             return res
 
-    async def _get(
-        self,
-        response_model: Type[T],
-        path_suffix: str = "",
-        req_parms: dict[str, any] = None,
+    def _process_response(
+        self, res: Response, response_model: Type[T]
     ) -> Tuple[Optional[T], Error]:
-        url = self._get_url(path_suffix)
-        res = await self._send(url, HTTPMethod.GET, req_parms=req_parms)
-
         if res.status_code >= 500:
             return None, error(f"Service not available {res.status_code}")
 
@@ -59,6 +58,36 @@ class BlockRaderCLient:
             )
 
         return response_data, None
+
+    async def _get(
+        self,
+        response_model: Type[T],
+        path_suffix: str = "",
+        req_params: dict[str, any] = None,
+    ) -> Tuple[Optional[T], Error]:
+        url = self._get_url(path_suffix)
+        res = await self._send(url, HTTPMethod.GET, req_params=req_params)
+        return self._process_response(res, response_model)
+
+    async def _post(
+        self,
+        response_model: Type[T],
+        path_suffix: str = "",
+        data: dict[str, any] = None,
+        req_params: dict[str, any] = None,
+    ) -> Tuple[Optional[T], Error]:
+        url = self._get_url(path_suffix)
+        res = await self._send(url, HTTPMethod.POST, data=data, req_params=req_params)
+        return self._process_response(res, response_model)
+
+    async def aml_lookup(
+        self, req_params: AMLCheckRequest
+    ) -> Tuple[Optional[AMLCheckResponse], Error]:
+        return await self._get(
+            AMLCheckResponse,
+            path_suffix="/aml/lookup",
+            req_params=req_params.model_dump(),
+        )
 
 
 class AddressManager(BlockRaderCLient):
@@ -79,6 +108,9 @@ class AddressManager(BlockRaderCLient):
     async def get_balances(self) -> Tuple[Optional[WalletBalanceResponse], Error]:
         return await self._get(WalletBalanceResponse, path_suffix="/balances")
 
+    async def get_transactions(self) -> Tuple[Optional[WalletBalanceResponse], Error]:
+        return await self._get(TransactionResponse, path_suffix="/transactions")
+
 
 class WalletManager(BlockRaderCLient):
     def __init__(self, config: BlockRaderConfig, wallet_id: str) -> None:
@@ -96,14 +128,45 @@ class WalletManager(BlockRaderCLient):
     ) -> Tuple[Optional[WalletBalanceResponse], Error]:
         return await self._get(WalletBalanceResponse, path_suffix="/balances")
 
-    async def get_wallet_balance(
-        self, asset_id: str
-    ) -> Tuple[Optional[WalletBalanceResponse], Error]:
+    async def get_wallet_balance(self) -> Tuple[Optional[WalletBalanceResponse], Error]:
         return await self._get(
             WalletBalanceResponse,
             path_suffix="/balance",
-            req_parms={"assetId": asset_id},
         )
 
+    async def generate_address(
+        self, request: CreateAddressRequest
+    ) -> Tuple[Optional[WalletDetailsResponse], Error]:
+        return await self._post(
+            WalletAddressDetailResponse,
+            path_suffix="/addresses",
+            req_params=request.model_dump(),
+        )
 
-# TODO move get addres and antthon with our the adress_id param to wallet maanger
+    async def withdraw_network_fee(
+        self, request: NetworkFeeRequest
+    ) -> Tuple[Optional[NetworkFeeResponse], Error]:
+        return await self._post(
+            TransactionResponse,
+            path_suffix="/withdraw/network-fee",
+            req_params=request.model_dump(),
+        )
+
+    async def withdraw(
+        self, request: WithdrawalRequest
+    ) -> Tuple[Optional[WithdrawalResponse], Error]:
+        return await self._post(
+            TransactionResponse,
+            path_suffix="/withdraw",
+            req_params=request.model_dump(),
+        )
+
+    async def get_transactions(self) -> Tuple[Optional[TransactionResponse], Error]:
+        return await self._get(TransactionResponse, path_suffix="/transactions")
+
+    async def get_transaction(
+        self, transaction_id: str
+    ) -> Tuple[Optional[TransactionResponse], Error]:
+        return await self._get(
+            TransactionResponse, path_suffix=f"/transactions{transaction_id}"
+        )
