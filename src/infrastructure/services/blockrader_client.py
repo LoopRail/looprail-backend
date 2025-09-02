@@ -90,29 +90,62 @@ class BlockRaderCLient:
         )
 
 
-class AddressManager(BlockRaderCLient):
-    def __init__(
-        self, config: BlockRaderConfig, wallet_id: str, addresss_id: str
-    ) -> None:
-        super().__init__(config, path=f"/wallets/{wallet_id}/addresses/{addresss_id}")
+class TransactionalMixin:
+    async def get_balance(
+        self: "BlockRaderCLient", asset_id: str = None
+    ) -> Tuple[Optional[WalletBalanceResponse], Error]:
+        params = {"assetId": asset_id} if asset_id else None
+        return await self._get(
+            WalletBalanceResponse, path_suffix="/balance", req_params=params
+        )
 
-    async def get_all(self) -> Tuple[Optional[WalletAddressResponse], Error]:
-        return await self._get(WalletAddressResponse)
-
-    async def get_address(self) -> Tuple[Optional[WalletAddressDetailResponse], Error]:
-        return await self._get(WalletAddressDetailResponse)
-
-    async def get_balance(self) -> Tuple[Optional[WalletBalanceResponse], Error]:
-        return await self._get(WalletBalanceResponse, path_suffix="/balance")
-
-    async def get_balances(self) -> Tuple[Optional[WalletBalanceResponse], Error]:
+    async def get_balances(
+        self: "BlockRaderCLient",
+    ) -> Tuple[Optional[WalletBalanceResponse], Error]:
         return await self._get(WalletBalanceResponse, path_suffix="/balances")
 
-    async def get_transactions(self) -> Tuple[Optional[WalletBalanceResponse], Error]:
+    async def get_transactions(
+        self: "BlockRaderCLient",
+    ) -> Tuple[Optional[TransactionResponse], Error]:
         return await self._get(TransactionResponse, path_suffix="/transactions")
 
+    async def get_transaction(
+        self: "BlockRaderCLient", transaction_id: str
+    ) -> Tuple[Optional[TransactionResponse], Error]:
+        return await self._get(
+            TransactionResponse, path_suffix=f"/transactions/{transaction_id}"
+        )
 
-class WalletManager(BlockRaderCLient):
+    async def withdraw_network_fee(
+        self: "BlockRaderCLient", request: NetworkFeeRequest
+    ) -> Tuple[Optional[NetworkFeeResponse], Error]:
+        return await self._post(
+            NetworkFeeResponse,
+            path_suffix="/withdraw/network-fee",
+            data=request.model_dump(),
+        )
+
+    async def withdraw(
+        self: "BlockRaderCLient", request: WithdrawalRequest
+    ) -> Tuple[Optional[WithdrawalResponse], Error]:
+        return await self._post(
+            WithdrawalResponse,
+            path_suffix="/withdraw",
+            data=request.model_dump(),
+        )
+
+
+class AddressManager(BlockRaderCLient, TransactionalMixin):
+    def __init__(
+        self, config: BlockRaderConfig, wallet_id: str, address_id: str
+    ) -> None:
+        super().__init__(config, path=f"/wallets/{wallet_id}/addresses/{address_id}")
+
+    async def get_details(self) -> Tuple[Optional[WalletAddressDetailResponse], Error]:
+        return await self._get(WalletAddressDetailResponse)
+
+
+class WalletManager(BlockRaderCLient, TransactionalMixin):
     def __init__(self, config: BlockRaderConfig, wallet_id: str) -> None:
         self.wallet_id = wallet_id
         super().__init__(config, path=f"/wallets/{wallet_id}")
@@ -120,53 +153,14 @@ class WalletManager(BlockRaderCLient):
     def addresses(self, address_id: str) -> "AddressManager":
         return AddressManager(self.config, self.wallet_id, address_id)
 
-    async def get_wallet(self) -> Tuple[Optional[WalletDetailsResponse], Error]:
+    async def get_details(self) -> Tuple[Optional[WalletDetailsResponse], Error]:
         return await self._get(WalletDetailsResponse)
-
-    async def get_wallet_balances(
-        self,
-    ) -> Tuple[Optional[WalletBalanceResponse], Error]:
-        return await self._get(WalletBalanceResponse, path_suffix="/balances")
-
-    async def get_wallet_balance(self) -> Tuple[Optional[WalletBalanceResponse], Error]:
-        return await self._get(
-            WalletBalanceResponse,
-            path_suffix="/balance",
-        )
 
     async def generate_address(
         self, request: CreateAddressRequest
-    ) -> Tuple[Optional[WalletDetailsResponse], Error]:
+    ) -> Tuple[Optional[WalletAddressDetailResponse], Error]:
         return await self._post(
             WalletAddressDetailResponse,
             path_suffix="/addresses",
-            req_params=request.model_dump(),
-        )
-
-    async def withdraw_network_fee(
-        self, request: NetworkFeeRequest
-    ) -> Tuple[Optional[NetworkFeeResponse], Error]:
-        return await self._post(
-            TransactionResponse,
-            path_suffix="/withdraw/network-fee",
-            req_params=request.model_dump(),
-        )
-
-    async def withdraw(
-        self, request: WithdrawalRequest
-    ) -> Tuple[Optional[WithdrawalResponse], Error]:
-        return await self._post(
-            TransactionResponse,
-            path_suffix="/withdraw",
-            req_params=request.model_dump(),
-        )
-
-    async def get_transactions(self) -> Tuple[Optional[TransactionResponse], Error]:
-        return await self._get(TransactionResponse, path_suffix="/transactions")
-
-    async def get_transaction(
-        self, transaction_id: str
-    ) -> Tuple[Optional[TransactionResponse], Error]:
-        return await self._get(
-            TransactionResponse, path_suffix=f"/transactions{transaction_id}"
+            data=request.model_dump(),
         )
