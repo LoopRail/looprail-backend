@@ -91,6 +91,9 @@ class BlockRaderCLient:
 
 
 class TransactionalMixin:
+    async def get_details(self) -> Tuple[Optional[WalletAddressDetailResponse], Error]:
+        return await self._get(WalletAddressDetailResponse)
+
     async def get_balance(
         self: "BlockRaderCLient", asset_id: str = None
     ) -> Tuple[Optional[WalletBalanceResponse], Error]:
@@ -141,9 +144,6 @@ class AddressManager(BlockRaderCLient, TransactionalMixin):
     ) -> None:
         super().__init__(config, path=f"/wallets/{wallet_id}/addresses/{address_id}")
 
-    async def get_details(self) -> Tuple[Optional[WalletAddressDetailResponse], Error]:
-        return await self._get(WalletAddressDetailResponse)
-
 
 class WalletManager(BlockRaderCLient, TransactionalMixin):
     def __init__(self, config: BlockRaderConfig, wallet_id: str) -> None:
@@ -152,9 +152,6 @@ class WalletManager(BlockRaderCLient, TransactionalMixin):
 
     def addresses(self, address_id: str) -> "AddressManager":
         return AddressManager(self.config, self.wallet_id, address_id)
-
-    async def get_details(self) -> Tuple[Optional[WalletDetailsResponse], Error]:
-        return await self._get(WalletDetailsResponse)
 
     async def generate_address(
         self, request: CreateAddressRequest
