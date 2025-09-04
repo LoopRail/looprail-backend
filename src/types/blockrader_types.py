@@ -3,7 +3,7 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.types.chain_types import Chain
+from src.types import Chain
 
 
 class baseBlockRaderType(BaseModel):
