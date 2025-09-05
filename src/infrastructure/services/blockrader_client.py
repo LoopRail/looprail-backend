@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Type, TypeVar
+from typing import Any, Optional, Tuple, Type, TypeVar
 
 from httpx import AsyncClient, Response
 from pydantic import BaseModel
@@ -32,8 +32,8 @@ class BlockRaderCLient:
         url: str,
         method: str,
         *,
-        data: dict[str, any] = None,
-        req_params: dict[str, any] = None,
+        data: dict[str, Any] = None,
+        req_params: dict[str, Any] = None,
     ) -> Response:
         headers = {"x-api-key": self.config.blockrader_api_key}
         async with AsyncClient() as client:
@@ -61,7 +61,7 @@ class BlockRaderCLient:
         self,
         response_model: Type[T],
         path_suffix: str = "",
-        req_params: dict[str, any] = None,
+        req_params: dict[str, Any] = None,
     ) -> Tuple[Optional[T], Error]:
         url = self._get_url(path_suffix)
         res = await self._send(url, HTTPMethod.GET, req_params=req_params)
@@ -71,8 +71,8 @@ class BlockRaderCLient:
         self,
         response_model: Type[T],
         path_suffix: str = "",
-        data: dict[str, any] = None,
-        req_params: dict[str, any] = None,
+        data: dict[str, Any] = None,
+        req_params: dict[str, Any] = None,
     ) -> Tuple[Optional[T], Error]:
         url = self._get_url(path_suffix)
         res = await self._send(url, HTTPMethod.POST, data=data, req_params=req_params)

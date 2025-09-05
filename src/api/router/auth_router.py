@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from src.api.dependencies import get_user_usecases
 from src.dtos.user_dtos import UserCreate, UserPublic
 from src.infrastructure.logger import get_logger
-from src.usecases.user_usecases import UserUseCase
+from src.usecases import UserUseCase
 
 logger = get_logger(__name__)
 

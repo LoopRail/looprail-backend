@@ -7,7 +7,9 @@ from src.types import Chain
 
 
 class baseBlockRaderType(BaseModel):
-    model_config = ConfigDict(from_attributes=True, extra="allow")
+    model_config = ConfigDict(
+        from_attributes=True, extra="allow", arbitrary_types_allowed=True
+    )
 
 
 class baseResponse(baseBlockRaderType):
