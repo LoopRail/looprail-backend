@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Protocol
+from typing import TYPE_CHECKING, Optional, Protocol, Tuple
 from uuid import UUID
 
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import SupportedCurrencies, TransactionMethod, TransactionType
+from src.types import (Error, SupportedCurrencies, TransactionMethod,
+                       TransactionType)
 
 if TYPE_CHECKING:
     from src.models.user_model import User
 
-
 from decimal import Decimal
+
 
 class Wallet(Base, table=True):
     __tablename__ = "wallets"

@@ -4,14 +4,12 @@ from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.infrastructure.db import get_session
-from src.infrastructure.repositories import (
-    SQLUserRepository,
-    SQLWalletRepository,
-)
+from src.infrastructure.repositories import (SQLUserRepository,
+                                             SQLWalletRepository)
+from src.infrastructure.settings import BlockRaderConfig, block_rader_config
 from src.models.user_model import UserRepository
 from src.models.wallet_model import WalletRepository
-from src.usecases.user_usecases import UserUseCases
-from src.infrastructure.settings import BlockRaderConfig, block_rader_config
+from src.usecases.user_usecases import UserUseCase
 
 
 async def get_user_repository(
@@ -34,5 +32,5 @@ async def get_user_usecases(
     user_repository: UserRepository = Depends(get_user_repository),
     wallet_repository: WalletRepository = Depends(get_wallet_repository),
     blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
-) -> UserUseCases:
-    yield UserUseCases(user_repository, wallet_repository, blockrader_config)
+) -> UserUseCase:
+    yield UserUseCase(user_repository, wallet_repository, blockrader_config)
