@@ -6,7 +6,8 @@ from uuid import UUID
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import Error, SupportedCurrencies, TransactionMethod, TransactionType
+from src.types import (Error, SupportedCurrencies, TransactionMethod,
+                       TransactionType)
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -30,8 +31,8 @@ class Wallet(Base, table=True):
     derivation_path: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
 
-    user: "User" = Relationship(back_populates="wallet")
-    transactions: list["Transaction"] = Relationship(back_populates="wallet")
+    user: User = Relationship(back_populates="wallet")
+    transactions: list[Transaction] = Relationship(back_populates="wallet")
 
 
 class Transaction(Base, table=True):
@@ -62,7 +63,7 @@ class Transaction(Base, table=True):
     reason: Optional[str] = Field(default=None)
     fee: Optional[Decimal] = Field(default=None)
 
-    wallet: "Wallet" = Relationship(back_populates="transactions")
+    wallet: Wallet = Relationship(back_populates="transactions")
 
 
 class WalletRepository(Protocol):
