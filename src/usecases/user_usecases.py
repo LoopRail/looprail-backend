@@ -9,9 +9,12 @@ from src.models.user_model import User, UserRepository
 from src.models.wallet_model import Wallet, WalletRepository
 from src.types.blockrader_types import CreateAddressRequest
 from src.types.error import Error
+from src.infrastructure.logger import get_logger
+
+logger = get_logger(__name__)
 
 
-class UserUseCases:
+class UserUseCase:
     def __init__(
         self,
         user_repository: UserRepository,
@@ -54,9 +57,12 @@ class UserUseCases:
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
 
-        address_balance_details, err = address_manager.get_balance()
+        address_balance_details, err = await address_manager.get_balance(
+            self.blockrader_config.base_usdc_asset_id
+        )
 
         if err:
+            await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
 
         wallet = Wallet(
