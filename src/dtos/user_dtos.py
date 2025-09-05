@@ -1,5 +1,5 @@
-# src/looprail_backend/dtos/user_dtos.py
 from uuid import UUID
+
 from pydantic import BaseModel
 
 
@@ -12,6 +12,8 @@ class UserPublic(BaseModel):
     id: UUID
     username: str
     email: str
+    first_name: str
+    last_name: str
 
     class Config:
         from_attributes = True
