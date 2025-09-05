@@ -58,7 +58,9 @@ class UserUseCase:
         )
 
         if err:
-            logger.error(f"Failed to generate address for user {created_user.username}: {err.message}")
+            logger.error(
+                f"Failed to generate address for user {created_user.username}: {err.message}"
+            )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
         logger.info(f"Address generated for user {created_user.username}.")
@@ -68,7 +70,9 @@ class UserUseCase:
         )
 
         if err:
-            logger.error(f"Failed to get address balance for user {created_user.username}: {err.message}")
+            logger.error(
+                f"Failed to get address balance for user {created_user.username}: {err.message}"
+            )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
         logger.info(f"Address balance retrieved for user {created_user.username}.")
@@ -79,17 +83,21 @@ class UserUseCase:
             provider_id=address_details.data.id,
             network=address_details.data.network,
             balance=address_balance_details.data.balance,
-            usdc_asset_id=self.blockrader_config.base_usdc_asset_id, # Added missing usdc_asset_id
+            usdc_asset_id=self.blockrader_config.base_usdc_asset_id,  # Added missing usdc_asset_id
         )
 
         _, err = await self.wallet_repository.create_wallet(wallet=wallet)
         if err:
-            logger.error(f"Failed to create wallet for user {created_user.username}: {err.message}")
+            logger.error(
+                f"Failed to create wallet for user {created_user.username}: {err.message}"
+            )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
         logger.info(f"Wallet created for user {created_user.username}.")
 
-        logger.info(f"User {created_user.username} and associated wallet created successfully.")
+        logger.info(
+            f"User {created_user.username} and associated wallet created successfully."
+        )
         return created_user, None
 
     async def get_user_by_id(self, user_id: UUID) -> Tuple[Optional[User], Error]:
