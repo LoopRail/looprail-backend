@@ -27,6 +27,7 @@ class DatabaseMixin:
             session.add(self)
             await session.flush()
             await session.refresh(self)
+            await session.commit()
             return None
         except IntegrityError as e:
             await session.rollback()
