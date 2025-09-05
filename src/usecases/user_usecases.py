@@ -36,9 +36,9 @@ class UserUseCase:
         )
         created_user, err = await self.user_repository.create_user(user=user)
         if err:
-            logger.error(f"Failed to create user in repository: {err.message}")
+            logger.error("Failed to create user in repository: %s", err.message)
             return None, err
-        logger.info(f"User {created_user.username} created successfully in repository.")
+        logger.info("User %s created successfully in repository.", created_user.username)
 
         wallet_manager = WalletManager(
             self.blockrader_config, self.blockrader_config.evm_master_wallet
@@ -59,11 +59,11 @@ class UserUseCase:
 
         if err:
             logger.error(
-                f"Failed to generate address for user {created_user.username}: {err.message}"
+                "Failed to generate address for user %s: %s", created_user.username, err.message
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
-        logger.info(f"Address generated for user {created_user.username}.")
+        logger.info("Address generated for user %s.", created_user.username)
 
         address_balance_details, err = await address_manager.get_balance(
             self.blockrader_config.base_usdc_asset_id
@@ -71,11 +71,11 @@ class UserUseCase:
 
         if err:
             logger.error(
-                f"Failed to get address balance for user {created_user.username}: {err.message}"
+                "Failed to get address balance for user %s: %s", created_user.username, err.message
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
-        logger.info(f"Address balance retrieved for user {created_user.username}.")
+        logger.info("Address balance retrieved for user %s.", created_user.username)
 
         wallet = Wallet(
             user_id=created_user.id,
@@ -89,14 +89,14 @@ class UserUseCase:
         _, err = await self.wallet_repository.create_wallet(wallet=wallet)
         if err:
             logger.error(
-                f"Failed to create wallet for user {created_user.username}: {err.message}"
+                "Failed to create wallet for user %s: %s", created_user.username, err.message
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
-        logger.info(f"Wallet created for user {created_user.username}.")
+        logger.info("Wallet created for user %s.", created_user.username)
 
         logger.info(
-            f"User {created_user.username} and associated wallet created successfully."
+            "User %s and associated wallet created successfully.", created_user.username
         )
         return created_user, None
 
