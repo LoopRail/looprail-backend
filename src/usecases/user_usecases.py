@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 from uuid import UUID
 
 from src.dtos.user_dtos import UserCreate
+from src.infrastructure.logger import get_logger
 from src.infrastructure.services.blockrader_client import (AddressManager,
                                                            WalletManager)
 from src.infrastructure.settings import BlockRaderConfig
@@ -9,7 +10,6 @@ from src.models.user_model import User, UserRepository
 from src.models.wallet_model import Wallet, WalletRepository
 from src.types.blockrader_types import CreateAddressRequest
 from src.types.error import Error
-from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -36,7 +36,9 @@ class UserUseCase:
         )
         created_user, err = await self.user_repository.create_user(user=user)
         if err:
+            logger.error(f"Failed to create user in repository: {err.message}")
             return None, err
+        logger.info(f"User {created_user.username} created successfully in repository.")
 
         wallet_manager = WalletManager(
             self.blockrader_config, self.blockrader_config.evm_master_wallet
@@ -50,20 +52,26 @@ class UserUseCase:
         )
         address_details, err = await wallet_manager.generate_address(create_address_req)
         address_manager = AddressManager(
-            self.blockrader_config, address_details.data.id
+            self.blockrader_config,
+            self.blockrader_config.base_wallet_id,
+            address_details.data.id,
         )
 
         if err:
+            logger.error(f"Failed to generate address for user {created_user.username}: {err.message}")
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
+        logger.info(f"Address generated for user {created_user.username}.")
 
         address_balance_details, err = await address_manager.get_balance(
             self.blockrader_config.base_usdc_asset_id
         )
 
         if err:
+            logger.error(f"Failed to get address balance for user {created_user.username}: {err.message}")
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
+        logger.info(f"Address balance retrieved for user {created_user.username}.")
 
         wallet = Wallet(
             user_id=created_user.id,
@@ -71,13 +79,17 @@ class UserUseCase:
             provider_id=address_details.data.id,
             network=address_details.data.network,
             balance=address_balance_details.data.balance,
+            usdc_asset_id=self.blockrader_config.base_usdc_asset_id, # Added missing usdc_asset_id
         )
 
         _, err = await self.wallet_repository.create_wallet(wallet=wallet)
         if err:
+            logger.error(f"Failed to create wallet for user {created_user.username}: {err.message}")
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
+        logger.info(f"Wallet created for user {created_user.username}.")
 
+        logger.info(f"User {created_user.username} and associated wallet created successfully.")
         return created_user, None
 
     async def get_user_by_id(self, user_id: UUID) -> Tuple[Optional[User], Error]:
