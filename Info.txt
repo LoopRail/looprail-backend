@@ -1,0 +1,30 @@
+uvicorn app.main:app --host=0.0.0.0 --port=${PORT}
+
+Flow: ###########################################################################
+
+#Client calls POST /offramp with:
+Client calls POST /paycrest/order with:
+{
+  "user_id": 1,
+  "amount": 50,
+  "bank_details": {
+#             "institution": "Access Bank",
+#             "accountIdentifier": "0123456789",
+#             "accountName": "Tester Check",
+#             "currency": "NGN",
+#             "memo": "Payout via Paycrest"
+#         },
+  "reference": "Paycrest order"
+  "return_address": "xoxoxo"
+}
+
+
+API finds the user wallet in DB.
+
+Sweeps the requested funds into the treasury wallet (Blockradar).
+
+Calls Paycrest API to convert & off-ramp to the bank account.
+
+Returns transaction info (tx hash + bank reference).
+
+##################################################################################

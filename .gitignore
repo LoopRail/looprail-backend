@@ -1,5 +1,2 @@
-**/*/__pycache__/*
-.venv/
-.env.dev
-.env.prod
-test.py
+venv
+.env

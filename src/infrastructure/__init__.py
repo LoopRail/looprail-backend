@@ -1,1 +1,0 @@
-from src.infrastructure.settings import block_rader_config
