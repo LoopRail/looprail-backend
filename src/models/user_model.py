@@ -23,7 +23,7 @@ class User(Base, table=True):
     username: str = Field(max_length=15, unique=True)
     is_active: bool = Field(default=False)
 
-    profile: "UserProfile" = Relationship(back_populates="user")
+    profile: UserProfile = Relationship(back_populates="user")
     wallet: Wallet = Relationship(back_populates="user")
 
     def full_name(self) -> str:
@@ -45,7 +45,7 @@ class UserProfile(Base, table=True):
     date_of_birth: date
 
     user_id: UUID = Field(foreign_key="users.id")
-    user: "User" = Relationship(back_populates="profile")
+    user: User = Relationship(back_populates="profile")
 
 
 class UserRepository(Protocol):
