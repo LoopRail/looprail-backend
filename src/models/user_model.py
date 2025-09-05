@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from src.models.wallet_model import Wallet
 
 
-class User(Base):
+class User(Base, table=True):
     __tablename__ = "users"
 
     first_name: str
@@ -31,7 +31,7 @@ class User(Base):
         return f"{self.first_name} {self.last_name}"
 
 
-class UserProfile(Base):
+class UserProfile(Base, table=True):
     __tablename__ = "user_profiles"
 
     kyc_status: KYCStatus = Field(KYCStatus.NOT_STARTED)
