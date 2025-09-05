@@ -156,6 +156,10 @@ class TransactionAddress(baseBlockRaderType):
 
 
 class TransactionData(baseBlockRaderType):
+    hash: str
+    id: str
+    type: str
+
     address: TransactionAddress
     amlScreening: AML
     amount: str
@@ -180,8 +184,6 @@ class TransactionData(baseBlockRaderType):
     gasFee: str
     gasPrice: str
     gasUsed: str
-    hash: str
-    id: str
     metadata: Optional[Any] = None
     network: str
     note: Optional[Any] = None
@@ -190,7 +192,6 @@ class TransactionData(baseBlockRaderType):
     reference: str
     senderAddress: str
     status: str
-    type: str
     updatedAt: datetime
 
 
