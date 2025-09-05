@@ -8,9 +8,6 @@ from sqlmodel import SQLModel
 from src.infrastructure.db import engine
 from src.models import Transaction, User, Wallet
 
-# My custom imports
-
-
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
