@@ -21,7 +21,11 @@ usdc_abi = [{
     "outputs": [{"name": "", "type": "bool"}],
     "stateMutability": "nonpayable"
 }]
-usdc_contract = w3.eth.contract(address=usdc_address, abi=usdc_abi)
+usdc_contract = w3.eth.contract(
+    address=Web3.to_checksum_address(usdc_address),
+    abi=usdc_abi
+)
+
 
 
 async def send_to_paycrest(order):
