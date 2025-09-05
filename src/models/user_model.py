@@ -1,27 +1,17 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING, Optional, Protocol
+from typing import TYPE_CHECKING, Optional, Protocol, Tuple
 from uuid import UUID
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
 from src.models.base import Base
-from src.types import KYCStatus
+from src.types import Error, KYCStatus
 
 if TYPE_CHECKING:
     from src.models.wallet_model import Wallet
-
-
-class Address(SQLModel):
-    """Represents a user's address."""
-
-    street: str
-    city: str
-    state: str
-    postal_code: str
-    country: str
 
 
 class User(Base):
@@ -40,16 +30,17 @@ class User(Base):
         """Returns the user's full name if first and last names are set."""
         return f"{self.first_name} {self.last_name}"
 
-    def fmt_date_of_birth(self) -> str:
-        return self.date_of_birth.strftime("%d/%m/%y")
-
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"
 
     kyc_status: KYCStatus = Field(KYCStatus.NOT_STARTED)
     is_email_verified: bool = Field(default=False)
-    address: Address
+    street: str
+    city: str
+    state: str
+    postal_code: str
+    country: str
     phone_number: str
     date_of_birth: date
 
@@ -64,36 +55,40 @@ class UserRepository(Protocol):
     """
 
     # User methods
-    async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]:
-        ...
+    async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]: ...
 
-    async def get_user_by_id(self, *, user_id: UUID) -> Tuple[Optional[User], Error]:
-        ...
+    async def get_user_by_id(
+        self, *, user_id: UUID
+    ) -> Tuple[Optional[User], Error]: ...
 
-    async def get_user_by_username(self, *, username: str) -> Tuple[Optional[User], Error]:
-        ...
+    async def get_user_by_username(
+        self, *, username: str
+    ) -> Tuple[Optional[User], Error]: ...
 
-    async def get_user_by_email(self, *, email: EmailStr) -> Tuple[Optional[User], Error]:
-        ...
+    async def get_user_by_email(
+        self, *, email: EmailStr
+    ) -> Tuple[Optional[User], Error]: ...
 
-    async def list_users(self, *, limit: int = 50, offset: int = 0) -> Tuple[list[User], Error]:
-        ...
+    async def list_users(
+        self, *, limit: int = 50, offset: int = 0
+    ) -> Tuple[list[User], Error]: ...
 
-    async def update_user(self, *, user: User) -> Tuple[Optional[User], Error]:
-        ...
+    async def update_user(self, *, user: User) -> Tuple[Optional[User], Error]: ...
 
-    async def delete_user(self, *, user_id: UUID) -> Error:
-        ...
+    async def delete_user(self, *, user_id: UUID) -> Error: ...
 
     # UserProfile methods
-    async def create_user_profile(self, *, user_profile: UserProfile) -> Tuple[Optional[UserProfile], Error]:
-        ...
+    async def create_user_profile(
+        self, *, user_profile: UserProfile
+    ) -> Tuple[Optional[UserProfile], Error]: ...
 
-    async def get_user_profile_by_user_id(self, *, user_id: UUID) -> Tuple[Optional[UserProfile], Error]:
-        ...
+    async def get_user_profile_by_user_id(
+        self, *, user_id: UUID
+    ) -> Tuple[Optional[UserProfile], Error]: ...
 
-    async def update_user_profile(self, *, user_profile: UserProfile) -> Tuple[Optional[UserProfile], Error]:
-        ...
+    async def update_user_profile(
+        self, *, user_profile: UserProfile
+    ) -> Tuple[Optional[UserProfile], Error]: ...
 
 
 # Add role management for admins
