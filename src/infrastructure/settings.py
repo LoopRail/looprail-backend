@@ -16,6 +16,8 @@ class ServerConfig(BaseSettings):
 class BlockRaderConfig(ServerConfig):
     blockrader_api_key: str
     evm_master_wallet: str
+    base_usdc_asset_id: str
+    base_wallet_id: str
 
 
 class DatabaseConfig(ServerConfig):
