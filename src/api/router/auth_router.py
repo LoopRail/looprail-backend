@@ -16,9 +16,9 @@ async def create_user(
     """API endpoint to create a new user."""
     created_user, err = await user_usecases.create_user(user_create=user_data)
     if err:
-        logger.error(f"Failed to create user: {err.message}")
+        logger.error("Failed to create user: %s", err.message)
         raise HTTPException(status_code=400, detail=err.message)
-    logger.info(f"User {created_user.username} registered successfully.")
+    logger.info("User %s registered successfully.", created_user.username)
     return UserPublic.model_validate(created_user)
 
 
