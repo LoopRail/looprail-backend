@@ -1,10 +1,29 @@
 from enum import Enum
 
 
+class SupportedCurrencies(str, Enum):
+    NGN = "ngn"
+    USD = "usd"
+
+
+class TransactionType(str, Enum):
+    DEBIT = "debit"
+    CREDIT = "credit"
+
+
+class TransactionMethod(str, Enum):
+    CARD = "card"
+    APPLE_PAY = "apple_pay"
+    GOOGLE_PAY = "google_pay"
+    BANK_TRANSFER = "bank_transfer"
+    MOBILE_MONEY = "mobile_money"
+    WALLET_TRANSFER = "wallet_transfer"
+
+
 class Chain(str, Enum):
-    polygon = "polygon"
-    base = "base"
-    ethereum = "ethereum"
+    POLYGON = "polygon"
+    BASE = "base"
+    ETHEREUM = "ethereum"
 
 
 class KYCStatus(str, Enum):
