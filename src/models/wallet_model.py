@@ -6,8 +6,7 @@ from uuid import UUID
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import (Error, SupportedCurrencies, TransactionMethod,
-                       TransactionType)
+from src.types import Error, SupportedCurrencies, TransactionMethod, TransactionType
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -111,6 +110,3 @@ class WalletRepository(Protocol):
     async def get_transaction_by_hash(
         self, *, transaction_hash: str
     ) -> Tuple[Optional[Transaction], Error]: ...
-
-
-# TODO lets sort out this gatway thing

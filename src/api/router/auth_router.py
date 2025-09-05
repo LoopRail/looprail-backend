@@ -19,7 +19,7 @@ async def create_user(
         logger.error(f"Failed to create user: {err.message}")
         raise HTTPException(status_code=400, detail=err.message)
     logger.info(f"User {created_user.username} registered successfully.")
-    return created_user
+    return UserPublic.model_validate(created_user)
 
 
 router.post("/register", response_model=UserPublic, status_code=201)(create_user)

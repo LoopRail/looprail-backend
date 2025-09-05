@@ -1,4 +1,3 @@
-from typing import AsyncGenerator
 
 from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession

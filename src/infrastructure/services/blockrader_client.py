@@ -10,9 +10,7 @@ from src.types.blockrader_types import (AMLCheckRequest, AMLCheckResponse,
                                         NetworkFeeRequest, NetworkFeeResponse,
                                         TransactionResponse,
                                         WalletAddressDetailResponse,
-                                        WalletAddressResponse,
                                         WalletBalanceResponse,
-                                        WalletDetailsResponse,
                                         WithdrawalRequest, WithdrawalResponse)
 
 T = TypeVar("T", bound=BaseModel)

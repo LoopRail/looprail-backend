@@ -1,12 +1,9 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlmodel import SQLModel
 
 from src.infrastructure.db import engine
-from src.models import Transaction, User, Wallet
 
 
 # this is the Alembic Config object, which provides

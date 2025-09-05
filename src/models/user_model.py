@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional, Protocol, Tuple
 from uuid import UUID
 
 from pydantic import EmailStr
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship
 
 from src.models.base import Base
 from src.types import Error, KYCStatus
