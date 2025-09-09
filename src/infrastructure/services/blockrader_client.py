@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Type, TypeVar
+from typing import Any, Optional, Tuple, Type, TypeVar
 
 from httpx import AsyncClient, Response
 from pydantic import BaseModel
@@ -10,9 +10,7 @@ from src.types.blockrader_types import (AMLCheckRequest, AMLCheckResponse,
                                         NetworkFeeRequest, NetworkFeeResponse,
                                         TransactionResponse,
                                         WalletAddressDetailResponse,
-                                        WalletAddressResponse,
                                         WalletBalanceResponse,
-                                        WalletDetailsResponse,
                                         WithdrawalRequest, WithdrawalResponse)
 
 T = TypeVar("T", bound=BaseModel)
@@ -49,8 +47,8 @@ class BlockRaderCLient:
         url: str,
         method: str,
         *,
-        data: dict[str, any] = None,
-        req_params: dict[str, any] = None,
+        data: dict[str, Any] = None,
+        req_params: dict[str, Any] = None,
     ) -> Response:
         """Sends an HTTP request to the BlockRadar API.
 
@@ -98,7 +96,7 @@ class BlockRaderCLient:
         self,
         response_model: Type[T],
         path_suffix: str = "",
-        req_params: dict[str, any] = None,
+        req_params: dict[str, Any] = None,
     ) -> Tuple[Optional[T], Error]:
         """Sends a GET request to the BlockRadar API.
 
@@ -118,8 +116,8 @@ class BlockRaderCLient:
         self,
         response_model: Type[T],
         path_suffix: str = "",
-        data: dict[str, any] = None,
-        req_params: dict[str, any] = None,
+        data: dict[str, Any] = None,
+        req_params: dict[str, Any] = None,
     ) -> Tuple[Optional[T], Error]:
         """Sends a POST request to the BlockRadar API.
 

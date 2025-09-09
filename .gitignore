@@ -3,3 +3,4 @@
 .env.dev
 .env.prod
 test.py
+*.egg-info/

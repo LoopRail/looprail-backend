@@ -3,11 +3,13 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.types.chain_types import Chain
+from src.types import Chain
 
 
 class baseBlockRaderType(BaseModel):
-    model_config = ConfigDict(from_attributes=True, extra="allow")
+    model_config = ConfigDict(
+        from_attributes=True, extra="allow", arbitrary_types_allowed=True
+    )
 
 
 class baseResponse(baseBlockRaderType):
@@ -156,6 +158,10 @@ class TransactionAddress(baseBlockRaderType):
 
 
 class TransactionData(baseBlockRaderType):
+    hash: str
+    id: str
+    type: str
+
     address: TransactionAddress
     amlScreening: AML
     amount: str
@@ -180,8 +186,6 @@ class TransactionData(baseBlockRaderType):
     gasFee: str
     gasPrice: str
     gasUsed: str
-    hash: str
-    id: str
     metadata: Optional[Any] = None
     network: str
     note: Optional[Any] = None
@@ -190,7 +194,6 @@ class TransactionData(baseBlockRaderType):
     reference: str
     senderAddress: str
     status: str
-    type: str
     updatedAt: datetime
 
 
