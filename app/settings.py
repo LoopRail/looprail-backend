@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     algorithm: str
     access_token_expire_minutes: int
     
-    # ✅ use SettingsConfigDict instead of ConfigDict
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
