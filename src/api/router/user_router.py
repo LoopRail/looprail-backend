@@ -1,13 +1,25 @@
-# src/looprail_backend/router/user_router.py
-from fastapi import APIRouter
+from uuid import UUID
 
-from ..handlers import user_handlers
-from ...dtos import user_dtos
+from fastapi import APIRouter, Depends, HTTPException
+
+from src.api.dependencies import get_user_usecases
+from src.dtos.user_dtos import UserPublic
+from src.usecases import UserUseCase
 
 # Create a new router for user-related endpoints
-router = APIRouter()
+router = APIRouter(prefix="/users", tags=["Users"])
 
 # --- API Endpoints ---
 
-router.post("/users/", response_model=user_dtos.UserPublic, status_code=201)(user_handlers.create_user)
-router.get("/users/{user_id}", response_model=user_dtos.UserPublic)(user_handlers.get_user)
+
+async def get_user(
+    user_id: UUID, user_usecases: UserUseCase = Depends(get_user_usecases)
+) -> UserPublic:
+    """API endpoint to retrieve a user by their ID."""
+    user, err = await user_usecases.get_user_by_id(user_id)
+    if err:
+        raise HTTPException(status_code=404, detail=err.message)
+    return user
+
+
+router.get("/{user_id}", response_model=UserPublic)(get_user)

@@ -1,23 +1,35 @@
-# src/looprail_backend/api/dependencies.py
-# This file is responsible for creating and providing dependencies to the API layer.
-# In this case, it sets up and provides the `UserUseCases`.
 
-# This is a form of dependency injection. It allows the API routes to simply "ask for"
-# a service without needing to know how it's created or what its own dependencies are.
+from fastapi import Depends
+from sqlmodel.ext.asyncio.session import AsyncSession
 
-# --- Example ---
-# The following function creates a `UserUseCases` instance using the `InMemoryUserRepository`.
-# In a real application, you could have logic here to decide which repository to use
-# based on an environment variable (e.g., use a real database in production).
-
-from ..usecases.user_usecases import UserUseCases
-from ..infrastructure.persistence.in_memory_user_repository import InMemoryUserRepository
-
-# Create a single, shared instance of the repository.
-# In a real app, you might manage this lifecycle differently (e.g., per-request).
-user_repository = InMemoryUserRepository()
+from src.infrastructure.db import get_session
+from src.infrastructure.repositories import (SQLUserRepository,
+                                             SQLWalletRepository)
+from src.infrastructure.settings import BlockRaderConfig, block_rader_config
+from src.models.user_model import UserRepository
+from src.models.wallet_model import WalletRepository
+from src.usecases.user_usecases import UserUseCase
 
 
-def get_user_usecases() -> UserUseCases:
-    """Dependency provider for the UserUseCases."""
-    return UserUseCases(user_repository)
+async def get_user_repository(
+    session: AsyncSession = Depends(get_session),
+) -> UserRepository:
+    yield SQLUserRepository(session)
+
+
+async def get_wallet_repository(
+    session: AsyncSession = Depends(get_session),
+) -> WalletRepository:
+    yield SQLWalletRepository(session)
+
+
+def get_blockrader_config() -> BlockRaderConfig:
+    return block_rader_config
+
+
+async def get_user_usecases(
+    user_repository: UserRepository = Depends(get_user_repository),
+    wallet_repository: WalletRepository = Depends(get_wallet_repository),
+    blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
+) -> UserUseCase:
+    yield UserUseCase(user_repository, wallet_repository, blockrader_config)

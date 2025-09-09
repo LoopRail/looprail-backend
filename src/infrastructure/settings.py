@@ -16,6 +16,20 @@ class ServerConfig(BaseSettings):
 class BlockRaderConfig(ServerConfig):
     blockrader_api_key: str
     evm_master_wallet: str
+    base_usdc_asset_id: str
+    base_wallet_id: str
+
+
+class DatabaseConfig(ServerConfig):
+    db_user: str
+    db_password: str
+    db_host: str
+    db_port: str
+    db_name: str
+
+    def get_uri(self) -> str:
+        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
 
 block_rader_config = BlockRaderConfig()
+database_config = DatabaseConfig()
