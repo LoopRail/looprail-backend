@@ -24,6 +24,7 @@ class Chain(str, Enum):
     POLYGON = "polygon"
     BASE = "base"
     ETHEREUM = "ethereum"
+    BITCOIN = "btc"
 
 
 class KYCStatus(str, Enum):
