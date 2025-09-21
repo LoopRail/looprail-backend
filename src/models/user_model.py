@@ -11,6 +11,7 @@ from src.models.base import Base
 from src.types import Error, KYCStatus
 
 if TYPE_CHECKING:
+    from src.models.payment_model import PaymentOrder
     from src.models.wallet_model import Wallet
 
 
@@ -25,6 +26,7 @@ class User(Base, table=True):
 
     profile: UserProfile = Relationship(back_populates="user")
     wallet: Wallet = Relationship(back_populates="user")
+    payment_orders: PaymentOrder = Relationship(back_populates="user")
 
     def full_name(self) -> str:
         """Returns the user's full name if first and last names are set."""
@@ -91,4 +93,4 @@ class UserRepository(Protocol):
     ) -> Tuple[Optional[UserProfile], Error]: ...
 
 
-# Add role management for admins
+#TODO Add role management for admins
