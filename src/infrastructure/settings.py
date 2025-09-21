@@ -6,6 +6,20 @@ from src.utils import return_base_dir
 
 env_dir = os.path.join(return_base_dir(), "config", ".env.dev")
 
+USDC_ADDRESS = "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"
+USDC_ABI = [
+    {
+        "name": "transfer",
+        "type": "function",
+        "inputs": [
+            {"name": "to", "type": "address"},
+            {"name": "amount", "type": "uint256"},
+        ],
+        "outputs": [{"name": "", "type": "bool"}],
+        "stateMutability": "nonpayable",
+    }
+]
+
 
 class ServerConfig(BaseSettings):
     model_config = SettingsConfigDict(
@@ -20,6 +34,11 @@ class BlockRaderConfig(ServerConfig):
     base_wallet_id: str
 
 
+class PayCrestConfig(ServerConfig):
+    paycrest_base_url: str
+    paycrest_api_key: str
+
+
 class DatabaseConfig(ServerConfig):
     db_user: str
     db_password: str
@@ -32,4 +51,5 @@ class DatabaseConfig(ServerConfig):
 
 
 block_rader_config = BlockRaderConfig()
+paycrest_config = PayCrestConfig()
 database_config = DatabaseConfig()
