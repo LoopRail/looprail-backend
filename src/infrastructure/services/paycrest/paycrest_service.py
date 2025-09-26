@@ -2,22 +2,19 @@ from decimal import Decimal
 from typing import Optional, Tuple
 
 import requests
-from fastapi import Depends
-from sqlalchemy.orm import Session
 
-from src.infrastructure import paycrest_config
-from src.infrastructure.db import get_session
-from src.models import PaymentOrder
+from src.dtos import OrderResponse
+from src.infrastructure.settings import PayCrestConfig
 from src.types import Error, error
 
-from ....schemas.service_schema import OrderResponse
+PAYCREST_API_VERSION = "v1"
+
+BASE_URL = f"https://api.paycrest.io/{PAYCREST_API_VERSION}"
 
 
 class PaycrestService:
-    def __init__(self, db: Session = Depends(get_session)):
-        self.db = db
-        self.base_url = paycrest_config.paycrest_base_url.rstrip("/")
-        self.api_key = paycrest_config.paycrest_api_key
+    def __init__(self, config: PayCrestConfig):
+        self.api_key = config.paycrest_api_key
         self.headers = {
             "API-Key": self.api_key,
             "Content-Type": "application/json",
@@ -27,13 +24,12 @@ class PaycrestService:
         self, token: str, amount: Decimal, currency: str, network: str
     ) -> Tuple[Optional[str], Error]:  # We do not want to break execution
         """Fetch conversion rate for token -> fiat"""
-        url = f"{self.base_url}/rates/{token}/{float(amount)}/{currency}"
+        url = f"{BASE_URL}/rates/{token}/{float(amount)}/{currency}"
         params = {"network": network}
 
         resp = requests.get(
             url, headers={"Content-Type": "application/json"}, params=params, timeout=30
         )
-
         if resp.status_code != 200:
             return None, error(f"Rate fetch failed {resp.status_code}: {resp.text}")
 
@@ -71,7 +67,7 @@ class PaycrestService:
 
         # Call Paycrest API
         resp = requests.post(
-            f"{self.base_url}/sender/orders",
+            f"{BASE_URL}/sender/orders",
             headers=self.headers,
             json=order_data,
             timeout=30,
@@ -86,16 +82,6 @@ class PaycrestService:
         sender_fee = data.get("senderFee")
         transaction_fee = data.get("transactionFee")
         valid_until = data.get("validUntil")
-
-        # Log order in DB
-        order = PaymentOrder(
-            user_id=user_id,
-            amount=amount,
-            order_id=order_id,
-        )
-        self.db.add(order)
-        self.db.commit()
-        self.db.refresh(order)
 
         # Return response object
         return OrderResponse(

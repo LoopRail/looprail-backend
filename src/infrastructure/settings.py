@@ -35,7 +35,6 @@ class BlockRaderConfig(ServerConfig):
 
 
 class PayCrestConfig(ServerConfig):
-    paycrest_base_url: str
     paycrest_api_key: str
 
 
