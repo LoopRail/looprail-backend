@@ -1,26 +1,30 @@
-from typing import Any, Optional, Tuple, Type, TypeVar
+from typing import Any, Optional, Tuple, Type
 
-from httpx import AsyncClient, Response
-from pydantic import BaseModel
+from httpx import Response
 
+from src.infrastructure.services.base_client import BaseClient, T
 from src.infrastructure.settings import BlockRaderConfig
-from src.types import Error, HTTPMethod, error
-from src.types.blockrader_types import (AMLCheckRequest, AMLCheckResponse,
-                                        CreateAddressRequest,
-                                        NetworkFeeRequest, NetworkFeeResponse,
-                                        TransactionResponse,
-                                        WalletAddressDetailResponse,
-                                        WalletBalanceResponse,
-                                        WithdrawalRequest, WithdrawalResponse)
-
-T = TypeVar("T", bound=BaseModel)
+from src.types import Error, error
+from src.types.blockrader_types import (
+    AMLCheckRequest,
+    AMLCheckResponse,
+    CreateAddressRequest,
+    NetworkFeeRequest,
+    NetworkFeeResponse,
+    TransactionResponse,
+    WalletAddressDetailResponse,
+    WalletBalanceResponse,
+    WithdrawalRequest,
+    WithdrawalResponse,
+)
 
 BLOCKRADER_API_VERSION = "v1"
 BASE_URL = f"https://api.blockradar.co/{BLOCKRADER_API_VERSION}"
 
 
-class BlockRaderCLient:
+class BlockRaderCLient(BaseClient):
     """A base client for interacting with the BlockRadar API."""
+
     def __init__(self, config: BlockRaderConfig, path: str) -> None:
         """Initializes the BlockRader client.
 
@@ -29,57 +33,18 @@ class BlockRaderCLient:
             path: The base path for the API endpoints.
         """
         self.config = config
-        self._path = path
+        super().__init__(path)
 
-    def _get_url(self, path_suffix: str = "") -> str:
-        """Constructs the full URL for an API endpoint.
+    def _get_base_url(self) -> str:
+        return BASE_URL
 
-        Args:
-            path_suffix: The suffix to append to the base path.
-
-        Returns:
-            The full URL.
-        """
-        return f"{BASE_URL}{self._path}{path_suffix}"
-
-    async def _send(
-        self,
-        url: str,
-        method: str,
-        *,
-        data: dict[str, Any] = None,
-        req_params: dict[str, Any] = None,
-    ) -> Response:
-        """Sends an HTTP request to the BlockRadar API.
-
-        Args:
-            url: The URL to send the request to.
-            method: The HTTP method to use.
-            data: The data to send with the request.
-            req_params: The request parameters.
-
-        Returns:
-            The HTTP response.
-        """
-        headers = {"x-api-key": self.config.blockrader_api_key}
-        async with AsyncClient() as client:
-            res = await client.request(
-                method, url, headers=headers, json=data, params=req_params
-            )
-            return res
+    def _get_headers(self) -> dict[str, str]:
+        return {"x-api-key": self.config.blockrader_api_key}
 
     def _process_response(
         self, res: Response, response_model: Type[T]
     ) -> Tuple[Optional[T], Error]:
-        """Processes the HTTP response from the BlockRadar API.
-
-        Args:
-            res: The HTTP response.
-            response_model: The Pydantic model to validate the response against.
-
-        Returns:
-            A tuple containing the response data and an error, if any.
-        """
+        """Processes the HTTP response from the BlockRadar API."""
         if res.status_code >= 500:
             return None, error(f"Service not available {res.status_code}")
 
@@ -92,59 +57,10 @@ class BlockRaderCLient:
 
         return response_data, None
 
-    async def _get(
-        self,
-        response_model: Type[T],
-        path_suffix: str = "",
-        req_params: dict[str, Any] = None,
-    ) -> Tuple[Optional[T], Error]:
-        """Sends a GET request to the BlockRadar API.
-
-        Args:
-            response_model: The Pydantic model to validate the response against.
-            path_suffix: The suffix to append to the base path.
-            req_params: The request parameters.
-
-        Returns:
-            A tuple containing the response data and an error, if any.
-        """
-        url = self._get_url(path_suffix)
-        res = await self._send(url, HTTPMethod.GET, req_params=req_params)
-        return self._process_response(res, response_model)
-
-    async def _post(
-        self,
-        response_model: Type[T],
-        path_suffix: str = "",
-        data: dict[str, Any] = None,
-        req_params: dict[str, Any] = None,
-    ) -> Tuple[Optional[T], Error]:
-        """Sends a POST request to the BlockRadar API.
-
-        Args:
-            response_model: The Pydantic model to validate the response against.
-            path_suffix: The suffix to append to the base path.
-            data: The data to send with the request.
-            req_params: The request parameters.
-
-        Returns:
-            A tuple containing the response data and an error, if any.
-        """
-        url = self._get_url(path_suffix)
-        res = await self._send(url, HTTPMethod.POST, data=data, req_params=req_params)
-        return self._process_response(res, response_model)
-
     async def aml_lookup(
         self, req_params: AMLCheckRequest
     ) -> Tuple[Optional[AMLCheckResponse], Error]:
-        """Performs an AML (Anti-Money Laundering) lookup.
-
-        Args:
-            req_params: The request parameters for the AML lookup.
-
-        Returns:
-            A tuple containing the AML check response and an error, if any.
-        """
+        """Performs an AML (Anti-Money Laundering) lookup."""
         return await self._get(
             AMLCheckResponse,
             path_suffix="/aml/lookup",
@@ -154,76 +70,44 @@ class BlockRaderCLient:
 
 class TransactionalMixin:
     """A mixin for handling transactional endpoints of the BlockRadar API."""
-    async def get_details(self) -> Tuple[Optional[WalletAddressDetailResponse], Error]:
-        """Retrieves details for a specific wallet address.
 
-        Returns:
-            A tuple containing the wallet address details and an error, if any.
-        """
+    async def get_details(self: Any) -> Tuple[Optional[WalletAddressDetailResponse], Error]:
+        """Retrieves details for a specific wallet address."""
         return await self._get(WalletAddressDetailResponse)
 
     async def get_balance(
-        self: "BlockRaderCLient", asset_id: str = None
+        self: Any, asset_id: str = None
     ) -> Tuple[Optional[WalletBalanceResponse], Error]:
-        """Retrieves the balance for a specific asset in a wallet.
-
-        Args:
-            asset_id: The ID of the asset to retrieve the balance for.
-
-        Returns:
-            A tuple containing the wallet balance and an error, if any.
-        """
+        """Retrieves the balance for a specific asset in a wallet."""
         params = {"assetId": asset_id} if asset_id else None
         return await self._get(
             WalletBalanceResponse, path_suffix="/balance", req_params=params
         )
 
     async def get_balances(
-        self: "BlockRaderCLient",
+        self: Any,
     ) -> Tuple[Optional[WalletBalanceResponse], Error]:
-        """Retrieves all asset balances in a wallet.
-
-        Returns:
-            A tuple containing the wallet balances and an error, if any.
-        """
+        """Retrieves all asset balances in a wallet."""
         return await self._get(WalletBalanceResponse, path_suffix="/balances")
 
     async def get_transactions(
-        self: "BlockRaderCLient",
+        self: Any,
     ) -> Tuple[Optional[TransactionResponse], Error]:
-        """Retrieves a list of transactions for a wallet.
-
-        Returns:
-            A tuple containing the list of transactions and an error, if any.
-        """
+        """Retrieves a list of transactions for a wallet."""
         return await self._get(TransactionResponse, path_suffix="/transactions")
 
     async def get_transaction(
-        self: "BlockRaderCLient", transaction_id: str
+        self: Any, transaction_id: str
     ) -> Tuple[Optional[TransactionResponse], Error]:
-        """Retrieves a specific transaction by its ID.
-
-        Args:
-            transaction_id: The ID of the transaction to retrieve.
-
-        Returns:
-            A tuple containing the transaction and an error, if any.
-        """
+        """Retrieves a specific transaction by its ID."""
         return await self._get(
             TransactionResponse, path_suffix=f"/transactions/{transaction_id}"
         )
 
     async def withdraw_network_fee(
-        self: "BlockRaderCLient", request: NetworkFeeRequest
+        self: Any, request: NetworkFeeRequest
     ) -> Tuple[Optional[NetworkFeeResponse], Error]:
-        """Calculates the network fee for a withdrawal.
-
-        Args:
-            request: The request parameters for the network fee calculation.
-
-        Returns:
-            A tuple containing the network fee and an error, if any.
-        """
+        """Calculates the network fee for a withdrawal."""
         return await self._post(
             NetworkFeeResponse,
             path_suffix="/withdraw/network-fee",
@@ -231,16 +115,9 @@ class TransactionalMixin:
         )
 
     async def withdraw(
-        self: "BlockRaderCLient", request: WithdrawalRequest
+        self: Any, request: WithdrawalRequest
     ) -> Tuple[Optional[WithdrawalResponse], Error]:
-        """Initiates a withdrawal from a wallet.
-
-        Args:
-            request: The request parameters for the withdrawal.
-
-        Returns:
-            A tuple containing the withdrawal response and an error, if any.
-        """
+        """Initiates a withdrawal from a wallet."""
         return await self._post(
             WithdrawalResponse,
             path_suffix="/withdraw",
@@ -250,53 +127,30 @@ class TransactionalMixin:
 
 class AddressManager(BlockRaderCLient, TransactionalMixin):
     """Manages a specific address within a wallet."""
+
     def __init__(
         self, config: BlockRaderConfig, wallet_id: str, address_id: str
     ) -> None:
-        """Initializes the AddressManager.
-
-        Args:
-            config: The BlockRader configuration.
-            wallet_id: The ID of the wallet.
-            address_id: The ID of the address.
-        """
+        """Initializes the AddressManager."""
         super().__init__(config, path=f"/wallets/{wallet_id}/addresses/{address_id}")
 
 
 class WalletManager(BlockRaderCLient, TransactionalMixin):
     """Manages a specific wallet."""
-    def __init__(self, config: BlockRaderConfig, wallet_id: str) -> None:
-        """Initializes the WalletManager.
 
-        Args:
-            config: The BlockRader configuration.
-            wallet_id: The ID of the wallet.
-        """
+    def __init__(self, config: BlockRaderConfig, wallet_id: str) -> None:
+        """Initializes the WalletManager."""
         self.wallet_id = wallet_id
         super().__init__(config, path=f"/wallets/{wallet_id}")
 
     def addresses(self, address_id: str) -> "AddressManager":
-        """Returns an AddressManager for a specific address within the wallet.
-
-        Args:
-            address_id: The ID of the address.
-
-        Returns:
-            An AddressManager instance.
-        """
+        """Returns an AddressManager for a specific address within the wallet."""
         return AddressManager(self.config, self.wallet_id, address_id)
 
     async def generate_address(
         self, request: CreateAddressRequest
     ) -> Tuple[Optional[WalletAddressDetailResponse], Error]:
-        """Generates a new address for the wallet.
-
-        Args:
-            request: The request parameters for generating the address.
-
-        Returns:
-            A tuple containing the new address details and an error, if any.
-        """
+        """Generates a new address for the wallet."""
         return await self._post(
             WalletAddressDetailResponse,
             path_suffix="/addresses",

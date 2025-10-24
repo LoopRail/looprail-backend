@@ -31,11 +31,15 @@ class BlockRaderConfig(ServerConfig):
     blockrader_api_key: str
     evm_master_wallet: str
     base_usdc_asset_id: str
-    base_wallet_id: str
+    base_master_wallet: str
 
 
 class PayCrestConfig(ServerConfig):
     paycrest_api_key: str
+
+
+class PaystackConfig(ServerConfig):
+    paystack_api_key: str
 
 
 class DatabaseConfig(ServerConfig):
@@ -52,3 +56,4 @@ class DatabaseConfig(ServerConfig):
 block_rader_config = BlockRaderConfig()
 paycrest_config = PayCrestConfig()
 database_config = DatabaseConfig()
+paystack_config = PaystackConfig()
