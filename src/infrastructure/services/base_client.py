@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Tuple, Type
 
-from httpx import AsyncClient, Response, TimeoutException
+from httpx import AsyncClient, ConnectError, Response, TimeoutException
 from pydantic import BaseModel
 
 from src.types import Error, HTTPMethod, httpError
@@ -64,11 +64,19 @@ class BaseClient(ABC):
         async with AsyncClient() as client:
             try:
                 res = await client.request(
-                    method, url, headers=headers, json=data, params=req_params, timeout=30
+                    method,
+                    url,
+                    headers=headers,
+                    json=data,
+                    params=req_params,
+                    timeout=30,
                 )
                 return res, None
-            except TimeoutException:
-                return None, httpError(code=504, message=f"Request to {url} timed out after 30 seconds.")
+            except (TimeoutException, ConnectError):
+                print(res.json())
+                return None, httpError(
+                    code=504, message=f"Request to {url} failed"
+                )
 
     def _process_response(
         self, res: Response, response_model: Type[T]
@@ -137,7 +145,9 @@ class BaseClient(ABC):
             A tuple containing the response data and an error, if any.
         """
         url = self._get_url(path_suffix)
-        res, err = await self._send(url, HTTPMethod.POST, data=data, req_params=req_params)
+        res, err = await self._send(
+            url, HTTPMethod.POST, data=data, req_params=req_params
+        )
         if err:
             return None, err
         return self._process_response(res, response_model)
