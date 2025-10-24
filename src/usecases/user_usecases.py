@@ -36,7 +36,7 @@ class UserUseCase:
         )
         created_user, err = await self.user_repository.create_user(user=user)
         if err:
-            logger.error("Failed to create user in repository: %s", err.message)
+            logger.error("Failed to create user in repository: %s", err.message, exc_info=True)
             return None, err
         logger.info("User %s created successfully in repository.", created_user.username)
 
@@ -59,7 +59,7 @@ class UserUseCase:
 
         if err:
             logger.error(
-                "Failed to generate address for user %s: %s", created_user.username, err.message
+                "Failed to generate address for user %s: %s", created_user.username, err.message, exc_info=True
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
@@ -71,7 +71,7 @@ class UserUseCase:
 
         if err:
             logger.error(
-                "Failed to get address balance for user %s: %s", created_user.username, err.message
+                "Failed to get address balance for user %s: %s", created_user.username, err.message, exc_info=True
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
@@ -89,7 +89,7 @@ class UserUseCase:
         _, err = await self.wallet_repository.create_wallet(wallet=wallet)
         if err:
             logger.error(
-                "Failed to create wallet for user %s: %s", created_user.username, err.message
+                "Failed to create wallet for user %s: %s", created_user.username, err.message, exc_info=True
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
