@@ -7,4 +7,10 @@ class error(Exception):
         return self.message
 
 
-type Error = error | None
+class httpError(error):
+    def __init__(self, code: int, message: str = None):
+        self.code = code
+        super().__init__(message)
+
+
+type Error = error | httpError | None
