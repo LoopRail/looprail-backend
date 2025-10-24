@@ -1,4 +1,3 @@
-import asyncio
 
 from eth_account import Account
 from web3 import Web3
