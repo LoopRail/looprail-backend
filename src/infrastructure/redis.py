@@ -12,7 +12,7 @@ T = TypeVar("T")
 TTL = 60 * 1000  # milliseconds
 
 
-async def _create_client(settings: RedisConfig):
+def _create_client(settings: RedisConfig):
     """Initialize Redis connection."""
     client = Redis(
         host=settings.redis_host,
@@ -24,7 +24,7 @@ async def _create_client(settings: RedisConfig):
     return client
 
 
-async def _serialize_data(data: Any) -> Tuple[str | None, Error | None]:
+def _serialize_data(data: Any) -> Tuple[str | None, Error | None]:
     """Serialize data to a JSON string."""
     if isinstance(data, str):
         return data, None
@@ -78,7 +78,7 @@ class RedisTransaction:
 
 
 class RedisClient:
-    def __init__(self, settings: RedisConfig):
+    def __ainit__(self, settings: RedisConfig):
         self._instance = _create_client(settings)
 
     def transaction(self) -> RedisTransaction:
@@ -177,4 +177,3 @@ class RedisClient:
         if not keys:
             return 0
         return await self._instance.delete(*keys)
-
