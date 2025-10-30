@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Any, Optional, Tuple
 
-from pydantic import BaseModel
+
 
 from src.dtos import OrderResponse
 from src.infrastructure.services.base_client import BaseClient
