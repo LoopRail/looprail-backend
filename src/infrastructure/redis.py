@@ -78,7 +78,7 @@ class RedisTransaction:
 
 
 class RedisClient:
-    def __ainit__(self, settings: RedisConfig):
+    def __init__(self, settings: RedisConfig):
         self._instance = _create_client(settings)
 
     def transaction(self) -> RedisTransaction:
