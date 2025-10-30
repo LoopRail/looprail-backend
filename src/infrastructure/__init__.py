@@ -8,4 +8,5 @@ from src.infrastructure.settings import (
     otp_config,
     paycrest_config,
     redis_config,
+    resend_config,
 )
