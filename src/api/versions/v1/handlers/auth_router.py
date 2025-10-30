@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from src.api.dependencies import get_user_usecases
 from src.api.dependencies.services import get_resend_service
@@ -30,6 +30,7 @@ async def create_user(
 @router.post("/send-otp")
 @limiter.limit("1/minute")
 async def send_otp(
+    request: Request,
     response: Response,
     otp_data: OtpCreate,
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),

@@ -6,7 +6,6 @@ from src.api.dependencies.services import (
     get_redis_service,
 )
 from src.api.dependencies.usecases import (
-    get_otp_config,
     get_otp_usecase,
     get_user_usecases,
 )
