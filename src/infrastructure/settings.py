@@ -27,6 +27,13 @@ class ServerConfig(BaseSettings):
     )
 
 
+class OTPConfig(BaseSettings):
+    hmac_secret: str
+    otp_length: str
+    otp_expire_seconds: str
+    otp_max_attempts: str
+
+
 class BlockRaderConfig(ServerConfig):
     blockrader_api_key: str
     evm_master_wallet: str
@@ -53,7 +60,16 @@ class DatabaseConfig(ServerConfig):
         return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
 
+class RedisConfig(ServerConfig):
+    redis_port: int
+    redis_host: str
+    redis_username: str
+    redis_password: str
+
+
 block_rader_config = BlockRaderConfig()
 paycrest_config = PayCrestConfig()
 database_config = DatabaseConfig()
 paystack_config = PaystackConfig()
+redis_config = RedisConfig()
+otp_config = OTPConfig()
