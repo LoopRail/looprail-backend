@@ -21,9 +21,6 @@ class UserPublic(Base):
     first_name: str
     last_name: str
 
-    class Config:
-        from_attributes = True
-
 
 class UserProfileCreate(Base):
     street: str
@@ -47,7 +44,3 @@ class UserProfilePublic(Base):
     phone_number: str
     date_of_birth: date
     user_id: UUID
-
-    class Config:
-        from_attributes = True
-
