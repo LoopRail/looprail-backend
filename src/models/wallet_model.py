@@ -6,8 +6,7 @@ from uuid import UUID
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import (Error, SupportedCurrencies, TransactionMethod,
-                       TransactionType)
+from src.types import Error, SupportedCurrencies, PaymentMethod, TransactionType
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -40,7 +39,7 @@ class Transaction(Base, table=True):
 
     wallet_id: UUID = Field(foreign_key="wallets.id", index=True)
     transaction_type: TransactionType = Field(nullable=False)
-    method: TransactionMethod = Field(nullable=False)
+    method: PaymentMethod = Field(nullable=False)
     currency: SupportedCurrencies = Field(nullable=False)
     sender: str = Field(nullable=False)
     receiver: str = Field(nullable=False)
