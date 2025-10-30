@@ -73,7 +73,6 @@ class BaseClient(ABC):
                 )
                 return res, None
             except (TimeoutException, ConnectError):
-                print(res.json())
                 return None, httpError(
                     code=504, message=f"Request to {url} failed"
                 )
@@ -151,3 +150,5 @@ class BaseClient(ABC):
         if err:
             return None, err
         return self._process_response(res, response_model)
+
+
