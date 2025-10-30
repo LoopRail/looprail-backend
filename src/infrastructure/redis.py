@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 
 from coredis import Redis
 from coredis.exceptions import RedisError
+from coredis.pipeline import Pipeline
 
 from src.infrastructure.settings import RedisConfig
 from src.types import Error, error
@@ -46,26 +47,31 @@ def _serialize_data(data: Any) -> Tuple[str | None, Error | None]:
 
 
 class RedisTransaction:
-    def __init__(self, client: Redis):
-        self._pipe = client.pipeline(transaction=True)
+    def __init__(self, pipeline: Pipeline):
+        self._pipe = pipeline
 
-    def create(
+    @classmethod
+    async def new(cls, client: Redis):
+        pipe = await client.pipeline(transaction=True)
+        return cls(pipe)
+
+    async def create(
         self, key: str, data: Any, ttl: int = TTL
     ) -> Tuple[Optional["RedisTransaction"], Error]:
         """Queue a create operation in the transaction."""
         serialized_data, err = _serialize_data(data)
         if err:
             return None, err
-        self._pipe.set(key, serialized_data, ex=ttl)
+        await self._pipe.set(key, serialized_data, ex=ttl)
         return self, None
 
-    def update(self, key: str, data: Any) -> "RedisTransaction":
+    async def update(self, key: str, data: Any) -> "RedisTransaction":
         """Queue an update operation in the transaction."""
-        return self.create(key, data)
+        return await self.create(key, data)
 
-    def delete(self, key: str) -> "RedisTransaction":
+    async def delete(self, key: str) -> "RedisTransaction":
         """Queue a delete operation in the transaction."""
-        self._pipe.delete(key)
+        await self._pipe.delete(key)
         return self
 
     async def commit(self) -> Error | None:
@@ -81,9 +87,9 @@ class RedisClient:
     def __init__(self, settings: RedisConfig):
         self._instance = _create_client(settings)
 
-    def transaction(self) -> RedisTransaction:
+    async def transaction(self) -> RedisTransaction:
         """Start a new transaction."""
-        return RedisTransaction(self._instance)
+        return await RedisTransaction.new(self._instance)
 
     async def create(self, key: str, data: Any, ttl: int = TTL) -> Error:
         """Create a new object in Redis."""

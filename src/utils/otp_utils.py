@@ -13,7 +13,7 @@ def generate_otp_code(length: int) -> str:
 
 def hash_otp(otp: str, secret: str) -> str:
     """Return HMAC-SHA256 of the OTP using the server secret."""
-    hm = hmac.new(secret, otp.encode("utf-8"), hashlib.sha256)
+    hm = hmac.new(secret.encode("utf-8"), otp.encode("utf-8"), hashlib.sha256)
     return hm.hexdigest()
 
 

@@ -32,7 +32,7 @@ class ServerConfig(BaseSettings):
 
 class OTPConfig(ServerConfig):
     hmac_secret: str
-    otp_length: str
+    otp_length: int
     otp_expire_seconds: str
     otp_max_attempts: str
 

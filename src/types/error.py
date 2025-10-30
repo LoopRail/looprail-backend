@@ -6,6 +6,9 @@ class error(Exception):
     def string(self) -> str:
         return self.message
 
+    def __eq__(self, value: object, /) -> bool:
+        return super().__eq__(value)
+
 
 class httpError(error):
     def __init__(self, code: int, message: str = None):
