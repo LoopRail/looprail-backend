@@ -55,7 +55,6 @@ class ResendService:
                     "text": text_content,
                 }
             )
-            # The Resend SDK returns a dict on success, or raises an exception on error.
             return response, None
         except ResendError as e:
             return None, httpError(code=500, message=f"Failed to send email: {e}")
