@@ -30,14 +30,14 @@ class ServerConfig(BaseSettings):
     )
 
 
-class OTPConfig(BaseSettings):
+class OTPConfig(ServerConfig):
     hmac_secret: str
     otp_length: str
     otp_expire_seconds: str
     otp_max_attempts: str
 
 
-class ResendConfig(BaseSettings):
+class ResendConfig(ServerConfig):
     resend_api_key: str
 
 
