@@ -1,44 +1,19 @@
 from enum import Enum
-from typing import Optional, Tuple
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field
 
-from src.types.error import Error, error
-
-
-class InstitutionCountry(Enum):
-    NG = "nigeria"
-    KY = "kenya"
-
-    @classmethod
-    def get(cls, key: str) -> Tuple[Optional["InstitutionCountry"], Error]:
-        member = cls._member_map_.get(key)
-        if member is None:
-            return None, error(
-                f"{key} is not a valid institution, should be 'bank' or 'mobile_money'"
-            )
-        return member, None
+from src.dtos.base import Base
 
 
-class VerifyAccountRequest(BaseModel):
+class InstitutionCountry(str, Enum):
+    NG = "NG"
+    KY = "KY"
+
+
+class VerifyAccountRequest(Base):
     institution: str
-    accountIdentifier: str = Field(
-        serialization_alias="account-identifier", validation_alias="account-identifier"
-    )
-    institutionCountry: str = Field(
-        serialization_alias="institution-country",
-        validation_alias="institution-country",
-    )
-    institutionCode: str | None = Field(
-        serialization_alias="institution-code",
-        validation_alias="institution-code",
+    account_identifier: str
+    institution_code: str | None = Field(
         default=None,
     )
-
-    @field_validator("institutionCountry")
-    @classmethod
-    def validate_institusion_country(cls, v: str):
-        _, err = InstitutionCountry.get(v.upper())
-        if err is not None:
-            raise err
-        return v
+    institution_country: InstitutionCountry

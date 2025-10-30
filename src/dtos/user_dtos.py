@@ -1,19 +1,20 @@
 from datetime import date
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import EmailStr
 
 from src.types import KYCStatus
+from src.dtos.base import Base
 
 
-class UserCreate(BaseModel):
+class UserCreate(Base):
     username: str
     email: EmailStr
     first_name: str
     last_name: str
 
 
-class UserPublic(BaseModel):
+class UserPublic(Base):
     id: UUID
     username: str
     email: EmailStr
@@ -24,7 +25,7 @@ class UserPublic(BaseModel):
         from_attributes = True
 
 
-class UserProfileCreate(BaseModel):
+class UserProfileCreate(Base):
     street: str
     city: str
     state: str
@@ -34,7 +35,7 @@ class UserProfileCreate(BaseModel):
     date_of_birth: date
 
 
-class UserProfilePublic(BaseModel):
+class UserProfilePublic(Base):
     id: UUID
     kyc_status: KYCStatus
     is_email_verified: bool
@@ -49,3 +50,4 @@ class UserProfilePublic(BaseModel):
 
     class Config:
         from_attributes = True
+
