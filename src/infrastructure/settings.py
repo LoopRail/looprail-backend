@@ -34,6 +34,10 @@ class OTPConfig(BaseSettings):
     otp_max_attempts: str
 
 
+class ResendConfig(BaseSettings):
+    resend_api_key: str
+
+
 class BlockRaderConfig(ServerConfig):
     blockrader_api_key: str
     evm_master_wallet: str
@@ -73,3 +77,4 @@ database_config = DatabaseConfig()
 paystack_config = PaystackConfig()
 redis_config = RedisConfig()
 otp_config = OTPConfig()
+resend_config = ResendConfig()
