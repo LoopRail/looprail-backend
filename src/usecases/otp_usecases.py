@@ -15,7 +15,7 @@ class OtpUseCase:
         self.__redis_client = redis_client
         self.__otp_config = otp_config
 
-    async def generate_otp(self, user_email: str) -> Tuple[str, Error]:
+    async def generate_otp(self, user_email: str) -> Tuple[str, str, Error]:
         code = generate_otp_code(self.__otp_config.otp_length)
         hashed_code = hash_otp(code, self.__otp_config.hmac_secret)
         otp = Otp(user_email=user_email, code_hash=hashed_code)
@@ -28,8 +28,8 @@ class OtpUseCase:
 
         if err:
             logger.error("Error saving OTP to redis atomically: %s", err.message())
-            return "", err
-        return token, None
+            return "", "", err
+        return code, token, None
 
     async def verify_otp(self):
         pass
