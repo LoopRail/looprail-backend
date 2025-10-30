@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.dependencies import get_user_usecases
+from src.api.rate_limiter import limiter
 from src.dtos.user_dtos import UserCreate, UserPublic
 from src.infrastructure.logger import get_logger
 from src.usecases import UserUseCase
@@ -22,4 +23,13 @@ async def create_user(
     return UserPublic.model_validate(created_user)
 
 
-router.post("/register", response_model=UserPublic, status_code=201)(create_user)
+
+@router.post("/send-otp")
+@limiter.limit("1/minute")
+async def send_otp():
+    pass
+
+
+async def verify_otp():
+    pass
+
