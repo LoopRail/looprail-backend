@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import (APIRouter, Depends, HTTPException, Request, Response,
+                     status)
+from fastapi.responses import JSONResponse
 
-from src.api.dependencies import get_user_usecases
-from src.api.dependencies.services import get_resend_service
+from src.api.dependencies import get_resend_service, get_user_usecases
 from src.api.dependencies.usecases import get_otp_usecase
 from src.api.rate_limiter import limiter
 from src.dtos.otp_dtos import OtpCreate
@@ -37,6 +38,22 @@ async def send_otp(
     resend_service: ResendService = Depends(get_resend_service),
 ):
     """API endpoint to send OTP to a user."""
+
+    token, err = await otp_usecases.get_user_token(user_email=otp_data.email)
+
+    if err and err != "Not found":
+        logger.error("Error getting user token %s", err.message)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Server Error"},
+        )
+    err = await otp_usecases.delete_otp(user_email=otp_data.email)
+    if err:
+        logger.error("Error deleting user token %s", err.message)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Server Error"},
+        )
 
     otp_code, token, err = await otp_usecases.generate_otp(user_email=otp_data.email)
     if err:

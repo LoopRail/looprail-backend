@@ -21,18 +21,35 @@ class OtpUseCase:
         otp = Otp(user_email=user_email, code_hash=hashed_code)
         token = make_token()
 
-        tx = self.__redis_client.transaction()
-        tx.create(f"otp:token:{token}", otp)
-        tx.create(f"otp:email:{user_email}", token)
+        tx = await self.__redis_client.transaction()
+        await tx.create(f"otp:token:{token}", otp)
+        await tx.create(f"otp:email:{user_email}", token)
         err = await tx.commit()
 
         if err:
-            logger.error("Error saving OTP to redis atomically: %s", err.message())
+            logger.error("Error saving OTP to redis atomically: %s", err.message)
             return "", "", err
         return code, token, None
 
-    async def verify_otp(self):
-        pass
 
-    async def delete_otp(self):
-        pass
+    async def get_user_token(self, user_email) -> Tuple[str, Error]:
+        key = f"otp:email:{user_email}"
+        token, err = await self.__redis_client.get(key)
+        if err:
+            return "", err
+        return token, None
+
+    async def delete_otp(self, user_email) -> Error:
+        token, err = self.get_user_token(user_email)
+        if err:
+            return err
+        tx = await self.__redis_client.transaction()
+        await tx.delete(f"otp:token:{token}")
+        await tx.delete("otp:email:{user_email}")
+
+        err = await tx.commit()
+
+        if err:
+            logger.error("Error deleting OTP to redis atomically: %s", err.message)
+            return err
+        return None

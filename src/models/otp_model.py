@@ -1,4 +1,4 @@
-from time import time
+import time
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 
 
 class Otp(BaseModel):
-    model_config = ConfigDict(alias_generator=kebab_case)
+    model_config = ConfigDict(alias_generator=kebab_case, populate_by_name=True)
     user_email: EmailStr
     created_at: int = Field(default_factory=lambda: int(time.time()))
     expires_at: int = Field(default_factory=lambda: int(time.time()) + 60)  # seconds
