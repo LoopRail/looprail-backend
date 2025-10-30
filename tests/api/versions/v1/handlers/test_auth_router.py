@@ -1,20 +1,12 @@
-import os
-
-os.environ["TESTING"] = "true"
-
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from fastapi.testclient import TestClient
-
-from src.main import app
 from src.types import error
-
-client = TestClient(app)
+from tests.conftest import client
 
 
 @patch("src.api.versions.v1.handlers.auth_router.get_otp_usecase")
 @patch("src.api.versions.v1.handlers.auth_router.get_resend_service")
-def test_send_otp_success(mock_get_resend_service, mock_get_otp_usecase):
+def test_send_otp_success(mock_get_otp_usecase, mock_get_resend_service):
     # Arrange
     mock_otp_usecase = MagicMock()
     mock_otp_usecase.generate_otp = AsyncMock(
