@@ -1,9 +1,14 @@
 from enum import Enum
 
 
+class TransactionStatus(str, Enum):
+    COMPLETED = "completed"
+    PENDING = "pending"
+    FAILED = "failed"
+
+
 class SupportedCurrencies(str, Enum):
-    NGN = "ngn"
-    USD = "usd"
+    NAIRA = "naira"
 
 
 class TransactionType(str, Enum):
@@ -11,13 +16,18 @@ class TransactionType(str, Enum):
     CREDIT = "credit"
 
 
-class TransactionMethod(str, Enum):
+class PaymentType(str, Enum):
+    FIAT = "fiat"
+    CRYPTO = "crypto"
+
+
+class PaymentMethod(str, Enum):
     CARD = "card"
-    APPLE_PAY = "apple_pay"
+    APPLE_PAY = "apple-pay"
     GOOGLE_PAY = "google_pay"
-    BANK_TRANSFER = "bank_transfer"
-    MOBILE_MONEY = "mobile_money"
-    WALLET_TRANSFER = "wallet_transfer"
+    BANK_TRANSFER = "bank-transfer"
+    MOBILE_MONEY = "mobile-money"
+    WALLET_TRANSFER = "wallet-transfer"
 
 
 class Chain(str, Enum):
@@ -34,3 +44,14 @@ class KYCStatus(str, Enum):
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class OtpType(str, Enum):
+    EMAIL_VERIFICATION = "email_verification"
+
+
+class OtpStatus(str, Enum):
+    ACTIVE = "active"
+    USED = "used"
+    EXPIRED = "expired"
+    ATTEMPT_EXCEEDED = "attempt_exceeded"
