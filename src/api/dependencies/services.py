@@ -6,6 +6,8 @@ from src.infrastructure.settings import (
     block_rader_config,
     paycrest_config,
     paystack_config,
+    ResendConfig,
+    resend_config,
 )
 
 def get_blockrader_config() -> BlockRaderConfig:
@@ -18,6 +20,10 @@ async def get_paycrest_service() -> PaycrestService:
 
 async def get_paystack_service() -> PaystackService:
     yield PaystackService(paystack_config)
+
+
+async def get_resend_service() -> ResendService:
+    yield ResendService(resend_config)
 
 
 async def get_redis_service() -> RedisClient:
