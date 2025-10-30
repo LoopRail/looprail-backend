@@ -32,9 +32,9 @@ async def verify_account(
     #     err.code,
     # )
     response, err = await paystack_service.verify_account(
-        account_number=verify_request.accountIdentifier,
-        institution_code=verify_request.institutionCode,
-        country=verify_request.institutionCountry,
+        account_number=verify_request.account_identifier,
+        institution_code=verify_request.institution_code,
+        country=verify_request.institution_country,
     )
     if err is None:
         return response
