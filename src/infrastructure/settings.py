@@ -4,7 +4,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.utils import return_base_dir
 
-env_dir = os.path.join(return_base_dir(), "config", ".env.dev")
+if os.getenv("TESTING") == "true":
+    env_dir = os.path.join(return_base_dir(), "config", ".env.test")
+else:
+    env_dir = os.path.join(return_base_dir(), "config", ".env.dev")
 
 USDC_ADDRESS = "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"
 USDC_ABI = [
