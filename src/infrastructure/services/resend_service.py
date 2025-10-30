@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 
-from resend import Resend
+import resend
 from resend.exceptions import ResendError
 
 from src.infrastructure.settings import ResendConfig
@@ -16,8 +16,7 @@ class ResendService:
         Args:s
             config: The Resend configuration.
         """
-        self.config = config
-        self._resend_client = Resend(api_key=config.resend_api_key)
+        resend.api_key = config.resend_api_key
 
     async def send(
         self,
@@ -47,7 +46,7 @@ class ResendService:
 
         try:
             # Use the Resend SDK's send method
-            response = self._resend_client.emails.send(
+            response = resend.Emails.send(
                 {
                     "from": _from,
                     "to": to if isinstance(to, list) else [to],
@@ -82,4 +81,3 @@ class ResendService:
         html_content = f"<p>Your One-Time Password is: <strong>{otp_code}</strong></p>"
         text_content = f"Your One-Time Password is: {otp_code}"
         return await self.send(to, _from, subject, html_content, text_content)
-
