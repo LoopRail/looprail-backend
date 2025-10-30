@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
 from src.main import app
-from src.types import Error
+from src.types import error
 
 client = TestClient(app)
 
@@ -47,7 +47,7 @@ def test_send_otp_generate_otp_fails(mock_get_otp_usecase):
     # Arrange
     mock_otp_usecase = MagicMock()
     mock_otp_usecase.generate_otp = AsyncMock(
-        return_value=("", "", Error("Failed to generate OTP"))
+        return_value=("", "", error("Failed to generate OTP"))
     )
     mock_get_otp_usecase.return_value = mock_otp_usecase
 
@@ -71,7 +71,7 @@ def test_send_otp_send_email_fails(mock_get_resend_service, mock_get_otp_usecase
 
     mock_resend_service = MagicMock()
     mock_resend_service.send_otp = AsyncMock(
-        return_value=(None, Error("Failed to send email"))
+        return_value=(None, error("Failed to send email"))
     )
     mock_get_resend_service.return_value = mock_resend_service
 
