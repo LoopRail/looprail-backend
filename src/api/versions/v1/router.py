@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
-
 from src.api.dependencies import get_paycrest_service
 from src.api.versions.v1.handlers import (accounts_router, auth_router,
-                                          offramp_router)
+                                          offramp_router, payment_router)
 from src.infrastructure.services.paycrest.paycrest_service import \
     PaycrestService
 
@@ -28,3 +27,4 @@ async def get_rates(
 v1_router.include_router(auth_router.router)
 v1_router.include_router(accounts_router.router)
 v1_router.include_router(offramp_router.router)
+v1_router.include_router(payment_router.router)
