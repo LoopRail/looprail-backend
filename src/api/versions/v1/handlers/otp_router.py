@@ -2,7 +2,7 @@ import random
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
 from src.models.otp import Otp
-from src.utils.security import hash_otp
+from src.utils.otp_utils import hash_otp
 from src.utils.email_service import send_email_otp
 from src.storage.otp_store import save_otp, get_otp, delete_otp
 from src.types import OtpStatus, OtpType
