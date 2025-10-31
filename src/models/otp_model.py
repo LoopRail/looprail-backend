@@ -1,35 +1,39 @@
 import time
-
+import hashlib
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
-
 from src.infrastructure.logger import get_logger
 from src.types import OtpStatus, OtpType, error
 from src.utils import kebab_case
 
 logger = get_logger(__name__)
 
-
 class Otp(BaseModel):
+    """
+    Represents a one-time password (OTP) instance for verification purposes.
+    """
     model_config = ConfigDict(alias_generator=kebab_case, populate_by_name=True)
+
     user_email: EmailStr
     created_at: int = Field(default_factory=lambda: int(time.time()))
-    expires_at: int = Field(default_factory=lambda: int(time.time()) + 60)  # seconds
+    expires_at: int = Field(default_factory=lambda: int(time.time()) + 300)  # expires in 5 minutes
     status: OtpStatus = OtpStatus.ACTIVE
     code_hash: str = Field(alias="hash")
     otp_type: OtpType = Field(alias="type", default=OtpType.EMAIL_VERIFICATION)
     attempts: int = 0
 
     def is_expired(self) -> bool:
-        """Checks if the OTP has expired."""
+        """Check if the OTP has expired."""
         return time.time() > self.expires_at
+
+    def verify_code(self, code: str) -> bool:
+        """Verify the user-provided OTP code against the stored hash."""
+        hashed = hashlib.sha256(code.encode()).hexdigest()
+        return hashed == self.code_hash
 
     @model_validator(mode="after")
     def validate_otp(self) -> "Otp":
         """
-        Validates the OTP.
-
-        An OTP is considered invalid if the number of verification attempts
-        exceeds 3 or if its status is not 'active'.
+        Validates the OTP instance after initialization.
         """
         if self.is_expired():
             logger.error("OTP has expired")
