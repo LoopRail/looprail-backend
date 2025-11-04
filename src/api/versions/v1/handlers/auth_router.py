@@ -2,13 +2,14 @@ from fastapi import (APIRouter, Depends, HTTPException, Request, Response,
                      status)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import get_resend_service, get_user_usecases
-from src.api.dependencies.usecases import get_otp_usecase
+from src.api.dependencies import (get_otp_token, get_otp_usecase,
+                                  get_resend_service, get_user_usecases)
 from src.api.rate_limiter import limiter
-from src.dtos.otp_dtos import OtpCreate
-from src.dtos.user_dtos import UserCreate, UserPublic
+from src.dtos import OtpCreate, UserCreate, UserPublic, VerifyOtpRequest
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services.resend_service import ResendService
+from src.models.otp_model import Otp
+from src.types import OtpStatus
 from src.usecases import OtpUseCase, UserUseCase
 
 logger = get_logger(__name__)
@@ -74,5 +75,40 @@ async def send_otp(
     return {"message": "OTP sent successfully."}
 
 
-async def verify_otp():
-    pass
+@router.post("/verify-otp")
+@limiter.limit("1/minute")
+async def verify_otp(
+    request: Request,
+    req: VerifyOtpRequest,
+    otp: Otp = Depends(get_otp_token),
+    otp_usecases: OtpUseCase = Depends(get_otp_usecase),
+):
+    """Verify an OTP against what is stored in Redis."""
+    token, err = otp_usecases.get_user_token(otp.user_email)
+    if err:
+        logger.error(err.message)
+        raise HTTPException(status_code=400, detail="Invlaid OTP Token")
+
+    if otp.is_expired():
+        otp.status = OtpStatus.EXPIRED
+        otp_usecases.delete_otp(token, req.otp_type.value)
+        raise HTTPException(status_code=400, detail="OTP expired")
+
+    if otp.verify_code(req.code):
+        otp.status = OtpStatus.USED
+        otp_usecases.delete_otp(otp.user_email, req.otp_type)
+        return {"message": "OTP verified successfully"}
+
+    if otp.attempts > 3:
+        otp.status = OtpStatus.ATTEMPT_EXCEEDED
+        otp_usecases.delete_otp(otp.e, req.otp_type.value)
+        raise HTTPException(status_code=400, detail="Too many attempts")
+
+    otp.attempts += 1
+
+    err = otp_usecases.update_otp(otp.tok)
+    if err:
+        logger.error(err.message)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+    raise HTTPException(status_code=400, detail="Invalid OTP")
