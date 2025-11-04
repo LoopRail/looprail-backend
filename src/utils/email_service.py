@@ -1,5 +1,10 @@
+"""
+see infrastructure/services/resend_serivice.py for email client
+"""
+
 import smtplib
 from email.mime.text import MIMEText
+
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
@@ -9,6 +14,7 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = "your_email@gmail.com"
 SENDER_PASSWORD = "your_app_password"
+
 
 def send_email_otp(recipient: str, otp_code: str):
     """
