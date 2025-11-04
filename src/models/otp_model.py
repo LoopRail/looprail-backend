@@ -25,11 +25,6 @@ class Otp(BaseModel):
         """Check if the OTP has expired."""
         return time.time() > self.expires_at
 
-    def verify_code(self, code: str) -> bool:
-        """Verify the user-provided OTP code against the stored hash."""
-        hashed = hashlib.sha256(code.encode()).hexdigest()
-        return hashed == self.code_hash
-
     @model_validator(mode="after")
     def validate_otp(self) -> "Otp":
         """
