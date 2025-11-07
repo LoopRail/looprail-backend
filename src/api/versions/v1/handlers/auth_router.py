@@ -2,8 +2,12 @@ from fastapi import (APIRouter, Depends, HTTPException, Request, Response,
                      status)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (get_otp_token, get_otp_usecase,
-                                  get_resend_service, get_user_usecases)
+from src.api.dependencies import (
+    get_otp_token,
+    get_otp_usecase,
+    get_resend_service,
+    get_user_usecases,
+)
 from src.api.rate_limiter import limiter
 from src.dtos import OtpCreate, UserCreate, UserPublic, VerifyOtpRequest
 from src.infrastructure.logger import get_logger
