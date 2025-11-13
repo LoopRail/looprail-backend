@@ -18,7 +18,7 @@ class SQLWalletRepository(WalletRepository, BaseRepository):
         super().__init__(session)
 
     async def create_wallet(self, *, wallet: Wallet) -> Tuple[Optional[Wallet], Error]:
-        return await self._execute_in_transaction(wallet.create, wallet)
+        return await wallet.create(self.session)
 
     async def get_wallet_by_id(self, *, wallet_id: UUID) -> Tuple[Optional[Wallet], Error]:
         wallet = await Wallet.get(self.session, wallet_id)
@@ -46,12 +46,15 @@ class SQLWalletRepository(WalletRepository, BaseRepository):
             return [], error(str(e))
 
     async def update_wallet(self, *, wallet: Wallet) -> Tuple[Optional[Wallet], Error]:
-        return await self._execute_in_transaction(wallet.save, wallet)
+        err = await wallet.save(self.session)
+        if err:
+            return None, err
+        return wallet, None
 
     async def create_transaction(
         self, *, transaction: Transaction
     ) -> Tuple[Optional[Transaction], Error]:
-        return await self._execute_in_transaction(transaction.create, transaction)
+        return await transaction.create(self.session)
 
     async def get_transaction_by_id(
         self, *, transaction_id: UUID
