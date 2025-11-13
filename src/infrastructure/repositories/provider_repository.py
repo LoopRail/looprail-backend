@@ -4,12 +4,12 @@ from uuid import UUID
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.infrastructure.repositories.base_repository import BaseRepository
-from src.models.wallet_model import Provider, ProviderRepository
+from src.models.wallet_model import Provider
 from src.types.error import Error, error
 from src.types.types import Provider as ProviderEnum
 
 
-class SQLProviderRepository(ProviderRepository, BaseRepository):
+class ProviderRepository(BaseRepository):
     """
     Concrete implementation of the provider repository using SQLModel.
     """

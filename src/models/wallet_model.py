@@ -6,8 +6,8 @@ from uuid import UUID
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import (AssetType, Currency, Error, Chain, PaymentMethod,
-                       TransactionType, Standards, Provider)
+from src.types import (AssetType, Chain, Currency, Error, PaymentMethod,
+                       Provider, Standards, TransactionType)
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -15,10 +15,11 @@ if TYPE_CHECKING:
 from decimal import Decimal
 
 
-class Provider(Base, table=True):
-    __tablename__ = "providers"
+class WalletProvider(Base, table=True):
+    __tablename__ = "wallet_providers"
 
     name: Provider = Field(unique=True, nullable=False)
+    is_active: bool = Field(default=True)
 
     wallets: list["Wallet"] = Relationship(back_populates="provider")
 
@@ -39,7 +40,7 @@ class Wallet(Base, table=True):
     description: Optional[str] = Field(default=None)
 
     user: User = Relationship(back_populates="wallet")
-    provider: Provider = Relationship(back_populates="wallets")
+    provider: WalletProvider = Relationship(back_populates="wallets")
     transactions: list[Transaction] = Relationship(back_populates="wallet")
     assets: list["Asset"] = Relationship(back_populates="wallet")
 
@@ -48,7 +49,7 @@ class Asset(Base, table=True):
     __tablename__ = "assets"
 
     wallet_id: UUID = Field(foreign_key="wallets.id", index=True)
-    name: str = Field(nullable=False)
+    name: AssetType = Field(nullable=False)
     asset_id: str = Field(unique=True, index=True, nullable=False)  # External asset ID
     symbol: str = Field(nullable=False)
     decimals: int = Field(nullable=False)
@@ -91,48 +92,4 @@ class Transaction(Base, table=True):
     wallet: Wallet = Relationship(back_populates="transactions")
 
 
-class WalletRepository(Protocol):
-    """
-    Protocol for a wallet repository.
-    Defines the interface for interacting with wallet data.
-    """
 
-    async def create_wallet(
-        self, *, wallet: Wallet
-    ) -> Tuple[Optional[Wallet], Error]: ...
-
-    async def get_wallet_by_id(
-        self, *, wallet_id: UUID
-    ) -> Tuple[Optional[Wallet], Error]: ...
-
-    async def get_wallet_by_address(
-        self, *, address: str
-    ) -> Tuple[Optional[Wallet], Error]: ...
-
-    async def get_wallet_by_provider_id(
-        self, *, provider_id: str
-    ) -> Tuple[Optional[Wallet], Error]: ...
-
-    async def get_wallets_by_user_id(
-        self, *, user_id: UUID
-    ) -> Tuple[list[Wallet], Error]: ...
-
-    async def update_wallet(
-        self, *, wallet: Wallet
-    ) -> Tuple[Optional[Wallet], Error]: ...
-
-    async def create_transaction(
-        self, *, transaction: Transaction
-    ) -> Tuple[Optional[Transaction], Error]: ...
-
-    async def get_transaction_by_id(
-        self, *, transaction_id: UUID
-    ) -> Tuple[Optional[Transaction], Error]: ...
-
-    async def get_transactions_by_wallet_id(
-        self, *, wallet_id: UUID, limit: int = 20, offset: int = 0
-    ) -> Tuple[list[Transaction], Error]: ...
-
-    async def get_transaction_by_hash(
-        self, *, transaction_hash: str
-    ) -> Tuple[Optional[Transaction], Error]: ...
