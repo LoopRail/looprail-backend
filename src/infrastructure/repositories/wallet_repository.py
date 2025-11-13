@@ -2,8 +2,9 @@ from typing import Optional, Tuple
 from uuid import UUID
 
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+# from sqlmodel.ext.asyncio.session import AsyncSession # Removed as session is now from UoW
 
+from src.infrastructure.db.unit_of_work import UnitOfWork
 from src.infrastructure.repositories.base_repository import BaseRepository
 from src.models.wallet_model import Wallet, Transaction, WalletRepository
 from src.types.error import Error, error
@@ -14,8 +15,8 @@ class SQLWalletRepository(WalletRepository, BaseRepository):
     Concrete implementation of the wallet repository using SQLModel.
     """
 
-    def __init__(self, session: AsyncSession):
-        super().__init__(session)
+    def __init__(self, uow: UnitOfWork):
+        super().__init__(uow)
 
     async def create_wallet(self, *, wallet: Wallet) -> Tuple[Optional[Wallet], Error]:
         return await wallet.create(self.session)
