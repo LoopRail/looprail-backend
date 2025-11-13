@@ -19,7 +19,7 @@ class SQLUserRepository(UserRepository, BaseRepository):
         super().__init__(session)
 
     async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]:
-        return await self._execute_in_transaction(user.create, user)
+        return await user.create(self.session)
 
     async def get_user_by_id(self, *, user_id: UUID) -> Tuple[Optional[User], Error]:
         user = await User.get(self.session, user_id)
@@ -48,18 +48,21 @@ class SQLUserRepository(UserRepository, BaseRepository):
             return [], error(str(e))
 
     async def update_user(self, *, user: User) -> Tuple[Optional[User], Error]:
-        return await self._execute_in_transaction(user.save, user)
+        err = await user.save(self.session)
+        if err:
+            return None, err
+        return user, None
 
     async def delete_user(self, *, user_id: UUID) -> Error:
         user, err = await self.get_user_by_id(user_id=user_id)
         if err:
             return err
-        return await self._execute_in_transaction(user.delete, user)
+        return await user.delete(self.session)
 
     async def create_user_profile(
         self, *, user_profile: UserProfile
     ) -> Tuple[Optional[UserProfile], Error]:
-        return await self._execute_in_transaction(user_profile.create, user_profile)
+        return await user_profile.create(self.session)
 
     async def get_user_profile_by_user_id(
         self, *, user_id: UUID
@@ -70,4 +73,7 @@ class SQLUserRepository(UserRepository, BaseRepository):
         return profile, None
 
     async def update_user_profile(self, *, user_profile: UserProfile) -> Tuple[Optional[UserProfile], Error]:
-        return await self._execute_in_transaction(user_profile.save, user_profile)
+        err = await user_profile.save(self.session)
+        if err:
+            return None, err
+        return user_profile, None
