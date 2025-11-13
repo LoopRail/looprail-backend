@@ -15,6 +15,14 @@ if TYPE_CHECKING:
 from decimal import Decimal
 
 
+class Provider(Base, table=True):
+    __tablename__ = "providers"
+
+    name: str = Field(unique=True, nullable=False)
+
+    wallets: list["Wallet"] = Relationship(back_populates="provider")
+
+
 class Wallet(Base, table=True):
     __tablename__ = "wallets"
 
