@@ -7,8 +7,14 @@ class TransactionStatus(str, Enum):
     FAILED = "failed"
 
 
-class SupportedCurrencies(str, Enum):
-    NAIRA = "naira"
+class SupportedCurrency(str, Enum):
+    NAIRA = "ngn"
+
+
+class Assets(str, Enum):
+    USDC = "usdc"
+    USDT = "usdt"
+    cNGN = "cngn"
 
 
 class TransactionType(str, Enum):
@@ -37,6 +43,11 @@ class Chain(str, Enum):
     BITCOIN = "btc"
 
 
+class SupportedNetworksRPC:
+    BASE = "mainnet"
+    BASE_SEPOLIA = "base_sepoila"
+
+
 class KYCStatus(str, Enum):
     """Represents the KYC status of a user."""
 
@@ -55,3 +66,7 @@ class OtpStatus(str, Enum):
     USED = "used"
     EXPIRED = "expired"
     ATTEMPT_EXCEEDED = "attempt_exceeded"
+
+
+class AccessToken(str, Enum):
+    ONBOARDING_TOKEN = "onboarding_token"
