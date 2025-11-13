@@ -17,10 +17,14 @@ class AssetType(str, Enum):
     cNGN = "cngn"
 
 
-class Standards(str, Enum):
+class TokenStandard(str, Enum):
     ERC20 = "erc20"
     BEP20 = "bep20"
     TRC20 = "trc20"
+
+
+class Provider(str, Enum):
+    BLOCKRADER = "blockrader"
 
 
 class TransactionType(str, Enum):
