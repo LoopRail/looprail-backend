@@ -5,20 +5,21 @@ from pydantic import EmailStr
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.infrastructure.repositories.base_repository import BaseRepository
 from src.models.user_model import User, UserProfile, UserRepository
 from src.types.error import Error, error
 
 
-class SQLUserRepository(UserRepository):
+class SQLUserRepository(UserRepository, BaseRepository):
     """
     Concrete implementation of the user repository using SQLModel.
     """
 
     def __init__(self, session: AsyncSession):
-        self.session = session
+        super().__init__(session)
 
     async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]:
-        return await user.create(self.session)
+        return await self._execute_in_transaction(user.create, user)
 
     async def get_user_by_id(self, *, user_id: UUID) -> Tuple[Optional[User], Error]:
         user = await User.get(self.session, user_id)
@@ -47,21 +48,18 @@ class SQLUserRepository(UserRepository):
             return [], error(str(e))
 
     async def update_user(self, *, user: User) -> Tuple[Optional[User], Error]:
-        err = await user.save(self.session)
-        if err:
-            return None, err
-        return user, None
+        return await self._execute_in_transaction(user.save, user)
 
     async def delete_user(self, *, user_id: UUID) -> Error:
         user, err = await self.get_user_by_id(user_id=user_id)
         if err:
             return err
-        return await user.delete(self.session)
+        return await self._execute_in_transaction(user.delete, user)
 
     async def create_user_profile(
         self, *, user_profile: UserProfile
     ) -> Tuple[Optional[UserProfile], Error]:
-        return await user_profile.create(self.session)
+        return await self._execute_in_transaction(user_profile.create, user_profile)
 
     async def get_user_profile_by_user_id(
         self, *, user_id: UUID
@@ -72,7 +70,4 @@ class SQLUserRepository(UserRepository):
         return profile, None
 
     async def update_user_profile(self, *, user_profile: UserProfile) -> Tuple[Optional[UserProfile], Error]:
-        err = await user_profile.save(self.session)
-        if err:
-            return None, err
-        return user_profile, None
+        return await self._execute_in_transaction(user_profile.save, user_profile)
