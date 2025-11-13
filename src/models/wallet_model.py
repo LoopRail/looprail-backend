@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import Error, SupportedCurrency, PaymentMethod, TransactionType
+from src.types import Error, SupportedCurrency, PaymentMethod, TransactionType, Chain
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -21,6 +21,7 @@ class Wallet(Base, table=True):
     address: str = Field(unique=True, index=True, nullable=False)
     balance: Decimal = Field(default=Decimal("0.00"), nullable=False)
     network: str = Field(nullable=False)
+    chain: Chain = Field(nullable=False)
     provider_id: str = Field(unique=True, index=True, nullable=False)
     provider: str = Field(default="blockrader", nullable=False)
     is_active: bool = Field(default=True, nullable=False)
