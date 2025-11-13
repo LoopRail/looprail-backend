@@ -31,8 +31,7 @@ class Wallet(Base, table=True):
     balance: Decimal = Field(default=Decimal("0.00"), nullable=False)
     network: str = Field(nullable=False)
     chain: Chain = Field(nullable=False)
-    provider_id: str = Field(unique=True, index=True, nullable=False)
-    provider: str = Field(default="blockrader", nullable=False)
+    provider_id: UUID = Field(foreign_key="providers.id", index=True)
     is_active: bool = Field(default=True, nullable=False)
 
     name: Optional[str] = Field(default=None)
@@ -40,6 +39,7 @@ class Wallet(Base, table=True):
     description: Optional[str] = Field(default=None)
 
     user: User = Relationship(back_populates="wallet")
+    provider: Provider = Relationship(back_populates="wallets")
     transactions: list[Transaction] = Relationship(back_populates="wallet")
     assets: list["Asset"] = Relationship(back_populates="wallet")
 
