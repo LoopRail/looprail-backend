@@ -21,13 +21,15 @@ class User(Base, table=True):
     first_name: str
     last_name: str
     email: EmailStr = Field(unique=True)
-    username: str = Field(max_length=15, unique=True)
+    username: str = Field(max_length=8, unique=True)
     is_active: bool = Field(default=False)
+    transaction_pin: Optional[str] = Field(default=None)
 
     profile: UserProfile = Relationship(back_populates="user")
     wallet: Wallet = Relationship(back_populates="user")
     payment_orders: PaymentOrder = Relationship(back_populates="user")
 
+    @property
     def full_name(self) -> str:
         """Returns the user's full name if first and last names are set."""
         return f"{self.first_name} {self.last_name}"
@@ -50,47 +52,4 @@ class UserProfile(Base, table=True):
     user: User = Relationship(back_populates="profile")
 
 
-class UserRepository(Protocol):
-    """
-    Protocol for a user repository.
-    Defines the interface for interacting with user data.
-    """
-
-    # User methods
-    async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]: ...
-
-    async def get_user_by_id(
-        self, *, user_id: UUID
-    ) -> Tuple[Optional[User], Error]: ...
-
-    async def get_user_by_username(
-        self, *, username: str
-    ) -> Tuple[Optional[User], Error]: ...
-
-    async def get_user_by_email(
-        self, *, email: EmailStr
-    ) -> Tuple[Optional[User], Error]: ...
-
-    async def list_users(
-        self, *, limit: int = 50, offset: int = 0
-    ) -> Tuple[list[User], Error]: ...
-
-    async def update_user(self, *, user: User) -> Tuple[Optional[User], Error]: ...
-
-    async def delete_user(self, *, user_id: UUID) -> Error: ...
-
-    # UserProfile methods
-    async def create_user_profile(
-        self, *, user_profile: UserProfile
-    ) -> Tuple[Optional[UserProfile], Error]: ...
-
-    async def get_user_profile_by_user_id(
-        self, *, user_id: UUID
-    ) -> Tuple[Optional[UserProfile], Error]: ...
-
-    async def update_user_profile(
-        self, *, user_profile: UserProfile
-    ) -> Tuple[Optional[UserProfile], Error]: ...
-
-
-#TODO Add role management for admins
+# TODO Add role management for admins
