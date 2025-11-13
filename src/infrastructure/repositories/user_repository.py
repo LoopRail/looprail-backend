@@ -3,8 +3,9 @@ from uuid import UUID
 
 from pydantic import EmailStr
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+# from sqlmodel.ext.asyncio.session import AsyncSession # Removed as session is now from UoW
 
+from src.infrastructure.db.unit_of_work import UnitOfWork
 from src.infrastructure.repositories.base_repository import BaseRepository
 from src.models.user_model import User, UserProfile, UserRepository
 from src.types.error import Error, error
@@ -15,8 +16,8 @@ class SQLUserRepository(UserRepository, BaseRepository):
     Concrete implementation of the user repository using SQLModel.
     """
 
-    def __init__(self, session: AsyncSession):
-        super().__init__(session)
+    def __init__(self, uow: UnitOfWork):
+        super().__init__(uow)
 
     async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]:
         return await user.create(self.session)
