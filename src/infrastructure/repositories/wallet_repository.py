@@ -4,20 +4,21 @@ from uuid import UUID
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.infrastructure.repositories.base_repository import BaseRepository
 from src.models.wallet_model import Wallet, Transaction, WalletRepository
 from src.types.error import Error, error
 
 
-class SQLWalletRepository(WalletRepository):
+class SQLWalletRepository(WalletRepository, BaseRepository):
     """
     Concrete implementation of the wallet repository using SQLModel.
     """
 
     def __init__(self, session: AsyncSession):
-        self.session = session
+        super().__init__(session)
 
     async def create_wallet(self, *, wallet: Wallet) -> Tuple[Optional[Wallet], Error]:
-        return await wallet.create(self.session)
+        return await self._execute_in_transaction(wallet.create, wallet)
 
     async def get_wallet_by_id(self, *, wallet_id: UUID) -> Tuple[Optional[Wallet], Error]:
         wallet = await Wallet.get(self.session, wallet_id)
@@ -45,15 +46,12 @@ class SQLWalletRepository(WalletRepository):
             return [], error(str(e))
 
     async def update_wallet(self, *, wallet: Wallet) -> Tuple[Optional[Wallet], Error]:
-        err = await wallet.save(self.session)
-        if err:
-            return None, err
-        return wallet, None
+        return await self._execute_in_transaction(wallet.save, wallet)
 
     async def create_transaction(
         self, *, transaction: Transaction
     ) -> Tuple[Optional[Transaction], Error]:
-        return await transaction.create(self.session)
+        return await self._execute_in_transaction(transaction.create, transaction)
 
     async def get_transaction_by_id(
         self, *, transaction_id: UUID
