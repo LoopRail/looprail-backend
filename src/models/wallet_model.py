@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import Error, SupportedCurrencies, PaymentMethod, TransactionType
+from src.types import Error, SupportedCurrency, PaymentMethod, TransactionType
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -32,6 +32,23 @@ class Wallet(Base, table=True):
 
     user: User = Relationship(back_populates="wallet")
     transactions: list[Transaction] = Relationship(back_populates="wallet")
+    assets: list["Asset"] = Relationship(back_populates="wallet")
+
+
+class Asset(Base, table=True):
+    __tablename__ = "assets"
+
+    wallet_id: UUID = Field(foreign_key="wallets.id", index=True)
+    name: str = Field(nullable=False)
+    asset_id: str = Field(unique=True, index=True, nullable=False)  # External asset ID
+    symbol: str = Field(nullable=False)
+    decimals: int = Field(nullable=False)
+    address: str = Field(nullable=False)  # Contract address for tokens
+    network: str = Field(nullable=False)
+    logo_url: Optional[str] = Field(default=None)
+    standard: Optional[str] = Field(default=None)  # e.g., ERC-20, BEP-20
+
+    wallet: Wallet = Relationship(back_populates="assets")
 
 
 class Transaction(Base, table=True):
@@ -40,7 +57,7 @@ class Transaction(Base, table=True):
     wallet_id: UUID = Field(foreign_key="wallets.id", index=True)
     transaction_type: TransactionType = Field(nullable=False)
     method: PaymentMethod = Field(nullable=False)
-    currency: SupportedCurrencies = Field(nullable=False)
+    currency: SupportedCurrency = Field(nullable=False)
     sender: str = Field(nullable=False)
     receiver: str = Field(nullable=False)
     amount: Decimal = Field(nullable=False)
