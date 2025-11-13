@@ -7,7 +7,7 @@ from sqlmodel import Field, Relationship
 
 from src.models.base import Base
 from src.types import (AssetType, Currency, Error, Chain, PaymentMethod,
-                       TransactionType, Standards)
+                       TransactionType, Standards, Provider)
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -18,7 +18,7 @@ from decimal import Decimal
 class Provider(Base, table=True):
     __tablename__ = "providers"
 
-    name: str = Field(unique=True, nullable=False)
+    name: Provider = Field(unique=True, nullable=False)
 
     wallets: list["Wallet"] = Relationship(back_populates="provider")
 
