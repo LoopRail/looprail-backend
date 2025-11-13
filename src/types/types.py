@@ -7,14 +7,20 @@ class TransactionStatus(str, Enum):
     FAILED = "failed"
 
 
-class SupportedCurrency(str, Enum):
+class Currency(str, Enum):
     NAIRA = "ngn"
 
 
-class Assets(str, Enum):
+class AssetType(str, Enum):
     USDC = "usdc"
     USDT = "usdt"
     cNGN = "cngn"
+
+
+class Standards(str, Enum):
+    ERC20 = "erc20"
+    BEP20 = "bep20"
+    TRC20 = "trc20"
 
 
 class TransactionType(str, Enum):
@@ -36,14 +42,14 @@ class PaymentMethod(str, Enum):
     WALLET_TRANSFER = "wallet-transfer"
 
 
-class Chain(str, Enum):
+class Network(str, Enum):
     POLYGON = "polygon"
     BASE = "base"
     ETHEREUM = "ethereum"
     BITCOIN = "btc"
 
 
-class SupportedNetworksRPC:
+class NetworksRPC:
     BASE = "mainnet"
     BASE_SEPOLIA = "base_sepoila"
 
