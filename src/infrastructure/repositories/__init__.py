@@ -1,5 +1,5 @@
-from .user_repository import SQLUserRepository
-from .wallet_repository import SQLWalletRepository
-from .provider_repository import SQLProviderRepository
+from .user_repository import UserRepository
+from .wallet_repository import WalletRepository
+from .provider_repository import ProviderRepository
 
-__all__ = ["SQLUserRepository", "SQLWalletRepository", "SQLProviderRepository"]
+__all__ = ["UserRepository", "WalletRepository", "ProviderRepository"]
