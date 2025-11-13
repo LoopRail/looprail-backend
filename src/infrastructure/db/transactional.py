@@ -1,30 +1,30 @@
 from functools import wraps
 from typing import Callable, Type
 
-from sqlmodel.ext.asyncio.session import AsyncSession
-
-from src.infrastructure.db import session_factory
+from src.infrastructure.db.unit_of_work import UnitOfWork
 from src.types.error import Error, error
 
 
 def transactional(func: Callable) -> Callable:
     """
-    A decorator that wraps an asynchronous function in a database transaction.
+    A decorator that wraps an asynchronous function in a database transaction
+    using the UnitOfWork pattern.
 
     This decorator provides a transactional boundary for the decorated function.
     It ensures that all database operations within the function are executed
-    as a single atomic unit. If the function completes successfully, the
-    transaction is committed. If any exception occurs, the transaction is
-    rolled back.
+    as a single atomic unit. The decorated function is responsible for explicitly
+    calling `uow.commit()` to finalize the transaction. If any exception occurs
+    before `uow.commit()` is called, the transaction is rolled back.
 
-    The decorated function must accept an `AsyncSession` instance as its first
+    The decorated function must accept a `UnitOfWork` instance as its first
     argument (after `self` if it's a method).
 
     Usage:
         @transactional
-        async def my_service_method(session: AsyncSession, arg1, arg2):
-            # Database operations using the provided session
+        async def my_service_method(uow: UnitOfWork, arg1, arg2):
+            # Database operations using uow.session
             ...
+            await uow.commit() # Explicit commit
 
     Args:
         func: The asynchronous function to wrap in a transaction.
@@ -35,22 +35,23 @@ def transactional(func: Callable) -> Callable:
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        # Check if a session is already provided (e.g., by another transactional decorator)
-        # If not, create a new session for this transaction.
-        session_arg_name = "session"
-        if session_arg_name in kwargs and isinstance(kwargs[session_arg_name], AsyncSession):
-            session = kwargs[session_arg_name]
-            # If session is already in kwargs, assume it's managed externally
+        # Check if a UnitOfWork is already provided (e.g., by another transactional decorator)
+        # If not, create a new UnitOfWork for this transaction.
+        uow_arg_name = "uow"
+        if uow_arg_name in kwargs and isinstance(kwargs[uow_arg_name], UnitOfWork):
+            uow = kwargs[uow_arg_name]
+            # If uow is already in kwargs, assume it's managed externally
             # and just call the function.
             return await func(*args, **kwargs)
         else:
-            async with session_factory() as session:
+            async with UnitOfWork() as uow:
                 try:
-                    result = await func(session, *args, **kwargs)
-                    await session.commit()
+                    result = await func(uow, *args, **kwargs)
+                    # The decorated function is responsible for calling uow.commit()
+                    # If it doesn't, the transaction will be rolled back on __aexit__
                     return result
                 except Exception as e:
-                    await session.rollback()
+                    # The __aexit__ of UnitOfWork will handle rollback
                     raise  # Re-raise the exception after rollback
 
     return wrapper
