@@ -6,7 +6,8 @@ from uuid import UUID
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import Error, SupportedCurrency, PaymentMethod, TransactionType, Chain
+from src.types import (AssetType, Currency, Error, Chain, PaymentMethod,
+                       TransactionType, Standards)
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -46,7 +47,7 @@ class Asset(Base, table=True):
     address: str = Field(nullable=False)  # Contract address for tokens
     network: str = Field(nullable=False)
     logo_url: Optional[str] = Field(default=None)
-    standard: Optional[str] = Field(default=None)  # e.g., ERC-20, BEP-20
+    standard: Optional[Standards] = Field(default=None)  # e.g., ERC-20, BEP-20
 
     wallet: Wallet = Relationship(back_populates="assets")
 
@@ -57,7 +58,7 @@ class Transaction(Base, table=True):
     wallet_id: UUID = Field(foreign_key="wallets.id", index=True)
     transaction_type: TransactionType = Field(nullable=False)
     method: PaymentMethod = Field(nullable=False)
-    currency: SupportedCurrency = Field(nullable=False)
+    currency: Currency = Field(nullable=False)
     sender: str = Field(nullable=False)
     receiver: str = Field(nullable=False)
     amount: Decimal = Field(nullable=False)
