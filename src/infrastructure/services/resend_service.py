@@ -5,6 +5,9 @@ from resend.exceptions import ResendError
 
 from src.infrastructure.settings import ResendConfig
 from src.types import Error, httpError
+from src.utils import load_html_template
+
+resend.api_key = ""
 
 
 class ResendService:
@@ -77,6 +80,8 @@ class ResendService:
         Returns:
             A tuple containing the Resend API response (dict) and an error, if any.
         """
-        html_content = f"<p>Your One-Time Password is: <strong>{otp_code}</strong></p>"
+        html_content, err = load_html_template("email/otp_email", otp_code=otp_code)
+        if err:
+            return None, err
         text_content = f"Your One-Time Password is: {otp_code}"
         return await self.send(to, _from, subject, html_content, text_content)
