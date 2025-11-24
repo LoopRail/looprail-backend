@@ -17,12 +17,10 @@ class OtpUseCase:
         self.__redis_client = redis_client
         self.__otp_config = otp_config
 
-    async def verify_code(self, code: str) -> bool:
+    async def verify_code(self, code: str, otp_hash: str) -> bool:
         """Verify the user-provided OTP code against the stored hash."""
         hashed_code = hash_otp(code, self.__otp_config.hmac_secret)
-        return hmac.compare_digest(
-            hashed_code,
-        )
+        return hmac.compare_digest(hashed_code, otp_hash)
 
     async def generate_otp(self, user_email: str) -> Tuple[str, str, Error]:
         code = generate_otp_code(self.__otp_config.otp_length)
@@ -68,12 +66,12 @@ class OtpUseCase:
         return otp, None
 
     async def delete_otp(self, user_email) -> Error:
-        token, err = self.get_user_token(user_email)
+        token, err = await self.get_user_token(user_email)
         if err:
             return err
         tx = await self.__redis_client.transaction()
-        await tx.delete(f"otp:token:{token}")
-        await tx.delete("otp:email:{user_email}")
+        await tx.delete([f"otp:token:{token}"])
+        await tx.delete([f"otp:email:{user_email}"])
 
         err = await tx.commit()
 

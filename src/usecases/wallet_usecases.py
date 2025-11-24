@@ -9,11 +9,15 @@ from src.infrastructure.services.blockrader_client import (AddressManager,
                                                            WalletManager)
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Wallet
-from src.types import (Chain, Error, Provider,
-                       WalletManagerNotInitializedError, error)
+from src.types import Chain, Error, Provider, error
 from src.types.blockrader import CreateAddressRequest
 
 logger = get_logger(__name__)
+
+
+class TransactionMixin:
+    async def transfer(self, amount: str, destination_address: str):
+        pass
 
 
 class WalletService:
@@ -34,69 +38,78 @@ class WalletService:
         self.wallet_repository = wallet_repository
         self.wallet_provider_repository = wallet_provider_repository
 
-        self.wallet_id: Optional[str] = None
-        self.address_id: Optional[str] = None
+        self._manager: Optional[WalletManager] = None
+        self._manager_id: Optional[str] = None
+    #
+    # def new_address_manager(self, address_id: str):
+    #     self._manager_id = address_id
+    #     self._manager = AddressManager(
+    #         self.blockrader_config, self._manager, address_id
+    #     )
+    #     return self
 
-        self.wallet_manager: Optional[WalletManager] = None
-        self.address_manager: Optional[AddressManager] = None
+    def new_wallet_manager(self, wallet_id) -> "WalletManagerUsecase":
+        self._manager_id = wallet_id
+        self._manager = WalletManager(self.blockrader_config, wallet_id)
+        manager_usecase = WalletManagerUsecase(self, self._manager_id, wallet_id)
+        return manager_usecase
 
-    def new_address_manager(self, address_id: str):
-        self.address_id = address_id
-        self.address_manager = AddressManager(
-            self.blockrader_config, self.wallet_id, address_id
-        )
-        return self
 
-    def new_wallet_manager(self, wallet_id) -> Self:
+class WalletManagerUsecase(TransactionMixin):
+    def __init__(
+        self, service: WalletService, wallet_id: str, manager: WalletManager
+    ) -> None:
+        self.service = service
+        self.manager = manager
         self.wallet_id = wallet_id
-        self.wallet_manager = WalletManager(self.blockrader_config, wallet_id)
-        return self
 
     async def create_user_wallet(self, user_id: UUID) -> Tuple[Optional[Self], Error]:
-        user, err = await self.user_repository.get_user_by_id(user_id)
+        user, err = await self.service.user_repository.get_user_by_id(user_id)
         if err:
             logger.error("Could not get user %s Error: %s", user_id, err.message)
             return None, error("Could not get user")
-        if self.wallet_manager is None:
-            raise WalletManagerNotInitializedError(
-                "Wallet manager must be set before use."
-            )
+
         wallet_request = CreateAddressRequest(
             name=f"wallet:customer:{user.id}", disableAutoSweep=True
         )
-        provider_wallet, err = await self.wallet_manager.generate_address(
-            wallet_request
-        )
+        provider_wallet, err = await self.manager.generate_address(wallet_request)
         if err:
             logger.error("Could not generate blockrader wallet %s", err.message)
             return None, error("Could not generate wallet")
-        provider, err = await self.wallet_provider_repository.get_by_name(
-            self.provider, is_active=True
+        provider, err = await self.service.wallet_provider_repository.get_by_name(
+            self.service.provider, is_active=True
         )
         if err:
             logger.error(
-                "Could not get wallet provider %s Error: %s", self.provider, err.message
+                "Could not get wallet provider %s Error: %s",
+                self.service.provider,
+                err.message,
             )
             return None, err("Could not get wallet Provider")
         new_wallet = Wallet(
             user_id=user.id,
             addess=provider_wallet.data.address,
-            Chain=self.chain,
+            Chain=self.service.chain,
             provider_id=provider.id,
             name=wallet_request.name,
             derivation_path=provider_wallet.data.derivationPath,
         )
 
-        wallet, err = await self.wallet_repository.create_wallet(new_wallet)
+        wallet, err = await self.service.wallet_repository.create_wallet(new_wallet)
         if err:
             logger.error(
                 "Could not save wallet %s on provider %s to db Error: %s",
                 provider_wallet.data.data_id,
-                self.provider.name,
+                self.service.provider.name,
                 err.message,
             )
             return None, err("Could not get wallet Provider")
         return wallet, None
 
-    async def transfer(self, amount: str, destination_address: str):
+
+class AddressManagerUsecase:
+    def __init__(self) -> None:
         pass
+
+
+# TODO we still need to make some fixes her but leave that for later

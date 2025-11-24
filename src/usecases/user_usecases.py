@@ -3,12 +3,12 @@ from uuid import UUID
 
 from src.dtos.user_dtos import UserCreate
 from src.infrastructure.logger import get_logger
+from src.infrastructure.repositories import UserRepository, WalletRepository
 from src.infrastructure.services.blockrader_client import (AddressManager,
                                                            WalletManager)
 from src.infrastructure.settings import BlockRaderConfig
-from src.models.user_model import User, UserRepository
-from src.models.wallet_model import Wallet, WalletRepository
-from src.types.blockrader_types import CreateAddressRequest
+from src.models import User, UserProfile, Wallet
+from src.types.blockrader import CreateAddressRequest
 from src.types.error import Error
 
 logger = get_logger(__name__)
@@ -25,20 +25,34 @@ class UserUseCase:
         self.wallet_repository = wallet_repository
         self.blockrader_config = blockrader_config
 
+    async def save(self, user: User) -> Tuple[Optional[User], Error]:
+        return await self.user_repository.save(user)
+
+    async def update_user(
+        self, user_id: UUID, **kwargs
+    ) -> Tuple[Optional[User], Error]:
+        return await self.user_repository.update_user(user_id=user_id, **kwargs)
+
+    async def update_user_profile(
+        self, user_id: UUID, **kwargs
+    ) -> Tuple[Optional[UserProfile], Error]:
+        return await self.user_repository.update_user_profile(user_id, **kwargs)
+
     async def create_user(
         self, user_create: UserCreate
     ) -> Tuple[Optional[User], Error]:
         user = User(
-            first_name=user_create.first_name,
-            last_name=user_create.last_name,
             email=user_create.email,
-            username=user_create.username,
         )
         created_user, err = await self.user_repository.create_user(user=user)
         if err:
-            logger.error("Failed to create user in repository: %s", err.message, exc_info=True)
+            logger.error(
+                "Failed to create user in repository: %s", err.message, exc_info=True
+            )
             return None, err
-        logger.info("User %s created successfully in repository.", created_user.username)
+        logger.info(
+            "User %s created successfully in repository.", created_user.username
+        )
 
         wallet_manager = WalletManager(
             self.blockrader_config, self.blockrader_config.evm_master_wallet
@@ -59,7 +73,10 @@ class UserUseCase:
 
         if err:
             logger.error(
-                "Failed to generate address for user %s: %s", created_user.username, err.message, exc_info=True
+                "Failed to generate address for user %s: %s",
+                created_user.username,
+                err.message,
+                exc_info=True,
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
@@ -71,7 +88,10 @@ class UserUseCase:
 
         if err:
             logger.error(
-                "Failed to get address balance for user %s: %s", created_user.username, err.message, exc_info=True
+                "Failed to get address balance for user %s: %s",
+                created_user.username,
+                err.message,
+                exc_info=True,
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
@@ -89,7 +109,10 @@ class UserUseCase:
         _, err = await self.wallet_repository.create_wallet(wallet=wallet)
         if err:
             logger.error(
-                "Failed to create wallet for user %s: %s", created_user.username, err.message, exc_info=True
+                "Failed to create wallet for user %s: %s",
+                created_user.username,
+                err.message,
+                exc_info=True,
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
@@ -102,3 +125,9 @@ class UserUseCase:
 
     async def get_user_by_id(self, user_id: UUID) -> Tuple[Optional[User], Error]:
         return await self.user_repository.get_user_by_id(user_id=user_id)
+
+    async def get_user_by_email(self, user_email: str) -> Tuple[Optional[User], Error]:
+        return await self.user_repository.get_user_by_email(email=user_email)
+
+
+# TODO add on_delete  to user to delete proile and tied stuff
