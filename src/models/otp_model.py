@@ -1,5 +1,4 @@
 import time
-import hashlib
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 from src.infrastructure.logger import get_logger
 from src.types import OtpStatus, OtpType, error
@@ -18,7 +17,7 @@ class Otp(BaseModel):
     expires_at: int = Field(default_factory=lambda: int(time.time()) + 300)  # expires in 5 minutes
     status: OtpStatus = OtpStatus.ACTIVE
     code_hash: str = Field(alias="hash")
-    otp_type: OtpType = Field(alias="type", default=OtpType.EMAIL_VERIFICATION)
+    otp_type: OtpType = Field(alias="type", default=OtpType.ONBOARDING_EMAIL_VERIFICATION)
     attempts: int = 0
 
     def is_expired(self) -> bool:

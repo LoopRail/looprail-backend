@@ -1,18 +1,17 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Protocol, Tuple
+from decimal import Decimal
+from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import (AssetType, Chain, Currency, Error, PaymentMethod,
-                       Provider, Standards, TransactionType)
+from src.types import (AssetType, Chain, Currency, PaymentMethod, Provider,
+                       TokenStandard, TransactionType)
 
 if TYPE_CHECKING:
     from src.models.user_model import User
-
-from decimal import Decimal
 
 
 class WalletProvider(Base, table=True):
@@ -30,14 +29,13 @@ class Wallet(Base, table=True):
     user_id: UUID = Field(foreign_key="users.id", index=True)
     address: str = Field(unique=True, index=True, nullable=False)
     balance: Decimal = Field(default=Decimal("0.00"), nullable=False)
-    network: str = Field(nullable=False)
     chain: Chain = Field(nullable=False)
     provider_id: UUID = Field(foreign_key="providers.id", index=True)
     is_active: bool = Field(default=True, nullable=False)
 
     name: Optional[str] = Field(default=None)
     derivation_path: Optional[str] = Field(default=None)
-    description: Optional[str] = Field(default=None)
+    # description: Optional[str] = Field(default=None)
 
     user: User = Relationship(back_populates="wallet")
     provider: WalletProvider = Relationship(back_populates="wallets")
@@ -56,7 +54,7 @@ class Asset(Base, table=True):
     address: str = Field(nullable=False)  # Contract address for tokens
     network: str = Field(nullable=False)
     logo_url: Optional[str] = Field(default=None)
-    standard: Optional[Standards] = Field(default=None)  # e.g., ERC-20, BEP-20
+    standard: Optional[TokenStandard] = Field(default=None)
 
     wallet: Wallet = Relationship(back_populates="assets")
 
@@ -90,6 +88,3 @@ class Transaction(Base, table=True):
     fee: Optional[Decimal] = Field(default=None)
 
     wallet: Wallet = Relationship(back_populates="transactions")
-
-
-
