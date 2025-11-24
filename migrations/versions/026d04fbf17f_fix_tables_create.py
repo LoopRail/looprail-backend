@@ -101,7 +101,7 @@ def upgrade() -> None:
     sa.Column('gas_fee', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('gas_used', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('note', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-    sa.Column('chain_id', sa.Integer(), nullable=True),
+    sa.Column('Network_id', sa.Integer(), nullable=True),
     sa.Column('reason', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.Column('fee', sa.Numeric(), nullable=True),
     sa.ForeignKeyConstraint(['wallet_id'], ['wallets.id'], ),
