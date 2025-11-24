@@ -1,4 +1,4 @@
-from typing import Any, Optional, Protocol, Tuple, Type
+from typing import Any, Optional, Tuple, Type
 
 from httpx import Response
 
@@ -62,39 +62,66 @@ class BlockRaderCLient(BaseClient):
         )
 
 
-class TransactionalProtocol(Protocol):
-    """A protocol for handling transactional endpoints of the BlockRadar API."""
+class TransactionalMixin:
+    """A mixin for handling transactional endpoints of the BlockRadar API."""
 
     async def get_details(
-        self,
-    ) -> Tuple[Optional[WalletAddressDetailResponse], Error]: ...
+        self: Any,
+    ) -> Tuple[Optional[WalletAddressDetailResponse], Error]:
+        """Retrieves details for a specific wallet address."""
+        return await self._get(WalletAddressDetailResponse)
 
     async def get_balance(
-        self, asset_id: str = None
-    ) -> Tuple[Optional[WalletBalanceResponse], Error]: ...
+        self: Any, asset_id: str = None
+    ) -> Tuple[Optional[WalletBalanceResponse], Error]:
+        """Retrieves the balance for a specific asset in a wallet."""
+        params = {"assetId": asset_id} if asset_id else None
+        return await self._get(
+            WalletBalanceResponse, path_suffix="/balance", req_params=params
+        )
 
     async def get_balances(
-        self,
-    ) -> Tuple[Optional[WalletBalanceResponse], Error]: ...
+        self: Any,
+    ) -> Tuple[Optional[WalletBalanceResponse], Error]:
+        """Retrieves all asset balances in a wallet."""
+        return await self._get(WalletBalanceResponse, path_suffix="/balances")
 
     async def get_transactions(
-        self,
-    ) -> Tuple[Optional[TransactionResponse], Error]: ...
+        self: Any,
+    ) -> Tuple[Optional[TransactionResponse], Error]:
+        """Retrieves a list of transactions for a wallet."""
+        return await self._get(TransactionResponse, path_suffix="/transactions")
 
     async def get_transaction(
-        self, transaction_id: str
-    ) -> Tuple[Optional[TransactionResponse], Error]: ...
+        self: Any, transaction_id: str
+    ) -> Tuple[Optional[TransactionResponse], Error]:
+        """Retrieves a specific transaction by its ID."""
+        return await self._get(
+            TransactionResponse, path_suffix=f"/transactions/{transaction_id}"
+        )
 
     async def withdraw_network_fee(
-        self, request: NetworkFeeRequest
-    ) -> Tuple[Optional[NetworkFeeResponse], Error]: ...
+        self: Any, request: NetworkFeeRequest
+    ) -> Tuple[Optional[NetworkFeeResponse], Error]:
+        """Calculates the network fee for a withdrawal."""
+        return await self._post(
+            NetworkFeeResponse,
+            path_suffix="/withdraw/network-fee",
+            data=request.model_dump(),
+        )
 
     async def withdraw(
-        self, request: WithdrawalRequest
-    ) -> Tuple[Optional[WithdrawalResponse], Error]: ...
+        self: Any, request: WithdrawalRequest
+    ) -> Tuple[Optional[WithdrawalResponse], Error]:
+        """Initiates a withdrawal from a wallet."""
+        return await self._post(
+            WithdrawalResponse,
+            path_suffix="/withdraw",
+            data=request.model_dump(),
+        )
 
 
-class AddressManager(BlockRaderCLient, TransactionalProtocol):
+class AddressManager(BlockRaderCLient, TransactionalMixin):
     """Manages a specific address within a wallet."""
 
     def __init__(
@@ -104,7 +131,7 @@ class AddressManager(BlockRaderCLient, TransactionalProtocol):
         super().__init__(config, path=f"/wallets/{wallet_id}/addresses/{address_id}")
 
 
-class WalletManager(BlockRaderCLient, TransactionalProtocol):
+class WalletManager(BlockRaderCLient, TransactionalMixin):
     """Manages a specific wallet."""
 
     def __init__(self, config: BlockRaderConfig, wallet_id: str) -> None:

@@ -62,7 +62,7 @@ class RedisTransaction:
         serialized_data, err = _serialize_data(data)
         if err:
             return None, err
-        await self._pipe.set(key, serialized_data, ex=ttl)
+        self._pipe.set(key, serialized_data, ex=ttl)
         return self, None
 
     async def update(self, key: str, data: Any) -> "RedisTransaction":
@@ -71,7 +71,7 @@ class RedisTransaction:
 
     async def delete(self, key: str) -> "RedisTransaction":
         """Queue a delete operation in the transaction."""
-        await self._pipe.delete(key)
+        self._pipe.delete(key)
         return self
 
     async def commit(self) -> Error | None:

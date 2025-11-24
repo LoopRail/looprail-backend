@@ -1,9 +1,9 @@
 from typing import Any, Optional, Tuple
 
+from src.dtos import VerifyAccountResponse
 from src.infrastructure.services.base_client import BaseClient
 from src.infrastructure.settings import PaystackConfig
 from src.types import Error, httpError
-from src.types.paycrest_types import VerifyAccountResponse
 
 BASE_URL = "https://api.paystack.co"
 

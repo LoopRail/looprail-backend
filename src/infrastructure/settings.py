@@ -10,6 +10,7 @@ else:
     env_dir = os.path.join(return_base_dir(), "config", ".env.dev")
 
 USDC_ADDRESS = "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"
+ONBOARDING_TOKEN_EXP_MINS = 10
 USDC_ABI = [
     {
         "name": "transfer",
@@ -30,6 +31,11 @@ class ServerConfig(BaseSettings):
     )
 
 
+class JWTConfig(ServerConfig):
+    algorithm: str
+    secret_key: str
+
+
 class OTPConfig(ServerConfig):
     hmac_secret: str
     otp_length: int
@@ -43,13 +49,14 @@ class ResendConfig(ServerConfig):
 
 class BlockRaderConfig(ServerConfig):
     blockrader_api_key: str
-    evm_master_wallet: str
-    base_usdc_asset_id: str
+    base_usdc_asset_id_master: str
     base_master_wallet: str
+    base_master_wallet_id: str  # TEMP
 
 
 class PayCrestConfig(ServerConfig):
     paycrest_api_key: str
+    paycrest_api_secret: str
 
 
 class PaystackConfig(ServerConfig):
@@ -70,8 +77,8 @@ class DatabaseConfig(ServerConfig):
 class RedisConfig(ServerConfig):
     redis_port: int
     redis_host: str
-    redis_username: str
-    redis_password: str
+    redis_username: str | None = None
+    redis_password: str | None = None
 
 
 block_rader_config = BlockRaderConfig()
@@ -81,3 +88,9 @@ paystack_config = PaystackConfig()
 redis_config = RedisConfig()
 otp_config = OTPConfig()
 resend_config = ResendConfig()
+jwt_config = JWTConfig()
+
+
+# TODO  we will need to create a separate config for wallets soon
+# Starting with base because of blockrader's quota
+# Pobably enter them from an admin ui since we already have a provider model

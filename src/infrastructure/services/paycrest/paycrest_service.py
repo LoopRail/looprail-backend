@@ -1,13 +1,12 @@
 from decimal import Decimal
-from typing import Any, Optional, Tuple
+from typing import  Optional, Tuple
 
-
-
-from src.dtos import OrderResponse
+from src.dtos import VerifyAccountResponse
 from src.infrastructure.services.base_client import BaseClient
 from src.infrastructure.settings import PayCrestConfig
-from src.types import Error, error
-from src.types.paycrest_types import VerifyAccountResponse
+from src.types import Chain, Error, error
+from src.types.paycrest import (CreateOrderResponse, FetchLatestRatesResponse,
+                                PaycrestRecipiant)
 
 PAYCREST_API_VERSION = "v1"
 BASE_URL = f"https://api.paycrest.io/{PAYCREST_API_VERSION}"
@@ -39,48 +38,36 @@ class PaycrestClient(BaseClient):
 class PaycrestService(PaycrestClient):
     async def create_payment_order(
         self,
-        user_id: int,
-        token: str,
         amount: Decimal,
-        network: str,
-        recipient: dict,
+        recipient: PaycrestRecipiant,
         reference: str,
         return_address: str,
-    ) -> Tuple[Optional[OrderResponse], Error]:
+    ) -> Tuple[Optional[CreateOrderResponse], Error]:
         """Create a payment order to off-ramp tokens via Paycrest"""
-
-        currency = recipient.get("currency")
-        if not currency:
-            return None, error("Recipient dict must contain a 'currency' key")
-
-        rate, err = await self.fetch_rate(token, amount, currency, network)
+        rate, err = await self.fetch_letest_usdc_rate(amount, recipient.currency)
         if err:
-            return None, err
+            return None, error(f"Could not fetch rates: Error: {err}")
 
         order_data = {
             "amount": float(amount),
-            "token": token,
-            "network": network,
-            "rate": rate,
-            "recipient": recipient,
+            "token": "USDC",
+            "network": Chain.BASE.value,
+            "rate": rate.data,
+            "recipient": recipient.model_dump(by_alias=True, exclude_none=True),
             "reference": reference,
             "returnAddress": return_address,
         }
 
         response, err = await self._post(
-            OrderResponse, path_suffix="/sender/orders", data=order_data
+            CreateOrderResponse, path_suffix="/sender/orders", data=order_data
         )
         if err:
             return None, err
-
-        if response:
-            response.user_id = user_id
-
         return response, None
 
     async def verify_account(
         self, account_number: str, institution: str
-    ) -> Tuple[Optional[Any], Error]:
+    ) -> Tuple[Optional[VerifyAccountResponse], Error]:
         """Verify bank account details"""
 
         data = {"institution": institution, "accountIdentifier": account_number}
@@ -93,7 +80,7 @@ class PaycrestService(PaycrestClient):
 
     async def fetch_letest_usdc_rate(
         self, amount: float, currency: str
-    ) -> Tuple[Optional[VerifyAccountResponse], Error]:
+    ) -> Tuple[Optional[FetchLatestRatesResponse], Error]:
         """Verify bank account details"""
 
         data = {
@@ -102,10 +89,10 @@ class PaycrestService(PaycrestClient):
             "currency": currency,
         }
         response, err = await self._get(
-            VerifyAccountResponse,
+            FetchLatestRatesResponse,
             path_suffix="/rates/{token}/{amount}/{currency}".format(**data),
             req_params={
-                "network": "base",
+                "network": Chain.BASE.value,
             },
         )
         if err:
