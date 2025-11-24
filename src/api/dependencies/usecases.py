@@ -1,15 +1,18 @@
-from fastapi import Depends, HTTPException, Request
+from typing import Optional
+
+from fastapi import Depends, Header, HTTPException, status
 
 from src.api.dependencies.repositories import (get_user_repository,
+                                               get_wallet_provider_repository,
                                                get_wallet_repository)
 from src.api.dependencies.services import (get_blockrader_config,
                                            get_redis_service)
-from src.infrastructure import RedisClient, otp_config
+from src.infrastructure import RedisClient, jwt_config, otp_config
+from src.infrastructure.repositories import (UserRepository,
+                                             WalletProviderRepository,
+                                             WalletRepository)
 from src.infrastructure.settings import BlockRaderConfig
-from src.models.user_model import UserRepository
-from src.models.wallet_model import WalletRepository
-from src.types import OtpType
-from src.usecases import OtpUseCase, UserUseCase
+from src.usecases import JWTUsecase, OtpUseCase, UserUseCase, WalletService
 
 
 async def get_user_usecases(
@@ -27,10 +30,38 @@ async def get_otp_usecase(
 
 
 async def get_otp_token(
-    request: Request = Depends(), otp_usecase: OtpUseCase = Depends(get_otp_usecase)
+    x_otp_token: Optional[str] = Header(default=None, description="OTP token"),
 ):
-    token = request.headers.get("X-OTP-Token")
-    if token is None:
-        raise HTTPException(status_code=400, detail="No OTP found or expired")
-    token = await otp_usecase.get_otp(token, token_type=OtpType.EMAIL_VERIFICATION)
-    return token
+    if x_otp_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="X_OTP_TOKEN header not provided",
+        )
+    return x_otp_token
+
+
+async def get_jwt_usecase():
+    yield JWTUsecase(jwt_config)
+
+
+async def get_blockrader_wallet_service(
+    blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
+    user_repository: UserRepository = Depends(get_user_repository),
+    wallet_repository: WalletRepository = Depends(get_wallet_repository),
+    wallet_provider_repository: WalletProviderRepository = Depends(
+        get_wallet_provider_repository
+    ),
+):
+    return WalletService(
+        blockrader_config,
+        user_repository,
+        wallet_repository,
+        wallet_provider_repository,
+    )
+
+
+async def get_blockrader_base_wallet_wallet_manager(
+    wallet_serivce: WalletService = Depends(get_blockrader_wallet_service),
+    blokrader_config: BlockRaderConfig = Depends(get_blockrader_config),
+):
+    return wallet_serivce.new_wallet_manager(blokrader_config.base_master_wallet_id)

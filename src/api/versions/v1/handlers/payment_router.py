@@ -5,7 +5,7 @@ from fastapi import APIRouter
 
 from src.dtos import PaymentStatusResponse, paymentDetails
 from src.infrastructure.logger import get_logger
-from src.types import PaymentType, SupportedCurrencies, TransactionStatus
+from src.types import PaymentType, Currency, TransactionStatus
 
 logger = get_logger(__name__)
 
@@ -25,7 +25,7 @@ async def get_payment_status(payment_id: str):
         payment_details=dummy_details,
         status=TransactionStatus.COMPLETED,
         payment_type=PaymentType.FIAT,
-        currency=SupportedCurrencies.NAIRA,
+        currency=Currency.NAIRA,
         exchange_rate=1500.0,
     )
     return dummy_data
