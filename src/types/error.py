@@ -3,11 +3,14 @@ class error(Exception):
         self.message = message
         super().__init__(message)
 
-    def string(self) -> str:
+    def __str__(self) -> str:
         return self.message
 
     def __eq__(self, value: object, /) -> bool:
-        return super().__eq__(value)
+        return self.message == value
+
+    def __ne__(self, value: object, /) -> bool:
+        return self.message != value
 
 
 class httpError(error):
@@ -15,5 +18,16 @@ class httpError(error):
         self.code = code
         super().__init__(message)
 
+    def __str__(self) -> str:
+        return f"{self.message} {self.code}"
 
+
+class UpdatingProtectedFieldError(error):
+    def __init__(self, field: str = None):
+        super().__init__(f"updating protected field: {field}")
+
+
+NotFoundError = error("not found")
+ProtectedModelError = error("protected model can't update")
+ItemDoesNotExistError = error("item does not exist")
 type Error = error | httpError | None

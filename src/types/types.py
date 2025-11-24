@@ -46,16 +46,11 @@ class PaymentMethod(str, Enum):
     WALLET_TRANSFER = "wallet-transfer"
 
 
-class Network(str, Enum):
+class Chain(str, Enum):
     POLYGON = "polygon"
     BASE = "base"
     ETHEREUM = "ethereum"
     BITCOIN = "btc"
-
-
-class NetworksRPC:
-    BASE = "mainnet"
-    BASE_SEPOLIA = "base_sepoila"
 
 
 class KYCStatus(str, Enum):
@@ -68,7 +63,7 @@ class KYCStatus(str, Enum):
 
 
 class OtpType(str, Enum):
-    EMAIL_VERIFICATION = "email_verification"
+    ONBOARDING_EMAIL_VERIFICATION = "onboarding_email_verification"
 
 
 class OtpStatus(str, Enum):
@@ -78,5 +73,5 @@ class OtpStatus(str, Enum):
     ATTEMPT_EXCEEDED = "attempt_exceeded"
 
 
-class AccessToken(str, Enum):
+class AccessTokenType(str, Enum):
     ONBOARDING_TOKEN = "onboarding_token"
