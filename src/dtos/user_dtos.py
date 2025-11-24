@@ -1,25 +1,48 @@
 from datetime import date
+from enum import StrEnum
 from uuid import UUID
 
-from pydantic import EmailStr
+from email_validator import EmailNotValidError, validate_email
+from pydantic import EmailStr, Field, field_validator
 
-from src.types import KYCStatus
 from src.dtos.base import Base
+from src.types import KYCStatus, error
+
+
+class Gender(StrEnum):
+    MALE = "male"
+    FEMAIL = "FEMALE"
+
+
+class OnboardUserUpdate(Base):
+    first_name: str
+    last_name: str
+    gender: Gender
 
 
 class UserCreate(Base):
-    username: str
     email: EmailStr
-    first_name: str
-    last_name: str
+    country: str
+    country_code: str
+    phone_number: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, val: any):
+        try:
+            email = validate_email(val, check_deliverability=True)
+
+            return email.email
+
+        except EmailNotValidError as e:
+            raise error("Invalid email address") from e
 
 
 class UserPublic(Base):
     id: UUID
-    username: str
     email: EmailStr
-    first_name: str
-    last_name: str
+    first_name: str | None = Field(default=None)
+    last_name: str | None = Field(default=None)
 
 
 class UserProfileCreate(Base):
