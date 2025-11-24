@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING, Optional, Protocol, Tuple
+from enum import StrEnum
+from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import Error, KYCStatus
+from src.types import KYCStatus
 
 if TYPE_CHECKING:
     from src.models.payment_model import PaymentOrder
@@ -18,11 +19,12 @@ if TYPE_CHECKING:
 class User(Base, table=True):
     __tablename__ = "users"
 
-    first_name: str
-    last_name: str
+    first_name: str | None = None
+    last_name: str | None = None
     email: EmailStr = Field(unique=True)
-    username: str = Field(max_length=8, unique=True)
-    is_active: bool = Field(default=False)
+    is_active: bool = Field(default=True)
+    is_email_verified: bool = Field(default=False)
+    has_completed_onboarding: bool = Field(default=False)
     transaction_pin: Optional[str] = Field(default=None)
 
     profile: UserProfile = Relationship(back_populates="user")
@@ -34,12 +36,14 @@ class User(Base, table=True):
         """Returns the user's full name if first and last names are set."""
         return f"{self.first_name} {self.last_name}"
 
+    def on_delete(self):
+        self.is_active = False
+
 
 class UserProfile(Base, table=True):
     __tablename__ = "user_profiles"
 
     kyc_status: KYCStatus = Field(KYCStatus.NOT_STARTED)
-    is_email_verified: bool = Field(default=False)
     street: str
     city: str
     state: str

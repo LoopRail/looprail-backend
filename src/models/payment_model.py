@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 class PaymentOrder(Base):
     __tablename__ = "payment_orders"
+    __protected_fields__ = "all"
 
     user_id: UUID = Field(foreign_key="users.id", index=True)
     amount: Decimal = Field(Numeric(18, 2), nullable=False)
