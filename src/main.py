@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -31,9 +31,17 @@ app.include_router(v1_router, prefix="/api")
 async def custom_error_handler(request: Request, exc: Error):
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={"message": exc.string()},
+        content={"message": exc.message},
+    )
+
+
+@app.exception_handler(HTTPException)
+async def custom_http_error_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=exc.detail,
     )
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
