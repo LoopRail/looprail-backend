@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import get_paycrest_service, get_paystack_service
+from src.dtos import VerifyAccountResponse
 from src.dtos.account_dtos import VerifyAccountRequest
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services import PaycrestService, PaystackService
-from src.types.paycrest_types import VerifyAccountResponse
 
 logger = get_logger(__name__)
 
