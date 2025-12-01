@@ -1,5 +1,6 @@
-from fastapi import (APIRouter, Depends, HTTPException, Request, Response,
-                     status)
+import httpx
+from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException,
+                     Request, Response, status)
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import (BearerToken,
@@ -19,9 +20,11 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/create-user")
-# TODO validaet request
+# @limiter.limit("2/minute")
 async def create_user(
+    request: Request,
     user_data: UserCreate,
+    background_tasks: BackgroundTasks,
     user_usecases: UserUseCase = Depends(get_user_usecases),
 ) -> UserPublic:
     """API endpoint to create a new user."""
@@ -33,8 +36,18 @@ async def create_user(
             content={"error": "Could not create user"},
         )
 
+    async def trigger_send_otp():
+        """Triggers the send_otp endpoint in the background."""
+        url = request.url_for("send_otp")
+        async with httpx.AsyncClient(base_url=request.base_url) as client:
+            try:
+                await client.post(url, json={"email": created_user.email})
+            except httpx.RequestError as e:
+                logger.error("HTTPX error calling send_otp: %s", e)
+
+    background_tasks.add_task(trigger_send_otp)
+
     logger.info("User %s registered successfully.", created_user.username)
-    # TODO send verification email here
     return {
         "user": UserPublic.model_validate(created_user).model_dump_json(
             exclude_none=True
