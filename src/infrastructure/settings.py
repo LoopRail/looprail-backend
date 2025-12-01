@@ -1,7 +1,10 @@
 import os
+from typing import List
 
+import yaml
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from src.types.types import WalletConfig
 from src.utils import return_base_dir
 
 if os.getenv("TESTING") == "true":
@@ -49,9 +52,7 @@ class ResendConfig(ServerConfig):
 
 class BlockRaderConfig(ServerConfig):
     blockrader_api_key: str
-    base_usdc_asset_id_master: str
-    base_master_wallet: str
-    base_master_wallet_id: str  # TEMP
+    wallets: List[WalletConfig] = []
 
 
 class PayCrestConfig(ServerConfig):
@@ -82,6 +83,20 @@ class RedisConfig(ServerConfig):
 
 
 block_rader_config = BlockRaderConfig()
+
+
+def load_wallet_configs_into_config(config: BlockRaderConfig):
+    config_path = os.path.join(return_base_dir(), "config", "blockrader.yaml")
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            raw_configs = yaml.safe_load(f)
+        config.wallets = [WalletConfig(**c) for c in raw_configs]
+    except FileNotFoundError:
+        config.wallets = []
+
+
+load_wallet_configs_into_config(block_rader_config)
+
 paycrest_config = PayCrestConfig()
 database_config = DatabaseConfig()
 paystack_config = PaystackConfig()

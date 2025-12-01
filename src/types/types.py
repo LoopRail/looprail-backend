@@ -1,4 +1,14 @@
 from enum import Enum
+from pydantic import BaseModel
+
+
+class WalletConfig(BaseModel):
+    chain: "Chain"
+    wallet_id: str
+    wallet_address: str
+    usdc_asset_id: str
+    active: bool
+
 
 
 class TransactionStatus(str, Enum):

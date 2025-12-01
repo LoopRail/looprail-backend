@@ -1,0 +1,5 @@
+- chain: BASE
+  wallet_id: 65aa982b-e356-40c9-a8fb-3131692ad1ce
+  wallet_address: 0xEa16b5109A51bBC42D725e24BEA750AD9708C1ec
+  usdc_asset_id: bcf86097-014c-4a9e-bd3b-eb416a814534
+  active: true

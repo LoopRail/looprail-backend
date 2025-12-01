@@ -1,18 +1,21 @@
-from typing import Optional
+from typing import Callable, Optional
 
 from fastapi import Depends, Header, HTTPException, status
 
-from src.api.dependencies.repositories import (get_user_repository,
-                                               get_wallet_provider_repository,
-                                               get_wallet_repository)
-from src.api.dependencies.services import (get_blockrader_config,
-                                           get_redis_service)
+from src.api.dependencies.repositories import get_user_repository, get_wallet_repository
+from src.api.dependencies.services import get_blockrader_config, get_redis_service
 from src.infrastructure import RedisClient, jwt_config, otp_config
-from src.infrastructure.repositories import (UserRepository,
-                                             WalletProviderRepository,
-                                             WalletRepository)
+from src.infrastructure.repositories import UserRepository, WalletRepository
 from src.infrastructure.settings import BlockRaderConfig
-from src.usecases import JWTUsecase, OtpUseCase, UserUseCase, WalletService
+from src.infrastructure.settings import block_rader_config as blockrader_config_instance
+from src.types import Chain
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    UserUseCase,
+    WalletManagerUsecase,
+    WalletService,
+)
 
 
 async def get_user_usecases(
@@ -48,20 +51,29 @@ async def get_blockrader_wallet_service(
     blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
     user_repository: UserRepository = Depends(get_user_repository),
     wallet_repository: WalletRepository = Depends(get_wallet_repository),
-    wallet_provider_repository: WalletProviderRepository = Depends(
-        get_wallet_provider_repository
-    ),
 ):
     return WalletService(
         blockrader_config,
         user_repository,
         wallet_repository,
-        wallet_provider_repository,
     )
 
 
-async def get_blockrader_base_wallet_wallet_manager(
-    wallet_serivce: WalletService = Depends(get_blockrader_wallet_service),
-    blokrader_config: BlockRaderConfig = Depends(get_blockrader_config),
-):
-    return wallet_serivce.new_wallet_manager(blokrader_config.base_master_wallet_id)
+async def get_wallet_manager_factory(
+    wallet_service: WalletService = Depends(get_blockrader_wallet_service),
+) -> Callable[[Chain], "WalletManagerUsecase"]:
+    def factory(wallet_id: str):
+        wallet_config = next(
+            (
+                w
+                for w in blockrader_config_instance.wallets
+                if w.wallet_id == wallet_id and w.active
+            ),
+            None,
+        )
+        if not wallet_config:
+            return None
+
+        return wallet_service.new_wallet_manager(wallet_config.wallet_id, chain)
+
+    return factory
