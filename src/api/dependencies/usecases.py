@@ -9,13 +9,15 @@ from src.infrastructure.repositories import UserRepository, WalletRepository
 from src.infrastructure.settings import BlockRaderConfig
 from src.infrastructure.settings import block_rader_config as blockrader_config_instance
 from src.types import Chain
-from src.usecases import (
-    JWTUsecase,
-    OtpUseCase,
-    UserUseCase,
-    WalletManagerUsecase,
-    WalletService,
-)
+from src.usecases import (JWTUsecase, OtpUseCase, UserUseCase, WalletService,
+                          WalletManagerUsecase, SessionUseCase)
+from src.infrastructure.redis import RedisClient
+
+
+async def get_session_usecase(
+    redis_client: RedisClient = Depends(get_redis_service),
+) -> SessionUseCase:
+    yield SessionUseCase(redis_client)
 
 
 async def get_user_usecases(

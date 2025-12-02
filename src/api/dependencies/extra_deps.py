@@ -18,11 +18,6 @@ from src.usecases import JWTUsecase, OtpUseCase
 
 logger = get_logger(__name__)
 
-
-async def get_current_user():
-    pass
-
-
 type T = AccessToken
 security = HTTPBearer(auto_error=False)
 
@@ -59,7 +54,7 @@ class BearerToken[T]:
         if err:
             raise AuthError(status_code=401, detail={"error": "Invalid token"})
 
-        return token
+        return response_token
 
 
 async def verify_top_dep(

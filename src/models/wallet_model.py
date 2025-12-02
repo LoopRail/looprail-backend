@@ -14,15 +14,6 @@ if TYPE_CHECKING:
     from src.models.user_model import User
 
 
-class WalletProvider(Base, table=True):
-    __tablename__ = "wallet_providers"
-
-    name: Provider = Field(unique=True, nullable=False)
-    is_active: bool = Field(default=True)
-
-    wallets: list["Wallet"] = Relationship(back_populates="provider")
-
-
 class Wallet(Base, table=True):
     __tablename__ = "wallets"
 
@@ -30,7 +21,7 @@ class Wallet(Base, table=True):
     address: str = Field(unique=True, index=True, nullable=False)
     balance: Decimal = Field(default=Decimal("0.00"), nullable=False)
     chain: Chain = Field(nullable=False)
-    provider_id: UUID = Field(foreign_key="providers.id", index=True)
+    provider: str = Field(index=True, nullable=False)
     is_active: bool = Field(default=True, nullable=False)
 
     name: Optional[str] = Field(default=None)
@@ -38,7 +29,6 @@ class Wallet(Base, table=True):
     # description: Optional[str] = Field(default=None)
 
     user: User = Relationship(back_populates="wallet")
-    provider: WalletProvider = Relationship(back_populates="wallets")
     transactions: list[Transaction] = Relationship(back_populates="wallet")
     assets: list["Asset"] = Relationship(back_populates="wallet")
 

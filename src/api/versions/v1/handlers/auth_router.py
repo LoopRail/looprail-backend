@@ -1,16 +1,30 @@
+from typing import Callable
+
 import httpx
-from fastapi import (APIRouter, BackgroundTasks, Depends, HTTPException,
-                     Request, Response, status)
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (BearerToken,
-                                  get_blockrader_base_wallet_wallet_manager,
-                                  get_otp_usecase, get_user_usecases)
+from src.api.dependencies import (
+    BearerToken,
+    get_otp_usecase,
+    get_user_usecases,
+    get_wallet_manager_factory,
+)
+
 # from src.api.rate_limiter import limiter
 from src.dtos import OnboardUserUpdate, OtpCreate, UserCreate, UserPublic
 from src.infrastructure.logger import get_logger
-from src.models import User
-from src.types import AccessTokenType, OnBoardingToken
+from src.infrastructure.settings import block_rader_config
+from src.types import AccessTokenType, Chain, OnBoardingToken
+
 # from src.infrastructure.services.resend_service import ResendService
 from src.usecases import OtpUseCase, UserUseCase, WalletManagerUsecase
 
@@ -55,14 +69,27 @@ async def create_user(
     }
 
 
+from src.api.dependencies import (
+    BearerToken,
+    get_otp_usecase,
+    get_session_usecase,
+    get_user_usecases,
+    get_wallet_manager_factory,
+)
+from src.usecases import OtpUseCase, UserUseCase, WalletManagerUsecase, SessionUseCase
+
 @router.post("/complete_onboarding")
 async def complete_onboarding(
+    request: Request,
     user_data: OnboardUserUpdate,
+    background_tasks: BackgroundTasks,
     token: OnBoardingToken = Depends(BearerToken[OnBoardingToken]),
     user_usecases: UserUseCase = Depends(get_user_usecases),
-    base_wallet_usecase: WalletManagerUsecase = Depends(
-        get_blockrader_base_wallet_wallet_manager
+    wallet_manager_factory: Callable[[Chain], WalletManagerUsecase] = Depends(
+        get_wallet_manager_factory
     ),
+    session_usecase: SessionUseCase = Depends(get_session_usecase),
+    device_id: str = Header(..., alias="X-Device-ID"),
 ):
     if token.token_type != AccessTokenType.ONBOARDING_TOKEN:
         logger.error(
@@ -75,14 +102,64 @@ async def complete_onboarding(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"error": "Invalid token"},
         )
+
     current_user, err = await user_usecases.get_user_by_id(user_id=token.user_id)
-    _, err = await base_wallet_usecase.create_user_wallet(current_user.id)
     if err:
-        logger.error("Failed to create user wallet: %s", err.message)
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"error": "User not found"},
+        )
+    _, err = await user_usecases.update_user_profile(current_user.id, **user_data)
+    if err:
+        logger.error("Could not update user: %s", err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": "Could not create user wallet"},
+            content={"error": "Internal server error"},
         )
+    _, err = await user_usecases.update_user(
+        current_user.id, has_completed_onboarding=True
+    )
+    if err:
+        logger.error("Could not update user: %s", err.message)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": "Internal server error"},
+        )
+
+    async def create_wallets_in_background(user_id):
+        active_wallets = [w for w in block_rader_config.wallets if w.active]
+        for wallet_config in active_wallets:
+            wallet_manager = wallet_manager_factory(wallet_config.chain)
+            if not wallet_manager:
+                logger.warning(
+                    "No wallet manager for chain %s, skipping.", wallet_config.chain
+                )
+                continue
+
+            _, err = await wallet_manager.create_user_wallet(user_id)
+            if err:
+                logger.error(
+                    "Failed to create user wallet for chain %s: %s",
+                    wallet_config.chain,
+                    err.message,
+                )
+                continue
+
+    background_tasks.add_task(create_wallets_in_background, current_user.id)
+
+    session = await session_usecase.create_session(
+        user=UserPublic.model_validate(current_user),
+        device_id=device_id,
+        ip_address=request.client.host,
+    )
+
+    return JSONResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        content={
+            "message": "User onboarded successfully, wallet creation in progress.",
+            "session_id": str(session.session_id),
+        },
+    )
 
 
 @router.post("/send-otp")

@@ -4,8 +4,7 @@ from uuid import UUID
 from src.dtos.user_dtos import UserCreate
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import UserRepository, WalletRepository
-from src.infrastructure.services.blockrader_client import (AddressManager,
-                                                           WalletManager)
+from src.infrastructure.services.blockrader_client import AddressManager, WalletManager
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import User, UserProfile, Wallet
 from src.types.blockrader import CreateAddressRequest
@@ -29,12 +28,12 @@ class UserUseCase:
         return await self.user_repository.save(user)
 
     async def update_user(
-        self, user_id: UUID, **kwargs
+        self, user_id: UUID, /, **kwargs
     ) -> Tuple[Optional[User], Error]:
         return await self.user_repository.update_user(user_id=user_id, **kwargs)
 
     async def update_user_profile(
-        self, user_id: UUID, **kwargs
+        self, user_id: UUID, /, **kwargs
     ) -> Tuple[Optional[UserProfile], Error]:
         return await self.user_repository.update_user_profile(user_id, **kwargs)
 
