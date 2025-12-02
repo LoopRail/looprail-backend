@@ -2,11 +2,8 @@ from typing import Optional, Self, Tuple
 from uuid import UUID
 
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import (UserRepository,
-                                             WalletProviderRepository,
-                                             WalletRepository)
-from src.infrastructure.services.blockrader_client import (AddressManager,
-                                                           WalletManager)
+from src.infrastructure.repositories import UserRepository, WalletRepository
+from src.infrastructure.services.blockrader_client import AddressManager, WalletManager
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Wallet
 from src.types import Chain, Error, Provider, error
@@ -26,20 +23,17 @@ class WalletService:
         blockrader_config: BlockRaderConfig,
         user_repository: UserRepository,
         wallet_repository: WalletRepository,
-        wallet_provider_repository: WalletProviderRepository,
-        chain: Chain = Chain.BASE,
         provider: Provider = Provider.BLOCKRADER,
     ):
         self.blockrader_config = blockrader_config
         self.provider = provider
-        self.chain = chain
 
         self.user_repository = user_repository
         self.wallet_repository = wallet_repository
-        self.wallet_provider_repository = wallet_provider_repository
 
         self._manager: Optional[WalletManager] = None
         self._manager_id: Optional[str] = None
+
     #
     # def new_address_manager(self, address_id: str):
     #     self._manager_id = address_id
@@ -48,20 +42,29 @@ class WalletService:
     #     )
     #     return self
 
-    def new_wallet_manager(self, wallet_id) -> "WalletManagerUsecase":
+    def new_wallet_manager(
+        self, wallet_id: str, chain: Chain
+    ) -> "WalletManagerUsecase":
         self._manager_id = wallet_id
         self._manager = WalletManager(self.blockrader_config, wallet_id)
-        manager_usecase = WalletManagerUsecase(self, self._manager_id, wallet_id)
+        manager_usecase = WalletManagerUsecase(
+            self, self._manager_id, self._manager, chain
+        )
         return manager_usecase
 
 
 class WalletManagerUsecase(TransactionMixin):
     def __init__(
-        self, service: WalletService, wallet_id: str, manager: WalletManager
+        self,
+        service: WalletService,
+        wallet_id: str,
+        manager: WalletManager,
+        chain: Chain,
     ) -> None:
         self.service = service
         self.manager = manager
         self.wallet_id = wallet_id
+        self.chain = chain
 
     async def create_user_wallet(self, user_id: UUID) -> Tuple[Optional[Self], Error]:
         user, err = await self.service.user_repository.get_user_by_id(user_id)
@@ -89,7 +92,7 @@ class WalletManagerUsecase(TransactionMixin):
         new_wallet = Wallet(
             user_id=user.id,
             addess=provider_wallet.data.address,
-            Chain=self.service.chain,
+            Chain=self.chain,
             provider_id=provider.id,
             name=wallet_request.name,
             derivation_path=provider_wallet.data.derivationPath,
