@@ -18,7 +18,7 @@ class SessionUseCase:
         expires_in_days: int = 30,
     ) -> SessionData:
         session = SessionData.new_session(
-            user=user,
+            user_id=user.id,
             device_id=device_id,
             ip_address=ip_address,
             device_type=device_type,
@@ -29,7 +29,9 @@ class SessionUseCase:
             f"user_sessions:{user.id}", UserSession
         )
         if not user_session:
-            user_session = UserSession(user_id=user.id)
+            user_session = UserSession(user_id=user.id, user_public_data=user)
+        else:
+            user_session.user_public_data = user # Update user public data if it exists
 
         user_session.session_ids.append(session.session_id)
 
@@ -64,14 +66,14 @@ class SessionUseCase:
             return False
 
         user_session, _ = await self.redis_client.get(
-            f"user_sessions:{session_data.user.id}", UserSession
+            f"user_sessions:{session_data.user_id}", UserSession
         )
 
         if user_session:
             if session_id in user_session.session_ids:
                 user_session.session_ids.remove(session_id)
                 await self.redis_client.create(
-                    f"user_sessions:{session_data.user.id}",
+                    f"user_sessions:{session_data.user_id}",
                     user_session.model_dump_json(),
                 )
 

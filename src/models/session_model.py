@@ -9,7 +9,7 @@ from src.dtos.user_dtos import UserPublic
 
 class SessionData(BaseModel):
     session_id: UUID = Field(default_factory=uuid4)
-    user: UserPublic
+    user_id: UUID
     device_id: str
     device_type: str | None = None
     ip_address: str
@@ -19,7 +19,7 @@ class SessionData(BaseModel):
     @classmethod
     def new_session(
         cls,
-        user: UserPublic,
+        user_id: UUID,
         device_id: str,
         ip_address: str,
         device_type: str | None = None,
@@ -27,7 +27,7 @@ class SessionData(BaseModel):
     ) -> "SessionData":
         expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
         return cls(
-            user=user,
+            user_id=user_id,
             device_id=device_id,
             device_type=device_type,
             ip_address=ip_address,
@@ -40,4 +40,5 @@ class SessionData(BaseModel):
 
 class UserSession(BaseModel):
     user_id: UUID
+    user_public_data: UserPublic
     session_ids: List[UUID] = Field(default_factory=list)
