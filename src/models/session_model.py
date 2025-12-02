@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import List
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
@@ -35,3 +36,8 @@ class SessionData(BaseModel):
 
     def is_expired(self) -> bool:
         return datetime.utcnow() > self.expires_at
+
+
+class UserSession(BaseModel):
+    user_id: UUID
+    session_ids: List[UUID] = Field(default_factory=list)
