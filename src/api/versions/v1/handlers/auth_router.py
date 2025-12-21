@@ -1,32 +1,20 @@
 from typing import Callable
 
 import httpx
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Depends,
-    HTTPException,
-    Request,
-    Response,
-    status,
-)
+from fastapi import (APIRouter, BackgroundTasks, Depends, Header,
+                     HTTPException, Request, Response, status)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (
-    BearerToken,
-    get_otp_usecase,
-    get_user_usecases,
-    get_wallet_manager_factory,
-)
-
+from src.api.dependencies import (BearerToken, get_otp_usecase,
+                                  get_session_usecase, get_user_usecases,
+                                  get_wallet_manager_factory)
 # from src.api.rate_limiter import limiter
 from src.dtos import OnboardUserUpdate, OtpCreate, UserCreate, UserPublic
 from src.infrastructure.logger import get_logger
 from src.infrastructure.settings import block_rader_config
 from src.types import AccessTokenType, Chain, OnBoardingToken
-
 # from src.infrastructure.services.resend_service import ResendService
-from src.usecases import OtpUseCase, UserUseCase, WalletManagerUsecase
+from src.usecases import OtpUseCase, UserUseCase, WalletManagerUsecase, SessionUseCase
 
 logger = get_logger(__name__)
 
@@ -68,15 +56,6 @@ async def create_user(
         )
     }
 
-
-from src.api.dependencies import (
-    BearerToken,
-    get_otp_usecase,
-    get_session_usecase,
-    get_user_usecases,
-    get_wallet_manager_factory,
-)
-from src.usecases import OtpUseCase, UserUseCase, WalletManagerUsecase, SessionUseCase
 
 @router.post("/complete_onboarding")
 async def complete_onboarding(
@@ -147,11 +126,19 @@ async def complete_onboarding(
 
     background_tasks.add_task(create_wallets_in_background, current_user.id)
 
-    session = await session_usecase.create_session(
+    session, err = await session_usecase.create_session(
         user=UserPublic.model_validate(current_user),
         device_id=device_id,
         ip_address=request.client.host,
     )
+    if err:
+        logger.error(
+            "Could not create session for user %s: %s", current_user.id, err.message
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": "Internal server error"},
+        )
 
     return JSONResponse(
         status_code=status.HTTP_202_ACCEPTED,
