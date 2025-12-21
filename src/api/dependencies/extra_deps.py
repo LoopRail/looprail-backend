@@ -57,7 +57,7 @@ class BearerToken[T]:
         return response_token
 
 
-async def verify_top_dep(
+async def verify_otp_dep(
     req: VerifyOtpRequest,
     otp_token: str = Depends(get_otp_token),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),

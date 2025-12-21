@@ -3,7 +3,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.infrastructure.db import get_session
 from src.infrastructure.repositories import (UserRepository,
-                                             WalletProviderRepository,
                                              WalletRepository)
 
 
@@ -19,7 +18,3 @@ async def get_wallet_repository(
     yield WalletRepository(session)
 
 
-async def get_wallet_provider_repository(
-    session: AsyncSession = Depends(get_session),
-) -> WalletProviderRepository:
-    return WalletProviderRepository(session)
