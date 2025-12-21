@@ -1,8 +1,10 @@
-from typing import List
-from src.models.session_model import SessionData, UserSession
-from src.infrastructure.redis import RedisClient
-from src.dtos.user_dtos import UserPublic
+from typing import List, Optional, Tuple
 from uuid import UUID
+
+from src.dtos.user_dtos import UserPublic
+from src.infrastructure.redis import RedisClient
+from src.models.session_model import SessionData, UserSession
+from src.types import Error, error
 
 
 class SessionUseCase:
@@ -16,7 +18,7 @@ class SessionUseCase:
         ip_address: str,
         device_type: str | None = None,
         expires_in_days: int = 30,
-    ) -> SessionData:
+    ) -> Tuple[Optional[SessionData], Error]:
         session = SessionData.new_session(
             user_id=user.id,
             device_id=device_id,
@@ -31,23 +33,29 @@ class SessionUseCase:
         if not user_session:
             user_session = UserSession(user_id=user.id, user_public_data=user)
         else:
-            user_session.user_public_data = user # Update user public data if it exists
+            user_session.user_public_data = user
 
         user_session.session_ids.append(session.session_id)
 
         tx = await self.redis_client.transaction()
-        await tx.create(
+        err = await tx.create(
             f"session:{session.session_id}",
             session.model_dump_json(),
             ttl=expires_in_days * 24 * 60 * 60,
         )
-        await tx.create(
+        if err:
+            return None, err
+        err = await tx.create(
             f"user_sessions:{user.id}",
             user_session.model_dump_json(),
         )
-        await tx.commit()
+        if err:
+            return None, err
+        err = await tx.commit()
+        if err:
+            return None, err
 
-        return session
+        return session, None
 
     async def get_session(self, session_id: UUID) -> SessionData | None:
         session_data, err = await self.redis_client.get(
