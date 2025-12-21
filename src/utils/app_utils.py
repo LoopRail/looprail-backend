@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 
 from jinja2 import Environment, FileSystemLoader
 
-from src.types import Error, error
+from src.types.error import Error, error
 
 
 def get_dir_at_level(level=1, file: str = __file__):
