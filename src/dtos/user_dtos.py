@@ -3,36 +3,78 @@ from enum import StrEnum
 from uuid import UUID
 
 from email_validator import EmailNotValidError, validate_email
-from pydantic import EmailStr, Field, field_validator
+from pydantic import EmailStr, Field, field_validator, model_validator
 
 from src.dtos.base import Base
+from src.infrastructure import (countries_config,
+                                         disposable_email_domains_config)
 from src.types import KYCStatus, error
+from src.utils.country_utils import get_country_info, is_valid_country_code
+from src.utils.phone_number_utils import \
+    validate_and_format_phone_number
 
 
 class Gender(StrEnum):
     MALE = "male"
-    FEMAIL = "FEMALE"
+    FEMALE = "female"
 
 
 class OnboardUserUpdate(Base):
-    first_name: str
-    last_name: str
-    gender: Gender
+    transaction_pin: list[int]  # TODO we need to add a validation for this guy
+    allow_notificatiosn: bool
+    questioner: list[str]
+
+
+class PhoneNumber(Base):
+    code: str
+    number: str
+    country_code: str
+
+    @field_validator("country_code")
+    @classmethod
+    def validate_country_code(cls, v: str) -> str:
+        if not is_valid_country_code(countries_config, v):
+            raise error(f"Country code '{v}' is not supported")
+        return v.upper()
+
+    @model_validator(mode="after")
+    def check_dial_code(self) -> "PhoneNumber":
+        country_info = get_country_info(countries_config, self.country_code)
+        if country_info and country_info.dial_code != self.code:
+            raise error(
+                f"Dial code '{self.code}' does not match country '{self.country_code}'"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_and_format_number(self) -> "PhoneNumber":
+        self.number = validate_and_format_phone_number(self.number, self.country_code)
+        return self
 
 
 class UserCreate(Base):
     email: EmailStr
-    country: str
+    first_name: str
+    last_name: str
     country_code: str
-    phone_number: str
+    gender: Gender
+    phone_number: PhoneNumber
+
+    @field_validator("country_code")
+    @classmethod
+    def validate_country_code(cls, v: str) -> str:
+        if not is_valid_country_code(countries_config, v):
+            raise error(f"Country code '{v.upper()}' is not supported")
+        return v.upper()
 
     @field_validator("email")
     @classmethod
     def validate_email(cls, val: any):
         try:
-            email = validate_email(val, check_deliverability=True)
-
-            return email.email
+            email_info = validate_email(val, check_deliverability=True)
+            if email_info.domain in disposable_email_domains_config.domains:
+                raise error("Disposable email addresses are not allowed")
+            return email_info.email
 
         except EmailNotValidError as e:
             raise error("Invalid email address") from e

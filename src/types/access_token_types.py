@@ -1,9 +1,9 @@
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 from src.types.types import AccessTokenType
-from src.utils import kebab_case
+from src.utils.app_utils import kebab_case
 
 
 class AccessToken(BaseModel):
