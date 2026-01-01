@@ -1,18 +1,25 @@
-version: '3.8'
-
 services:
   backend:
     build: .
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app
+    # volumes:
+    #   - .:/app
     env_file:
-      - .env
+      - ./config/.env
     depends_on:
       - db
       - redis
-    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+        - action: rebuild
+          path: Dockerfile
+        - action: rebuild
+          path: pyproject.toml
 
   db:
     image: postgres:13
@@ -23,7 +30,7 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=looprail
     ports:
-      - "5432:5432"
+      - "5431:5432"
 
   redis:
     image: redis:6
