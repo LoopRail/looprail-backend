@@ -1,0 +1,5 @@
+# Disposable email domains
+10minutemail.com
+temp-mail.org
+guerrillamail.com
+mailinator.com

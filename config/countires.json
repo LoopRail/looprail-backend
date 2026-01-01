@@ -1,0 +1,28 @@
+{
+  "countries": {
+    "US": {
+      "name": "United States",
+      "iso2": "US",
+      "iso3": "USA",
+      "dial_code": "+1",
+      "currency": "USD",
+      "enabled": true
+    },
+    "UK": {
+      "name": "United Kingdom",
+      "iso2": "GB",
+      "iso3": "GBR",
+      "dial_code": "+44",
+      "currency": "GBP",
+      "enabled": true
+    },
+    "NG": {
+      "name": "Nigeria",
+      "iso2": "NG",
+      "iso3": "NGA",
+      "dial_code": "+234",
+      "currency": "NGN",
+      "enabled": true
+    }
+  }
+}
