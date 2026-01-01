@@ -1,9 +1,11 @@
+import json
 import os
 from typing import List
 
 import yaml
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from src.types.country_types import CountriesData
 from src.types.types import WalletConfig
 from src.utils import return_base_dir
 
@@ -14,8 +16,6 @@ else:
 
 USDC_ADDRESS = "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"
 ONBOARDING_TOKEN_EXP_MINS = 10
-MAX_FAILED_OTP_ATTEMPTS = 3
-ACCOUNT_LOCKOUT_DURATION_MINUTES = 15
 MAX_FAILED_OTP_ATTEMPTS = 3
 ACCOUNT_LOCKOUT_DURATION_MINUTES = 15
 USDC_ABI = [
@@ -86,9 +86,6 @@ class RedisConfig(ServerConfig):
     redis_password: str | None = None
 
 
-block_rader_config = BlockRaderConfig()
-
-
 def load_wallet_configs_into_config(config: BlockRaderConfig):
     config_path = os.path.join(return_base_dir(), "config", "blockrader.yaml")
     try:
@@ -98,6 +95,27 @@ def load_wallet_configs_into_config(config: BlockRaderConfig):
     except FileNotFoundError:
         config.wallets = []
 
+
+def load_countries() -> CountriesData:
+    config_path = os.path.join(return_base_dir(), "config", "countires.json")
+    with open(config_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return CountriesData(**data)
+
+
+def load_disposable_email_domains() -> List[str]:
+    config_path = os.path.join(
+        return_base_dir(), "config", "disposable_email_domains.txt"
+    )
+    with open(config_path, "r", encoding="utf-8") as f:
+        return [
+            line.strip() for line in f if line.strip() and not line.startswith("#")
+        ]
+
+
+block_rader_config = BlockRaderConfig()
+countries_config = load_countries()
+disposable_email_domains_config = load_disposable_email_domains()
 
 load_wallet_configs_into_config(block_rader_config)
 
