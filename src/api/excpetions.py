@@ -7,3 +7,7 @@ class AuthError(HTTPException):
 
 class OTPError(HTTPException):
     pass
+
+
+class FailedAttemptError(HTTPException):
+    pass

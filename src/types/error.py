@@ -27,6 +27,18 @@ class UpdatingProtectedFieldError(error):
         super().__init__(f"updating protected field: {field}")
 
 
+
+class FailedAttemptError(error):
+    def __init__(self, message: str = "Failed attempt"):
+        super().__init__(message)
+
+
+
+class FailedAttemptError(error):
+    def __init__(self, message: str = "Failed attempt"):
+        super().__init__(message)
+
+
 NotFoundError = error("not found")
 ProtectedModelError = error("protected model can't update")
 ItemDoesNotExistError = error("item does not exist")
