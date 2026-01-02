@@ -12,9 +12,16 @@ async def test_create_user_success(mock_get_user_usecases):
     # Arrange
     mock_user_usecase = MagicMock()
     user_data = {
-        "username": "testuser",
         "email": "test@example.com",
-        "password": "password",
+        "first_name": "Test",
+        "last_name": "User",
+        "country_code": "US",
+        "gender": "male",
+        "phone_number": {
+            "code": "+1",
+            "number": "1234567890",
+            "country_code": "US",
+        },
     }
     created_user = UserPublic(
         id="123", username="testuser", email="test@example.com"
