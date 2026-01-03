@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.infrastructure.settings import database_config
+from src.infrastructure import config
 
-engine = create_async_engine(database_config.get_uri(), echo=True)
+engine = create_async_engine(config.database.get_uri(), echo=True)
 
 
 async def get_session() -> Optional[AsyncSession]:
@@ -21,5 +21,5 @@ async def get_session() -> Optional[AsyncSession]:
             yield session
 
         finally:
-            session.commit()
-            session.close()
+            await session.commit()
+            await session.close()
