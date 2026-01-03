@@ -2,6 +2,7 @@ from email_validator import EmailNotValidError, validate_email
 from pydantic import EmailStr, field_validator
 
 from src.dtos.base import Base
+from src.infrastructure import config
 from src.types import OtpType, error
 
 
@@ -12,9 +13,10 @@ class OtpCreate(Base):
     @classmethod
     def validate_email(cls, val: any):
         try:
-            email = validate_email(val, check_deliverability=True)
-
-            return email.email
+            email_info = validate_email(val, check_deliverability=True)
+            if email_info.domain in config.disposable_email_domains:
+                raise error("Disposable email addresses are not allowed")
+            return email_info.email
 
         except EmailNotValidError as e:
             raise error("Invalid email address") from e
