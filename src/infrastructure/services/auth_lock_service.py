@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
 from src.infrastructure.redis import RedisClient
-from src.infrastructure.settings import (
+from src.infrastructure.constants import (
     ACCOUNT_LOCKOUT_DURATION_MINUTES,
     MAX_FAILED_OTP_ATTEMPTS,
 )
