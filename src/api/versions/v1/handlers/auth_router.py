@@ -11,7 +11,7 @@ from src.api.dependencies import (BearerToken, get_otp_usecase,
 # from src.api.rate_limiter import limiter
 from src.dtos import OnboardUserUpdate, OtpCreate, UserCreate, UserPublic
 from src.infrastructure.logger import get_logger
-from src.infrastructure.settings import block_rader_config
+from src.infrastructure import config
 from src.types import AccessTokenType, Chain, OnBoardingToken
 # from src.infrastructure.services.resend_service import ResendService
 from src.usecases import OtpUseCase, UserUseCase, WalletManagerUsecase, SessionUseCase
@@ -106,7 +106,7 @@ async def complete_onboarding(
         )
 
     async def create_wallets_in_background(user_id):
-        active_wallets = [w for w in block_rader_config.wallets if w.active]
+        active_wallets = [w for w in config.block_rader.wallets if w.active]
         for wallet_config in active_wallets:
             wallet_manager = wallet_manager_factory(wallet_config.chain)
             if not wallet_manager:
