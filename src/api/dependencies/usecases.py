@@ -2,16 +2,16 @@ from typing import Callable, Optional
 
 from fastapi import Depends, Header, HTTPException, status
 
-from src.api.dependencies.repositories import get_user_repository, get_wallet_repository
-from src.api.dependencies.services import get_blockrader_config, get_redis_service
-from src.infrastructure import RedisClient, jwt_config, otp_config
+from src.api.dependencies.repositories import (get_user_repository,
+                                               get_wallet_repository)
+from src.api.dependencies.services import (get_blockrader_config,
+                                           get_redis_service)
+from src.infrastructure import RedisClient, config
 from src.infrastructure.repositories import UserRepository, WalletRepository
 from src.infrastructure.settings import BlockRaderConfig
-from src.infrastructure.settings import block_rader_config as blockrader_config_instance
 from src.types import Chain
-from src.usecases import (JWTUsecase, OtpUseCase, UserUseCase, WalletService,
-                          WalletManagerUsecase, SessionUseCase)
-from src.infrastructure.redis import RedisClient
+from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
+                          WalletManagerUsecase, WalletService)
 
 
 async def get_session_usecase(
@@ -31,7 +31,7 @@ async def get_user_usecases(
 async def get_otp_usecase(
     redis_client: RedisClient = Depends(get_redis_service),
 ) -> OtpUseCase:
-    yield OtpUseCase(redis_client, otp_config)
+    yield OtpUseCase(redis_client, config.otp)
 
 
 async def get_otp_token(
@@ -46,7 +46,7 @@ async def get_otp_token(
 
 
 async def get_jwt_usecase():
-    yield JWTUsecase(jwt_config)
+    yield JWTUsecase(config.jwt)
 
 
 async def get_blockrader_wallet_service(
@@ -68,7 +68,7 @@ async def get_wallet_manager_factory(
         wallet_config = next(
             (
                 w
-                for w in blockrader_config_instance.wallets
+                for w in config.block_rader.wallets
                 if w.wallet_id == wallet_id and w.active
             ),
             None,
