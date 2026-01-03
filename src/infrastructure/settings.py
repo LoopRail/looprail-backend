@@ -1,40 +1,30 @@
-import json
 import os
 from typing import List
 
-import yaml
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from src.types.country_types import CountriesData
 from src.types.types import WalletConfig
 from src.utils import return_base_dir
 
-if os.getenv("TESTING") == "true":
-    env_dir = os.path.join(return_base_dir(), "config", ".env.test")
-else:
-    env_dir = os.path.join(return_base_dir(), "config", ".env.dev")
 
-USDC_ADDRESS = "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb"
-ONBOARDING_TOKEN_EXP_MINS = 10
-MAX_FAILED_OTP_ATTEMPTS = 3
-ACCOUNT_LOCKOUT_DURATION_MINUTES = 15
-USDC_ABI = [
-    {
-        "name": "transfer",
-        "type": "function",
-        "inputs": [
-            {"name": "to", "type": "address"},
-            {"name": "amount", "type": "uint256"},
-        ],
-        "outputs": [{"name": "", "type": "bool"}],
-        "stateMutability": "nonpayable",
-    }
-]
+class AppSettings(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore", env_file_encoding="utf-8")
+
+    testing: bool = Field(False, alias="TESTING")
+    env_file: str = ".env.dev"
+
+    @property
+    def get_env_file_path(self) -> str:
+        env_file = ".env.dev" if self.testing else self.env_file
+        return os.path.join(return_base_dir(), "config", env_file)
 
 
 class ServerConfig(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=env_dir, env_file_encoding="utf-8", extra="ignore"
+        env_file=AppSettings().get_env_file_path,
+        env_file_encoding="utf-8",
+        extra="ignore",
     )
 
 
@@ -84,50 +74,3 @@ class RedisConfig(ServerConfig):
     redis_host: str
     redis_username: str | None = None
     redis_password: str | None = None
-
-
-def load_wallet_configs_into_config(config: BlockRaderConfig):
-    config_path = os.path.join(return_base_dir(), "config", "blockrader.yaml")
-    try:
-        with open(config_path, "r", encoding="utf-8") as f:
-            raw_configs = yaml.safe_load(f)
-        config.wallets = [WalletConfig(**c) for c in raw_configs]
-    except FileNotFoundError:
-        config.wallets = []
-
-
-def load_countries() -> CountriesData:
-    config_path = os.path.join(return_base_dir(), "config", "countires.json")
-    with open(config_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return CountriesData(**data)
-
-
-def load_disposable_email_domains() -> List[str]:
-    config_path = os.path.join(
-        return_base_dir(), "config", "disposable_email_domains.txt"
-    )
-    with open(config_path, "r", encoding="utf-8") as f:
-        return [
-            line.strip() for line in f if line.strip() and not line.startswith("#")
-        ]
-
-
-block_rader_config = BlockRaderConfig()
-countries_config = load_countries()
-disposable_email_domains_config = load_disposable_email_domains()
-
-load_wallet_configs_into_config(block_rader_config)
-
-paycrest_config = PayCrestConfig()
-database_config = DatabaseConfig()
-paystack_config = PaystackConfig()
-redis_config = RedisConfig()
-otp_config = OTPConfig()
-resend_config = ResendConfig()
-jwt_config = JWTConfig()
-
-
-# TODO  we will need to create a separate config for wallets soon
-# Starting with base because of blockrader's quota
-# Pobably enter them from an admin ui since we already have a provider model
