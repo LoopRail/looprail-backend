@@ -6,7 +6,7 @@ from src.api.dependencies import get_jwt_usecase, get_user_usecases, verify_otp_
 # from src.api.rate_limiter import limiter
 from src.dtos import OTPSuccessResponse
 from src.infrastructure.logger import get_logger
-from src.infrastructure.settings import ONBOARDING_TOKEN_EXP_MINS
+from src.infrastructure.constants import ONBOARDING_TOKEN_EXP_MINS
 from src.models import Otp
 from src.types import NotFoundError, OtpType
 from src.types import OnBoardingToken
