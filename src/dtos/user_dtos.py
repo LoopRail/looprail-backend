@@ -6,8 +6,7 @@ from email_validator import EmailNotValidError, validate_email
 from pydantic import EmailStr, Field, field_validator, model_validator
 
 from src.dtos.base import Base
-from src.infrastructure import (countries_config,
-                                         disposable_email_domains_config)
+from src.infrastructure import config
 from src.types import KYCStatus, error
 from src.utils.country_utils import get_country_info, is_valid_country_code
 from src.utils.phone_number_utils import \
@@ -33,13 +32,13 @@ class PhoneNumber(Base):
     @field_validator("country_code")
     @classmethod
     def validate_country_code(cls, v: str) -> str:
-        if not is_valid_country_code(countries_config, v):
+        if not is_valid_country_code(config.countries, v):
             raise error(f"Country code '{v}' is not supported")
         return v.upper()
 
     @model_validator(mode="after")
     def check_dial_code(self) -> "PhoneNumber":
-        country_info = get_country_info(countries_config, self.country_code)
+        country_info = get_country_info(config.countries, self.country_code)
         if country_info and country_info.dial_code != self.code:
             raise error(
                 f"Dial code '{self.code}' does not match country '{self.country_code}'"
@@ -63,7 +62,7 @@ class UserCreate(Base):
     @field_validator("country_code")
     @classmethod
     def validate_country_code(cls, v: str) -> str:
-        if not is_valid_country_code(countries_config, v):
+        if not is_valid_country_code(config.countries, v):
             raise error(f"Country code '{v.upper()}' is not supported")
         return v.upper()
 
@@ -72,7 +71,7 @@ class UserCreate(Base):
     def validate_email(cls, val: any):
         try:
             email_info = validate_email(val, check_deliverability=True)
-            if email_info.domain in disposable_email_domains_config.domains:
+            if email_info.domain in config.disposable_email_domains:
                 raise error("Disposable email addresses are not allowed")
             return email_info.email
 
