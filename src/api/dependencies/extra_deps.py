@@ -3,11 +3,8 @@ from typing import Optional, Tuple
 from fastapi import Depends, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.api.dependencies.usecases import (
-    get_jwt_usecase,
-    get_otp_token,
-    get_otp_usecase,
-)
+from src.api.dependencies.usecases import (get_jwt_usecase, get_otp_token,
+                                           get_otp_usecase)
 from src.api.excpetions import AuthError, OTPError
 from src.dtos import VerifyOtpRequest
 from src.infrastructure import get_logger
@@ -24,6 +21,7 @@ security = HTTPBearer(auto_error=False)
 
 class BearerToken[T]:
     async def __call__(
+        self,
         credentials: HTTPAuthorizationCredentials = Depends(security),
         jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     ) -> str:
