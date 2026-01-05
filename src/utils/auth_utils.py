@@ -5,7 +5,8 @@ from typing import Optional
 from argon2.low_level import Type, hash_secret_raw
 
 from src.infrastructure import config
-from src.types import HashedPassword, error
+from src.types.auth_types import HashedPassword
+from src.types.error import error, Error
 
 
 def hash_password_argon2(password: str) -> HashedPassword:
@@ -52,7 +53,7 @@ def verify_password_argon2(password: str, hashed_password_obj: HashedPassword) -
     return new_hash.hex() == hashed_password_obj.hash
 
 
-def validate_password_strength(password: str) -> Optional[error]:
+def validate_password_strength(password: str) -> Optional[Error]:
     """
     Validates the strength of a password based on the following rules:
     - Minimum 8 characters.
