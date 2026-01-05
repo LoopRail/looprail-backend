@@ -8,7 +8,6 @@ from fastapi.responses import JSONResponse
 from src.api import add_rate_limiter, v1_router
 from src.api.middlewares import RequestLoggerMiddleware
 from src.infrastructure import RedisClient, config
-from src.infrastructure.db import get_session
 from src.infrastructure.services import (
     AuthLockService,
     PaycrestService,
