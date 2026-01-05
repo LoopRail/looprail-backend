@@ -77,7 +77,7 @@ class AuthLockService:
         lock_data_raw = await self.redis_client.get(key)
         if lock_data_raw:
             try:
-                lock_data = json.loads(lock_data_raw)
+
                 # If there's a lock_data and it was set, consider it locked.
                 # Redis `ex` (expire) handles the duration automatically.
                 return True, FailedAttemptError(

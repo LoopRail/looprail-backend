@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,12 +7,40 @@ from fastapi.responses import JSONResponse
 
 from src.api import add_rate_limiter, v1_router
 from src.api.middlewares import RequestLoggerMiddleware
+from src.infrastructure import RedisClient, config
+from src.infrastructure.db import get_session
+from src.infrastructure.services import (
+    AuthLockService,
+    PaycrestService,
+    PaystackService,
+    ResendService,
+)
 from src.types import Error, error
+
+
+@asynccontextmanager
+async def lifespan(app_: FastAPI):
+    app_.state.redis = RedisClient(config.redis)
+
+    app_.state.paycrest = PaycrestService(config.paycrest)
+    app_.state.paystack = PaystackService(config.paystack)
+    app_.state.resend = ResendService(config.resend)
+
+    app_.state.auth_lock = AuthLockService(redis_client=app.state.redis)
+
+    app_.state.blockrader_config = config.block_rader
+
+    yield
+    
+    # --- SHUTDOWN ---
+    # await app_.state.redis.close()  # if async
+
 
 app = FastAPI(
     title="Looprail Backend",
     description="LoopRail's backend service",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 add_rate_limiter(app)
