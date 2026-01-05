@@ -8,6 +8,13 @@ from sqlmodel import Session, SQLModel, create_engine
 from src.infrastructure.db import get_session
 from src.main import app
 
+from src.models.base import Base
+from src.models.otp_model import Otp
+from src.models.payment_model import PaymentOrder
+from src.models.session_model import RefreshToken, Session as DBSessionModel
+from src.models.user_model import User, UserProfile
+from src.models.wallet_model import Transaction, Wallet
+
 pytest_plugins = [
     "tests.fixtures.usecases",
     "tests.fixtures.dependencies",
