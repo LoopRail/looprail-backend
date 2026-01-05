@@ -14,6 +14,7 @@ from src.infrastructure.constants import (
     ARGON2_HASH_LEN,
     ARGON2_SALT_LEN,
 )
+from src.infrastructure.security import Argon2Config
 from src.types.types import WalletConfig
 from src.utils import return_base_dir
 
@@ -44,14 +45,6 @@ class JWTConfig(ServerConfig):
     access_token_expire_minutes: int = ACCESS_TOKEN_EXP_MINS
     onboarding_token_expire_minutes: int = ONBOARDING_TOKEN_EXP_MINS
     refresh_token_expires_in_days: int = REFRESH_TOKEN_EXP_DAYS
-
-
-class Argon2Config(ServerConfig):
-    time_cost: int = ARGON2_TIME_COST
-    memory_cost: int = ARGON2_MEMORY_COST
-    parallelism: int = ARGON2_PARALLELISM
-    hash_len: int = ARGON2_HASH_LEN
-    salt_len: int = ARGON2_SALT_LEN
 
 
 class OTPConfig(ServerConfig):

@@ -13,6 +13,7 @@ from src.infrastructure.repositories import (RefreshTokenRepository,
                                              SessionRepository, UserRepository,
                                              WalletRepository)
 from src.infrastructure.settings import BlockRaderConfig
+from src.infrastructure.security import Argon2Config
 from src.types import Chain
 from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
                           WalletManagerUsecase, WalletService)

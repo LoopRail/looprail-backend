@@ -4,7 +4,7 @@ from typing import Optional
 
 from argon2.low_level import Type, hash_secret_raw
 
-from src.infrastructure.settings import Argon2Config
+from src.infrastructure.security import Argon2Config
 from src.types.auth_types import HashedPassword
 from src.types.error import Error, error
 

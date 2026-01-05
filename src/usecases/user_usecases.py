@@ -6,7 +6,8 @@ from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import UserRepository, WalletRepository
 from src.infrastructure.services.blockrader_client import (AddressManager,
                                                            WalletManager)
-from src.infrastructure.settings import BlockRaderConfig, Argon2Config
+from src.infrastructure.settings import BlockRaderConfig
+from src.infrastructure.security import Argon2Config
 from src.models import User, UserProfile, Wallet
 from src.types import Error, HashedPassword, InvalidCredentialsError
 from src.types.blockrader import CreateAddressRequest

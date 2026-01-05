@@ -9,7 +9,8 @@ from src.infrastructure.settings import (AppSettings, BlockRaderConfig,
                                          DatabaseConfig, JWTConfig, OTPConfig,
                                          PayCrestConfig, PaystackConfig,
                                          RedisConfig, ResendConfig,
-                                         WalletConfig, Argon2Config)
+                                         WalletConfig)
+from src.infrastructure.security import Argon2Config
 from src.types.country_types import CountriesData
 from src.utils import return_base_dir
 
