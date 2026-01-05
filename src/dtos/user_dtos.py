@@ -1,5 +1,4 @@
 from datetime import date
-from enum import StrEnum
 from uuid import UUID
 
 from email_validator import EmailNotValidError, validate_email
@@ -8,18 +7,17 @@ from pydantic import EmailStr, Field, field_validator, model_validator
 from src.dtos.base import Base
 from src.infrastructure import config
 from src.types import KYCStatus, error
-from src.utils.country_utils import get_country_info, is_valid_country_code
-from src.utils.phone_number_utils import \
-    validate_and_format_phone_number
-
-
-class Gender(StrEnum):
-    MALE = "male"
-    FEMALE = "female"
+from src.types.types import Gender
+from src.utils import (
+    get_country_info,
+    is_valid_country_code,
+    validate_and_format_phone_number,
+    validate_password_strength,
+)
 
 
 class OnboardUserUpdate(Base):
-    transaction_pin: list[int]  # TODO we need to add a validation for this guy
+    transaction_pin: list[int]
     allow_notificatiosn: bool
     questioner: list[str]
 
@@ -53,11 +51,20 @@ class PhoneNumber(Base):
 
 class UserCreate(Base):
     email: EmailStr
+    password: str
     first_name: str
     last_name: str
     country_code: str
     gender: Gender
     phone_number: PhoneNumber
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        err = validate_password_strength(v)
+        if err:
+            raise err
+        return v
 
     @field_validator("country_code")
     @classmethod
@@ -108,3 +115,12 @@ class UserProfilePublic(Base):
     phone_number: str
     date_of_birth: date
     user_id: UUID
+
+
+class LoginRequest(Base):
+    email: EmailStr
+    password: str
+
+
+class RefreshTokenRequest(Base):
+    refresh_token: str
