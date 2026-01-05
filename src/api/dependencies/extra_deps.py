@@ -10,12 +10,12 @@ from src.dtos import VerifyOtpRequest
 from src.infrastructure import get_logger
 from src.models import Otp
 from src.types import Error, OtpStatus
-from src.types.access_token_types import AccessToken
+from src.types.access_token_types import Token
 from src.usecases import JWTUsecase, OtpUseCase
 
 logger = get_logger(__name__)
 
-type T = AccessToken
+type T = Token
 security = HTTPBearer(auto_error=False)
 
 
@@ -48,7 +48,7 @@ class BearerToken[T]:
                 detail={"error": "Token missing"},
             )
 
-        response_token, err = jwt_usecase.verify_access_token(token, T)
+        response_token, err = jwt_usecase.verify_token(token, T)
         if err:
             raise AuthError(status_code=401, detail={"error": "Invalid token"})
 

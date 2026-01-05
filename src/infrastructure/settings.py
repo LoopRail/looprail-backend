@@ -4,6 +4,11 @@ from typing import List
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from src.infrastructure.constants import (
+    ACCESS_TOKEN_EXP_MINS,
+    ONBOARDING_TOKEN_EXP_MINS,
+    REFRESH_TOKEN_EXP_DAYS,
+)
 from src.types.types import WalletConfig
 from src.utils import return_base_dir
 
@@ -31,6 +36,9 @@ class ServerConfig(BaseSettings):
 class JWTConfig(ServerConfig):
     algorithm: str
     secret_key: str
+    access_token_expire_minutes: int = ACCESS_TOKEN_EXP_MINS
+    onboarding_token_expire_minutes: int = ONBOARDING_TOKEN_EXP_MINS
+    refresh_token_expires_in_days: int = REFRESH_TOKEN_EXP_DAYS
 
 
 class OTPConfig(ServerConfig):

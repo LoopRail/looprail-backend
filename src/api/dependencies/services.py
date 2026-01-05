@@ -1,32 +1,34 @@
-from fastapi import Depends
+from fastapi import Request
 
-from src.infrastructure import RedisClient, config
-from src.infrastructure.services import (AuthLockService, PaycrestService,
-                                         PaystackService, ResendService)
+from src.infrastructure import RedisClient
+from src.infrastructure.services import (
+    AuthLockService,
+    PaycrestService,
+    PaystackService,
+    ResendService,
+)
 from src.infrastructure.settings import BlockRaderConfig
 
 
-def get_blockrader_config() -> BlockRaderConfig:
-    return config.block_rader
+def get_blockrader_config(request: Request) -> BlockRaderConfig:
+    return request.app.state.blockrader_config
 
 
-async def get_paycrest_service() -> PaycrestService:
-    yield PaycrestService(config.paycrest)
+def get_paycrest_service(request: Request) -> PaycrestService:
+    return request.app.state.paycrest
 
 
-async def get_paystack_service() -> PaystackService:
-    yield PaystackService(config.paystack)
+def get_paystack_service(request: Request) -> PaystackService:
+    return request.app.state.paystack
 
 
-async def get_resend_service() -> ResendService:
-    yield ResendService(config.resend)
+def get_resend_service(request: Request) -> ResendService:
+    return request.app.state.resend
 
 
-async def get_redis_service() -> RedisClient:
-    yield RedisClient(config.redis)
+def get_redis_service(request: Request) -> RedisClient:
+    return request.app.state.redis
 
 
-async def get_auth_lock_service(
-    redis_client: RedisClient = Depends(get_redis_service),
-) -> AuthLockService:
-    yield AuthLockService(redis_client=redis_client.redis)
+def get_auth_lock_service(request: Request) -> AuthLockService:
+    return request.app.state.auth_lock

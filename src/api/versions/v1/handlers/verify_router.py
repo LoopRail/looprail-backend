@@ -5,11 +5,10 @@ from src.api.dependencies import get_jwt_usecase, get_user_usecases, verify_otp_
 
 # from src.api.rate_limiter import limiter
 from src.dtos import OTPSuccessResponse
+from src.infrastructure import config
 from src.infrastructure.logger import get_logger
-from src.infrastructure.constants import ONBOARDING_TOKEN_EXP_MINS
 from src.models import Otp
-from src.types import NotFoundError, OtpType
-from src.types import OnBoardingToken
+from src.types import NotFoundError, OnBoardingToken, OtpType
 from src.usecases import JWTUsecase, UserUseCase
 
 logger = get_logger(__name__)
@@ -46,11 +45,9 @@ async def verify_onboarding_otp(
         return JSONResponse(
             code=status.HTTP_404_NOT_FOUND, content={"error": "user not found"}
         )
-    data = OnBoardingToken(
-        sub=user.id, user_id=user.id
-    )  # TODO WE PROBABLY SHOULD REMOVE TH USER EMAIL
+    data = OnBoardingToken(sub=user.id, user_id=user.id)
     access_token = jwt_usecase.create_access_token(
-        data=data, exp_minutes=ONBOARDING_TOKEN_EXP_MINS
+        data=data, exp_minutes=config.jwt.onboarding_token_expire_minutes
     )
     return OTPSuccessResponse(
         message="OTP verified successfully", access_token=access_token
