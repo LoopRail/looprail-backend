@@ -4,12 +4,13 @@ from uuid import UUID
 from src.dtos.user_dtos import UserCreate
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import UserRepository, WalletRepository
-from src.infrastructure.services.blockrader_client import AddressManager, WalletManager
+from src.infrastructure.services.blockrader_client import (AddressManager,
+                                                           WalletManager)
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import User, UserProfile, Wallet
+from src.types import Error, HashedPassword, InvalidCredentialsError
 from src.types.blockrader import CreateAddressRequest
-from src.types.error import Error, InvalidCredentialsError
-from src.utils.auth_utils import verify_password, get_password_hash
+from src.utils import hash_password_argon2, verify_password_argon2
 
 logger = get_logger(__name__)
 
@@ -34,7 +35,10 @@ class UserUseCase:
         if not user:
             return None, InvalidCredentialsError
 
-        if not verify_password(password, user.hashed_password):
+        hashed_password_obj = HashedPassword(
+            password_hash=user.password_hash, salt=user.salt
+        )
+        if not verify_password_argon2(password, hashed_password_obj):
             return None, InvalidCredentialsError
         return user, None
 
@@ -54,9 +58,11 @@ class UserUseCase:
     async def create_user(
         self, user_create: UserCreate
     ) -> Tuple[Optional[User], Error]:
+        hashed_password_obj = hash_password_argon2(user_create.password)
         user = User(
             email=user_create.email,
-            hashed_password=get_password_hash(user_create.password),
+            password_hash=hashed_password_obj.password_hash,
+            salt=hashed_password_obj.salt,
         )
         created_user, err = await self.user_repository.create_user(user=user)
         if err:

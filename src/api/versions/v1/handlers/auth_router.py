@@ -1,46 +1,24 @@
 import hashlib
 from typing import Callable
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Depends,
-    Header,
-    Request,
-    Response,
-    status,
-)
+from fastapi import (APIRouter, BackgroundTasks, Depends, Header, Request,
+                     Response, status)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (
-    BearerToken,
-    get_jwt_usecase,
-    get_otp_usecase,
-    get_session_usecase,
-    get_user_usecases,
-    get_wallet_manager_factory,
-)
-
+from src.api.dependencies import (BearerToken, get_jwt_usecase,
+                                  get_otp_usecase, get_session_usecase,
+                                  get_user_usecases,
+                                  get_wallet_manager_factory)
 # from src.api.rate_limiter import limiter
 from src.api.internals import send_otp_internal
-from src.dtos import (
-    LoginRequest,
-    OnboardUserUpdate,
-    OtpCreate,
-    RefreshTokenRequest,
-    UserCreate,
-    UserPublic,
-)
+from src.dtos import (LoginRequest, OnboardUserUpdate, OtpCreate,
+                      RefreshTokenRequest, UserCreate, UserPublic)
 from src.infrastructure import config
 from src.infrastructure.logger import get_logger
 from src.types import AccessToken, Chain, OnBoardingToken, Platform, TokenType
-from src.usecases import (
-    JWTUsecase,
-    OtpUseCase,
-    SessionUseCase,
-    UserUseCase,
-    WalletManagerUsecase,
-)
+from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
+                          WalletManagerUsecase)
+from src.utils import validate_password_strength
 
 logger = get_logger(__name__)
 
@@ -54,6 +32,12 @@ async def create_user(
     user_usecases: UserUseCase = Depends(get_user_usecases),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
 ) -> dict:
+    validation_error = validate_password_strength(user_data.password)
+    if validation_error:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"error": validation_error.message},
+        )
     created_user, err = await user_usecases.create_user(user_create=user_data)
     if err:
         logger.error("Failed to create user: %s", err.message)

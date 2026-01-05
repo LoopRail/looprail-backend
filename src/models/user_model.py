@@ -21,7 +21,8 @@ class User(Base, table=True):
     first_name: str | None = None
     last_name: str | None = None
     email: EmailStr = Field(unique=True)
-    hashed_password: str
+    password_hash: str
+    salt: str
     is_active: bool = Field(default=True)
     is_email_verified: bool = Field(default=False)
     has_completed_onboarding: bool = Field(default=False)
