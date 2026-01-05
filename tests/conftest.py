@@ -1,12 +1,19 @@
 import os
 from typing import Generator
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 
+from src.api.dependencies import get_user_usecases
 from src.infrastructure.db import get_session
 from src.main import app
+
+pytest_plugins = [
+    "tests.fixtures.usecases",
+    "tests.fixtures.dependencies",
+]
 
 os.environ["TESTING"] = "true"
 

@@ -3,14 +3,11 @@ from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 
-from src.api.dependencies import verify_otp_dep
-from src.main import app
 from src.models.otp_model import Otp
 
 
-def test_verify_otp_expired_email_otp(client: TestClient):
+def test_verify_otp_expired_email_otp(client: TestClient, mock_otp_usecase: MagicMock):
     # Arrange
-    mock_otp_usecase = MagicMock()
     otp = Otp(
         code_hash="hashed_code",
         user_email="andrew@looprail.xyz",
@@ -19,8 +16,6 @@ def test_verify_otp_expired_email_otp(client: TestClient):
     mock_otp_usecase.get_otp.return_value = (otp, None)
     mock_otp_usecase.delete_otp.return_value = None
 
-    app.dependency_overrides[verify_otp_dep] = lambda: mock_otp_usecase
-
     # Act
     response = client.post(
         "/api/v1/verify/onbaording-otp",
@@ -31,12 +26,11 @@ def test_verify_otp_expired_email_otp(client: TestClient):
     # Assert
     assert response.status_code == 400
 
-    app.dependency_overrides.clear()
 
-
-def test_verify_otp_max_attempts_exceeded_email_otp(client: TestClient):
+def test_verify_otp_max_attempts_exceeded_email_otp(
+    client: TestClient, mock_otp_usecase: MagicMock
+):
     # Arrange
-    mock_otp_usecase = MagicMock()
     otp = Otp(
         code_hash="hashed_code",
         user_email="andrew@looprail.xyz",
@@ -45,8 +39,6 @@ def test_verify_otp_max_attempts_exceeded_email_otp(client: TestClient):
     mock_otp_usecase.get_otp.return_value = (otp, None)
     mock_otp_usecase.delete_otp.return_value = None
 
-    app.dependency_overrides[verify_otp_dep] = lambda: mock_otp_usecase
-
     # Act
     response = client.post(
         "/api/v1/verify/onbaording-otp",
@@ -57,12 +49,9 @@ def test_verify_otp_max_attempts_exceeded_email_otp(client: TestClient):
     # Assert
     assert response.status_code == 400
 
-    app.dependency_overrides.clear()
 
-
-def test_verify_otp_invalid_code(client: TestClient):
+def test_verify_otp_invalid_code(client: TestClient, mock_otp_usecase: MagicMock):
     # Arrange
-    mock_otp_usecase = MagicMock()
     otp = Otp(
         code_hash="hashed_code",
         user_email="andrew@looprail.xyz",
@@ -70,8 +59,6 @@ def test_verify_otp_invalid_code(client: TestClient):
     mock_otp_usecase.get_otp.return_value = (otp, None)
     mock_otp_usecase.update_otp.return_value = None
     mock_otp_usecase.verify_code.return_value = False
-
-    app.dependency_overrides[verify_otp_dep] = lambda: mock_otp_usecase
 
     # Act
     response = client.post(
@@ -83,16 +70,10 @@ def test_verify_otp_invalid_code(client: TestClient):
     # Assert
     assert response.status_code == 400
 
-    app.dependency_overrides.clear()
 
-
-def test_create_user_invalid_country_code(client: TestClient, mock_get_user_usecases):
-    # Arrange
-    # Mock user_usecases to prevent actual database interaction if validation passes unexpectedly
-    mock_user_usecases = MagicMock()
-    mock_user_usecases.create_user.return_value = (None, None)
-    mock_get_user_usecases.return_value = mock_user_usecases
-
+def test_create_user_invalid_country_code(
+    client: TestClient, mock_user_usecases: MagicMock
+):
     user_data = {
         "email": "test@example.com",
         "first_name": "John",
@@ -117,13 +98,8 @@ def test_create_user_invalid_country_code(client: TestClient, mock_get_user_usec
 
 
 def test_create_user_invalid_phone_number_format(
-    client: TestClient, mock_get_user_usecases
+    client: TestClient, mock_user_usecases: MagicMock
 ):
-    # Arrange
-    mock_user_usecases = MagicMock()
-    mock_user_usecases.create_user.return_value = (None, None)
-    mock_get_user_usecases.return_value = mock_user_usecases
-
     user_data = {
         "email": "test@example.com",
         "first_name": "John",
@@ -147,12 +123,8 @@ def test_create_user_invalid_phone_number_format(
     mock_user_usecases.create_user.assert_not_called()
 
 
-def test_create_user_invalid_email(client: TestClient, mock_get_user_usecases):
+def test_create_user_invalid_email(client: TestClient, mock_user_usecases: MagicMock):
     # Arrange
-    mock_user_usecases = MagicMock()
-    mock_user_usecases.create_user.return_value = (None, None)
-    mock_get_user_usecases.return_value = mock_user_usecases
-
     user_data = {
         "email": "admin@example.com",  # Invalid email
         "first_name": "John",
@@ -176,12 +148,10 @@ def test_create_user_invalid_email(client: TestClient, mock_get_user_usecases):
     mock_user_usecases.create_user.assert_not_called()
 
 
-def test_create_user_disposable_email(client: TestClient, mock_get_user_usecases):
+def test_create_user_disposable_email(
+    client: TestClient, mock_user_usecases: MagicMock
+):
     # Arrange
-    mock_user_usecases = MagicMock()
-    mock_user_usecases.create_user.return_value = (None, None)
-    mock_get_user_usecases.return_value = mock_user_usecases
-
     user_data = {
         "email": "test@mailinator.com",  # Disposable email
         "first_name": "John",
@@ -205,12 +175,8 @@ def test_create_user_disposable_email(client: TestClient, mock_get_user_usecases
     mock_user_usecases.create_user.assert_not_called()
 
 
-def test_create_user_invalid_gender(client: TestClient, mock_get_user_usecases):
+def test_create_user_invalid_gender(client: TestClient, mock_user_usecases: MagicMock):
     # Arrange
-    mock_user_usecases = MagicMock()
-    mock_user_usecases.create_user.return_value = (None, None)
-    mock_get_user_usecases.return_value = mock_user_usecases
-
     user_data = {
         "email": "test@example.com",
         "first_name": "John",
