@@ -88,12 +88,12 @@ def test_verify_otp_invalid_code(client: TestClient):
 
 @patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
 @patch("src.api.versions.v1.handlers.auth_router.httpx")
-def test_create_user_invalid_country_code(client: TestClient):
+def test_create_user_invalid_country_code(client: TestClient, mock_get_user_usecases):
     # Arrange
     # Mock user_usecases to prevent actual database interaction if validation passes unexpectedly
     mock_user_usecases = MagicMock()
     mock_user_usecases.create_user.return_value = (None, None)
-    # mock_get_user_usecases.return_value = mock_user_usecases
+    mock_get_user_usecases.return_value = mock_user_usecases
 
     user_data = {
         "email": "test@example.com",
