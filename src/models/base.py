@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Literal, Optional, Self, Tuple
+from typing import List, Optional, Self, Tuple
 from uuid import UUID, uuid4
 
 from pydantic import ConfigDict
@@ -10,10 +10,10 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.infrastructure.logger import get_logger
 from src.types import (Error, ItemDoesNotExistError, NotFoundError,
                        ProtectedModelError, UpdatingProtectedFieldError, error)
+from src.types import DeletionFilter
 
 logger = get_logger(__name__)
 __default_protected_fields__ = ["id", "created_at", "updated_at", "deleted_at"]
-DeletionFilter = Literal["all", "deleted", "active"]
 
 
 class DatabaseMixin:

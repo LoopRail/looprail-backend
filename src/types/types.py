@@ -1,4 +1,5 @@
 from enum import Enum
+
 from pydantic import BaseModel
 
 
@@ -8,7 +9,6 @@ class WalletConfig(BaseModel):
     wallet_address: str
     usdc_asset_id: str
     active: bool
-
 
 
 class TransactionStatus(str, Enum):
@@ -83,5 +83,23 @@ class OtpStatus(str, Enum):
     ATTEMPT_EXCEEDED = "attempt_exceeded"
 
 
-class AccessTokenType(str, Enum):
-    ONBOARDING_TOKEN = "onboarding_token"
+class TokenType(str, Enum):
+    ONBOARDING_TOKEN = "onboarding-token"
+    ACCESS_TOKEN = "access-token"
+    REFRESH_TOKEN = "refresh-token"
+
+
+class Platform(str, Enum):
+    WEB = "web"
+    ANDROID = "android"
+    IOS = "ios"
+
+
+class InstitutionCountry(str, Enum):
+    NG = "NG"
+    KY = "KY"
+
+
+class Gender(str, Enum):
+    MALE = "male"
+    FEMALE = "female"

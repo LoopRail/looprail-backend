@@ -1,13 +1,7 @@
-from enum import Enum
-
 from pydantic import Field, field_validator
 
 from src.dtos.base import Base
-
-
-class InstitutionCountry(str, Enum):
-    NG = "NG"
-    KY = "KY"
+from src.types.types import InstitutionCountry
 
 
 class VerifyAccountRequest(Base):
