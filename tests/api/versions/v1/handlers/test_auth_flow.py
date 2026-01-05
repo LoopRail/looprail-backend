@@ -58,8 +58,8 @@ def test_login_success(
     assert response_json["user"]["email"] == user.email
 
     # Verify session and refresh token in DB
-    session = db_session.exec(
-        select(DBSession).where(DBSession.user_id == user.id)
+    session = (
+        db_session.exec(select(DBSession).where(DBSession.user_id == user.id))
     ).first()
     assert session is not None
     assert session.device_id == headers["X-Device-ID"]
@@ -67,8 +67,10 @@ def test_login_success(
     assert session.ip_address is not None
     assert session.revoked_at is None
 
-    refresh_token = db_session.exec(
-        select(RefreshToken).where(RefreshToken.session_id == session.id)
+    refresh_token = (
+        db_session.exec(
+            select(RefreshToken).where(RefreshToken.session_id == session.id)
+        )
     ).first()
     assert refresh_token is not None
     assert refresh_token.revoked_at is None
@@ -109,9 +111,11 @@ def test_refresh_token_success(
     assert response_json["refresh_token"] != refresh_token
 
     # Verify old refresh token is replaced
-    old_refresh_token_db = db_session.exec(
-        select(RefreshToken).where(
-            RefreshToken.token_hash == initial_refresh_token_hash
+    old_refresh_token_db = (
+        db_session.exec(
+            select(RefreshToken).where(
+                RefreshToken.token_hash == initial_refresh_token_hash
+            )
         )
     ).first()
     assert old_refresh_token_db is not None
@@ -121,8 +125,12 @@ def test_refresh_token_success(
     new_refresh_token_hash = hashlib.sha256(
         response_json["refresh_token"].encode()
     ).hexdigest()
-    new_refresh_token_db = db_session.exec(
-        select(RefreshToken).where(RefreshToken.token_hash == new_refresh_token_hash)
+    new_refresh_token_db = (
+        db_session.exec(
+            select(RefreshToken).where(
+                RefreshToken.token_hash == new_refresh_token_hash
+            )
+        )
     ).first()
     assert new_refresh_token_db is not None
     assert new_refresh_token_db.revoked_at is None
@@ -168,14 +176,18 @@ def test_refresh_token_reuse_detection(
     initial_refresh_token_hash = hashlib.sha256(
         initial_refresh_token.encode()
     ).hexdigest()
-    old_refresh_token_db = db_session.exec(
-        select(RefreshToken).where(
-            RefreshToken.token_hash == initial_refresh_token_hash
+    old_refresh_token_db = (
+        db_session.exec(
+            select(RefreshToken).where(
+                RefreshToken.token_hash == initial_refresh_token_hash
+            )
         )
     ).first()
     assert old_refresh_token_db is not None
-    session = db_session.exec(
-        select(DBSession).where(DBSession.id == old_refresh_token_db.session_id)
+    session = (
+        db_session.exec(
+            select(DBSession).where(DBSession.id == old_refresh_token_db.session_id)
+        )
     ).first()
     assert session is not None
     assert session.revoked_at is not None
@@ -189,8 +201,8 @@ def test_logout_success(
     _, access_token, _ = authenticated_client
 
     # Verify session is active initially
-    initial_session = db_session.exec(
-        select(DBSession).where(DBSession.revoked_at.is_(None))
+    initial_session = (
+        db_session.exec(select(DBSession).where(DBSession.revoked_at.is_(None)))
     ).first()
     assert initial_session is not None
 
@@ -203,15 +215,19 @@ def test_logout_success(
     assert response.json() == {"message": "Logged out successfully"}
 
     # Verify session is revoked
-    revoked_session = db_session.exec(
-        select(DBSession).where(DBSession.id == initial_session.id)
+    revoked_session = (
+        db_session.exec(
+            select(DBSession).where(DBSession.id == initial_session.id)
+        )
     ).first()
     assert revoked_session is not None
     assert revoked_session.revoked_at is not None
 
     # Verify refresh tokens for the session are revoked
-    revoked_refresh_tokens = db_session.exec(
-        select(RefreshToken).where(RefreshToken.session_id == initial_session.id)
+    revoked_refresh_tokens = (
+        db_session.exec(
+            select(RefreshToken).where(RefreshToken.session_id == initial_session.id)
+        )
     ).all()
     for rt in revoked_refresh_tokens:
         assert rt.revoked_at is not None
@@ -235,9 +251,11 @@ def test_logout_all_success(
     assert response2.status_code == 200
 
     # Verify multiple sessions are active initially
-    active_sessions_before = db_session.exec(
-        select(DBSession).where(
-            DBSession.user_id == user.id, DBSession.revoked_at.is_(None)
+    active_sessions_before = (
+        db_session.exec(
+            select(DBSession).where(
+                DBSession.user_id == user.id, DBSession.revoked_at.is_(None)
+            )
         )
     ).all()
     assert len(active_sessions_before) == 2
@@ -251,21 +269,25 @@ def test_logout_all_success(
     assert response.json() == {"message": "Logged out from all sessions successfully"}
 
     # Verify all sessions are revoked
-    active_sessions_after = db_session.exec(
-        select(DBSession).where(
-            DBSession.user_id == user.id, DBSession.revoked_at.is_(None)
+    active_sessions_after = (
+        db_session.exec(
+            select(DBSession).where(
+                DBSession.user_id == user.id, DBSession.revoked_at.is_(None)
+            )
         )
     ).all()
     assert len(active_sessions_after) == 0
 
-    all_sessions = db_session.exec(
-        select(DBSession).where(DBSession.user_id == user.id)
+    all_sessions = (
+        db_session.exec(select(DBSession).where(DBSession.user_id == user.id))
     ).all()
     for session in all_sessions:
         assert session.revoked_at is not None
         # Verify refresh tokens for each session are revoked
-        refresh_tokens = db_session.exec(
-            select(RefreshToken).where(RefreshToken.session_id == session.id)
+        refresh_tokens = (
+            db_session.exec(
+                select(RefreshToken).where(RefreshToken.session_id == session.id)
+            )
         ).all()
         for rt in refresh_tokens:
             assert rt.revoked_at is not None
