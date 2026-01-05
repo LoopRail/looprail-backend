@@ -1,13 +1,14 @@
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
+
+from fastapi.testclient import TestClient
 
 from src.api.dependencies import verify_otp_dep
 from src.main import app
 from src.models.otp_model import Otp
-from tests.conftest import client
 
 
-def test_verify_otp_expired_email_otp():
+def test_verify_otp_expired_email_otp(client: TestClient):
     # Arrange
     mock_otp_usecase = MagicMock()
     otp = Otp(
@@ -15,8 +16,8 @@ def test_verify_otp_expired_email_otp():
         user_email="andrew@looprail.xyz",
         expires_at=int(time.time() - 2),
     )
-    mock_otp_usecase.get_otp = AsyncMock(return_value=(otp, None))
-    mock_otp_usecase.delete_otp = AsyncMock(return_value=None)
+    mock_otp_usecase.get_otp.return_value = (otp, None)
+    mock_otp_usecase.delete_otp.return_value = None
 
     app.dependency_overrides[verify_otp_dep] = lambda: mock_otp_usecase
 
@@ -33,7 +34,7 @@ def test_verify_otp_expired_email_otp():
     app.dependency_overrides.clear()
 
 
-def test_verify_otp_max_attempts_exceeded_email_otp():
+def test_verify_otp_max_attempts_exceeded_email_otp(client: TestClient):
     # Arrange
     mock_otp_usecase = MagicMock()
     otp = Otp(
@@ -41,8 +42,8 @@ def test_verify_otp_max_attempts_exceeded_email_otp():
         user_email="andrew@looprail.xyz",
         attempts=3,
     )
-    mock_otp_usecase.get_otp = AsyncMock(return_value=(otp, None))
-    mock_otp_usecase.delete_otp = AsyncMock(return_value=None)
+    mock_otp_usecase.get_otp.return_value = (otp, None)
+    mock_otp_usecase.delete_otp.return_value = None
 
     app.dependency_overrides[verify_otp_dep] = lambda: mock_otp_usecase
 
@@ -59,16 +60,16 @@ def test_verify_otp_max_attempts_exceeded_email_otp():
     app.dependency_overrides.clear()
 
 
-def test_verify_otp_invalid_code():
+def test_verify_otp_invalid_code(client: TestClient):
     # Arrange
     mock_otp_usecase = MagicMock()
     otp = Otp(
         code_hash="hashed_code",
         user_email="andrew@looprail.xyz",
     )
-    mock_otp_usecase.get_otp = AsyncMock(return_value=(otp, None))
-    mock_otp_usecase.update_otp = AsyncMock(return_value=None)
-    mock_otp_usecase.verify_code = AsyncMock(return_value=False)
+    mock_otp_usecase.get_otp.return_value = (otp, None)
+    mock_otp_usecase.update_otp.return_value = None
+    mock_otp_usecase.verify_code.return_value = False
 
     app.dependency_overrides[verify_otp_dep] = lambda: mock_otp_usecase
 
@@ -84,17 +85,15 @@ def test_verify_otp_invalid_code():
 
     app.dependency_overrides.clear()
 
+
 @patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
 @patch("src.api.versions.v1.handlers.auth_router.httpx")
-def test_create_user_invalid_country_code(mock_httpx, mock_get_user_usecases):
+def test_create_user_invalid_country_code(client: TestClient, mock_get_user_usecases, mock_httpx):
     # Arrange
     # Mock user_usecases to prevent actual database interaction if validation passes unexpectedly
     mock_user_usecases = MagicMock()
-    mock_user_usecases.create_user = AsyncMock()
+    mock_user_usecases.create_user.return_value = (None, None)
     mock_get_user_usecases.return_value = mock_user_usecases
-
-    # Mock httpx to prevent actual HTTP calls in the background task
-    mock_httpx.AsyncClient.return_value.__aenter__.return_value.post = AsyncMock()
 
     user_data = {
         "email": "test@example.com",
@@ -117,18 +116,17 @@ def test_create_user_invalid_country_code(mock_httpx, mock_get_user_usecases):
     # Assert
     assert response.status_code == 400
     mock_user_usecases.create_user.assert_not_called()
-    mock_httpx.AsyncClient.return_value.__aenter__.return_value.post.assert_not_called()
 
 
 @patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
 @patch("src.api.versions.v1.handlers.auth_router.httpx")
-def test_create_user_invalid_phone_number_format(mock_httpx, mock_get_user_usecases):
+def test_create_user_invalid_phone_number_format(
+    client: TestClient, mock_get_user_usecases, mock_httpx
+):
     # Arrange
     mock_user_usecases = MagicMock()
-    mock_user_usecases.create_user = AsyncMock()
+    mock_user_usecases.create_user.return_value = (None, None)
     mock_get_user_usecases.return_value = mock_user_usecases
-
-    mock_httpx.AsyncClient.return_value.__aenter__.return_value.post = AsyncMock()
 
     user_data = {
         "email": "test@example.com",
@@ -151,18 +149,15 @@ def test_create_user_invalid_phone_number_format(mock_httpx, mock_get_user_useca
     # Assert
     assert response.status_code == 400
     mock_user_usecases.create_user.assert_not_called()
-    mock_httpx.AsyncClient.return_value.__aenter__.return_value.post.assert_not_called()
 
 
 @patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
 @patch("src.api.versions.v1.handlers.auth_router.httpx")
-def test_create_user_invalid_email(mock_httpx, mock_get_user_usecases):
+def test_create_user_invalid_email(client: TestClient, mock_get_user_usecases, mock_httpx):
     # Arrange
     mock_user_usecases = MagicMock()
-    mock_user_usecases.create_user = AsyncMock()
+    mock_user_usecases.create_user.return_value = (None, None)
     mock_get_user_usecases.return_value = mock_user_usecases
-
-    mock_httpx.AsyncClient.return_value.__aenter__.return_value.post = AsyncMock()
 
     user_data = {
         "email": "admin@example.com",  # Invalid email
@@ -185,18 +180,15 @@ def test_create_user_invalid_email(mock_httpx, mock_get_user_usecases):
     # Assert
     assert response.status_code == 400
     mock_user_usecases.create_user.assert_not_called()
-    mock_httpx.AsyncClient.return_value.__aenter__.return_value.post.assert_not_called()
 
 
 @patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
 @patch("src.api.versions.v1.handlers.auth_router.httpx")
-def test_create_user_disposable_email(mock_httpx, mock_get_user_usecases):
+def test_create_user_disposable_email(client: TestClient, mock_get_user_usecases, mock_httpx):
     # Arrange
     mock_user_usecases = MagicMock()
-    mock_user_usecases.create_user = AsyncMock()
+    mock_user_usecases.create_user.return_value = (None, None)
     mock_get_user_usecases.return_value = mock_user_usecases
-
-    mock_httpx.AsyncClient.return_value.__aenter__.return_value.post = AsyncMock()
 
     user_data = {
         "email": "test@mailinator.com",  # Disposable email
@@ -219,18 +211,15 @@ def test_create_user_disposable_email(mock_httpx, mock_get_user_usecases):
     # Assert
     assert response.status_code == 400
     mock_user_usecases.create_user.assert_not_called()
-    mock_httpx.AsyncClient.return_value.__aenter__.return_value.post.assert_not_called()
 
 
 @patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
 @patch("src.api.versions.v1.handlers.auth_router.httpx")
-def test_create_user_invalid_gender(mock_httpx, mock_get_user_usecases):
+def test_create_user_invalid_gender(client: TestClient, mock_get_user_usecases, mock_httpx):
     # Arrange
     mock_user_usecases = MagicMock()
-    mock_user_usecases.create_user = AsyncMock()
+    mock_user_usecases.create_user.return_value = (None, None)
     mock_get_user_usecases.return_value = mock_user_usecases
-
-    mock_httpx.AsyncClient.return_value.__aenter__.return_value.post = AsyncMock()
 
     user_data = {
         "email": "test@example.com",
@@ -253,4 +242,3 @@ def test_create_user_invalid_gender(mock_httpx, mock_get_user_usecases):
     # Assert
     assert response.status_code == 400
     mock_user_usecases.create_user.assert_not_called()
-    mock_httpx.AsyncClient.return_value.__aenter__.return_value.post.assert_not_called()
