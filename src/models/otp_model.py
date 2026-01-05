@@ -1,9 +1,9 @@
 import time
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from src.infrastructure.logger import get_logger
-from src.types import OtpStatus, OtpType, error
+from src.types import OtpStatus, OtpType
 from src.utils import kebab_case
 
 logger = get_logger(__name__)

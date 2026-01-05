@@ -7,8 +7,7 @@ from uuid import UUID
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import (AssetType, Chain, Currency, PaymentMethod, Provider,
-                       TokenStandard, TransactionType)
+from src.types import (AssetType, Chain, Currency, PaymentMethod, TokenStandard, TransactionType)
 
 if TYPE_CHECKING:
     from src.models.user_model import User

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import UserRepository, WalletRepository
-from src.infrastructure.services.blockrader_client import AddressManager, WalletManager
+from src.infrastructure.services.blockrader_client import WalletManager
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Wallet
 from src.types import Chain, Error, Provider, error

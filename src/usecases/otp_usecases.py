@@ -1,4 +1,3 @@
-import hashlib
 import hmac
 from typing import Tuple
 
