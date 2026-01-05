@@ -1,5 +1,5 @@
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from fastapi.testclient import TestClient
 
@@ -86,8 +86,6 @@ def test_verify_otp_invalid_code(client: TestClient):
     app.dependency_overrides.clear()
 
 
-@patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
-@patch("src.api.versions.v1.handlers.auth_router.httpx")
 def test_create_user_invalid_country_code(client: TestClient, mock_get_user_usecases):
     # Arrange
     # Mock user_usecases to prevent actual database interaction if validation passes unexpectedly
@@ -118,8 +116,6 @@ def test_create_user_invalid_country_code(client: TestClient, mock_get_user_usec
     mock_user_usecases.create_user.assert_not_called()
 
 
-@patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
-@patch("src.api.versions.v1.handlers.auth_router.httpx")
 def test_create_user_invalid_phone_number_format(
     client: TestClient, mock_get_user_usecases
 ):
@@ -151,8 +147,6 @@ def test_create_user_invalid_phone_number_format(
     mock_user_usecases.create_user.assert_not_called()
 
 
-@patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
-@patch("src.api.versions.v1.handlers.auth_router.httpx")
 def test_create_user_invalid_email(client: TestClient, mock_get_user_usecases):
     # Arrange
     mock_user_usecases = MagicMock()
@@ -182,8 +176,6 @@ def test_create_user_invalid_email(client: TestClient, mock_get_user_usecases):
     mock_user_usecases.create_user.assert_not_called()
 
 
-@patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
-@patch("src.api.versions.v1.handlers.auth_router.httpx")
 def test_create_user_disposable_email(client: TestClient, mock_get_user_usecases):
     # Arrange
     mock_user_usecases = MagicMock()
@@ -213,8 +205,6 @@ def test_create_user_disposable_email(client: TestClient, mock_get_user_usecases
     mock_user_usecases.create_user.assert_not_called()
 
 
-@patch("src.api.versions.v1.handlers.auth_router.get_user_usecases")
-@patch("src.api.versions.v1.handlers.auth_router.httpx")
 def test_create_user_invalid_gender(client: TestClient, mock_get_user_usecases):
     # Arrange
     mock_user_usecases = MagicMock()
