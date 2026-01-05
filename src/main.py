@@ -28,6 +28,7 @@ async def lifespan(app_: FastAPI):
     app_.state.auth_lock = AuthLockService(redis_client=app.state.redis)
 
     app_.state.blockrader_config = config.block_rader
+    app_.state.argon2_config = config.argon2
 
     yield
     

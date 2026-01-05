@@ -4,14 +4,13 @@ from typing import Optional
 
 from argon2.low_level import Type, hash_secret_raw
 
-from src.infrastructure import config
+from src.infrastructure.settings import Argon2Config
 from src.types.auth_types import HashedPassword
-from src.types.error import error, Error
+from src.types.error import Error, error
 
 
-def hash_password_argon2(password: str) -> HashedPassword:
+def hash_password_argon2(password: str, argon2_config: Argon2Config) -> HashedPassword:
     """Hash password using Argon2 with custom configuration"""
-    argon2_config = config.argon2
 
     pwd_bytes = password.encode("utf-8")
 
@@ -33,9 +32,10 @@ def hash_password_argon2(password: str) -> HashedPassword:
     )
 
 
-def verify_password_argon2(password: str, hashed_password_obj: HashedPassword) -> bool:
+def verify_password_argon2(
+    password: str, hashed_password_obj: HashedPassword, argon2_config: Argon2Config
+) -> bool:
     """Verify password against stored Argon2 hash"""
-    argon2_config = config.argon2
 
     pwd_bytes = password.encode("utf-8")
     salt_bytes = bytes.fromhex(hashed_password_obj.salt)

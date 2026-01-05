@@ -6,7 +6,7 @@ from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import UserRepository, WalletRepository
 from src.infrastructure.services.blockrader_client import (AddressManager,
                                                            WalletManager)
-from src.infrastructure.settings import BlockRaderConfig
+from src.infrastructure.settings import BlockRaderConfig, Argon2Config
 from src.models import User, UserProfile, Wallet
 from src.types import Error, HashedPassword, InvalidCredentialsError
 from src.types.blockrader import CreateAddressRequest
@@ -21,10 +21,12 @@ class UserUseCase:
         user_repository: UserRepository,
         wallet_repository: WalletRepository,
         blockrader_config: BlockRaderConfig,
+        argon2_config: Argon2Config,
     ):
         self.user_repository = user_repository
         self.wallet_repository = wallet_repository
         self.blockrader_config = blockrader_config
+        self.argon2_config = argon2_config
 
     async def authenticate_user(
         self, email: str, password: str
@@ -38,7 +40,7 @@ class UserUseCase:
         hashed_password_obj = HashedPassword(
             password_hash=user.password_hash, salt=user.salt
         )
-        if not verify_password_argon2(password, hashed_password_obj):
+        if not verify_password_argon2(password, hashed_password_obj, self.argon2_config):
             return None, InvalidCredentialsError
         return user, None
 
@@ -58,7 +60,7 @@ class UserUseCase:
     async def create_user(
         self, user_create: UserCreate
     ) -> Tuple[Optional[User], Error]:
-        hashed_password_obj = hash_password_argon2(user_create.password)
+        hashed_password_obj = hash_password_argon2(user_create.password, self.argon2_config)
         user = User(
             email=user_create.email,
             password_hash=hashed_password_obj.password_hash,

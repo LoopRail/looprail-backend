@@ -1,31 +1,21 @@
 from typing import Callable, Optional
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 
-from src.api.dependencies.repositories import (
-    get_refresh_token_repository,
-    get_session_repository,
-    get_user_repository,
-    get_wallet_repository,
-)
-from src.api.dependencies.services import get_blockrader_config, get_redis_service
+from src.api.dependencies.repositories import (get_refresh_token_repository,
+                                               get_session_repository,
+                                               get_user_repository,
+                                               get_wallet_repository)
+from src.api.dependencies.services import (get_blockrader_config,
+                                           get_redis_service)
 from src.infrastructure import RedisClient, config
-from src.infrastructure.repositories import (
-    RefreshTokenRepository,
-    SessionRepository,
-    UserRepository,
-    WalletRepository,
-)
+from src.infrastructure.repositories import (RefreshTokenRepository,
+                                             SessionRepository, UserRepository,
+                                             WalletRepository)
 from src.infrastructure.settings import BlockRaderConfig
 from src.types import Chain
-from src.usecases import (
-    JWTUsecase,
-    OtpUseCase,
-    SessionUseCase,
-    UserUseCase,
-    WalletManagerUsecase,
-    WalletService,
-)
+from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
+                          WalletManagerUsecase, WalletService)
 
 
 async def get_session_usecase(
@@ -38,11 +28,15 @@ async def get_session_usecase(
 
 
 async def get_user_usecases(
+    request: Request,
     user_repository: UserRepository = Depends(get_user_repository),
     wallet_repository: WalletRepository = Depends(get_wallet_repository),
     blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
 ) -> UserUseCase:
-    yield UserUseCase(user_repository, wallet_repository, blockrader_config)
+    argon2_config = request.app.state.argon2_config
+    yield UserUseCase(
+        user_repository, wallet_repository, blockrader_config, argon2_config
+    )
 
 
 async def get_otp_usecase(
