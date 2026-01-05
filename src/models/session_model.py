@@ -1,44 +1,28 @@
 from datetime import datetime, timedelta
-from typing import List
-from uuid import UUID, uuid4
+from typing import Optional
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from sqlmodel import Field, Relationship
 
-from src.dtos.user_dtos import UserPublic
+from src.models.base import Base
 
-
-class SessionData(BaseModel):
-    session_id: UUID = Field(default_factory=uuid4)
-    user_id: UUID
+class Session(Base, table=True):
+    __tablename__ = "sessions"
+    user_id: UUID = Field(index=True)
+    platform: str
     device_id: str
-    device_type: str | None = None
     ip_address: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    expires_at: datetime
-
-    @classmethod
-    def new_session(
-        cls,
-        user_id: UUID,
-        device_id: str,
-        ip_address: str,
-        device_type: str | None = None,
-        expires_in_days: int = 30,
-    ) -> "SessionData":
-        expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
-        return cls(
-            user_id=user_id,
-            device_id=device_id,
-            device_type=device_type,
-            ip_address=ip_address,
-            expires_at=expires_at,
-        )
-
-    def is_expired(self) -> bool:
-        return datetime.utcnow() > self.expires_at
+    revoked_at: Optional[datetime] = Field(default=None, index=True)
+    last_seen_at: datetime = Field(default_factory=datetime.utcnow)
+    refresh_tokens: list["RefreshToken"] = Relationship(back_populates="session")
 
 
-class UserSession(BaseModel):
-    user_id: UUID
-    user_public_data: UserPublic
-    session_ids: List[UUID] = Field(default_factory=list)
+
+class RefreshToken(Base, table=True):
+    __tablename__ = "refresh_tokens"
+    session_id: UUID = Field(foreign_key="sessions.id", index=True)
+    token_hash: str = Field(index=True)
+    replaced_by_hash: Optional[str] = Field(default=None, index=True)
+    revoked_at: Optional[datetime] = Field(default=None, index=True)
+    expires_at: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(days=30))
+    session: Optional[Session] = Relationship(back_populates="refresh_tokens")

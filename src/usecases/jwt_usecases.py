@@ -1,25 +1,27 @@
 from __future__ import annotations
+
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
+from uuid import uuid4
 
 from jose import JWTError, jwt
 
+from src.infrastructure.settings import JWTConfig
 from src.types import Error, error
 
 if TYPE_CHECKING:
-    from src.infrastructure.settings import JWTConfig
-    from src.types.access_token_types import AccessToken
+    from src.types.access_token_types import Token
 
-T = TypeVar("T", bound="AccessToken")
+T = TypeVar("T", bound="Token")
 
 
 class JWTUsecase:
-    def __init__(self, jwt_config: JWTConfig):
-        self.jwt_config = jwt_config
+    def __init__(self, config: JWTConfig):
+        self.config = config
 
-    def create_access_token(self, data: AccessToken, exp_minutes: int) -> str:
+    def create_token(self, data: Token, exp_minutes: int) -> str:
         """
-        Create a JWT from a AccessToken object with a given expiration in minutes.
+        Create a JWT from a Token object with a given expiration in minutes.
         """
         to_encode = data.model_dump()
 
@@ -28,11 +30,12 @@ class JWTUsecase:
 
         encoded_jwt = jwt.encode(
             to_encode,
-            self.jwt_config.secret_key,
+            self.config.secret_key,
+            algorithms=[self.config.algorithm],
         )
         return encoded_jwt
 
-    def verify_access_token(
+    def verify_token(
         self, token: str, response_model: Type[T]
     ) -> Tuple[Optional[T], Error]:
         """
@@ -41,8 +44,8 @@ class JWTUsecase:
         try:
             payload = jwt.decode(
                 token,
-                self.jwt_config.secret_key,
-                algorithms=[self.jwt_config.algorithm],
+                self.config.secret_key,
+                algorithms=[self.config.algorithm],
                 options={
                     "require_sub": True,
                     "require_exp": True,
@@ -52,3 +55,9 @@ class JWTUsecase:
             return None, error(f"Could not decode JWT: {e}")
 
         return response_model(**payload), None
+
+    def create_refresh_token(self) -> str:
+        """
+        Generates a random string for a refresh token.
+        """
+        return str(uuid4())

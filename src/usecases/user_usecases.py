@@ -8,7 +8,8 @@ from src.infrastructure.services.blockrader_client import AddressManager, Wallet
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import User, UserProfile, Wallet
 from src.types.blockrader import CreateAddressRequest
-from src.types.error import Error
+from src.types.error import Error, InvalidCredentialsError
+from src.utils.auth_utils import verify_password, get_password_hash
 
 logger = get_logger(__name__)
 
@@ -23,6 +24,19 @@ class UserUseCase:
         self.user_repository = user_repository
         self.wallet_repository = wallet_repository
         self.blockrader_config = blockrader_config
+
+    async def authenticate_user(
+        self, email: str, password: str
+    ) -> Tuple[Optional[User], Error]:
+        user, err = await self.user_repository.get_user_by_email(email=email)
+        if err:
+            return None, err
+        if not user:
+            return None, InvalidCredentialsError
+
+        if not verify_password(password, user.hashed_password):
+            return None, InvalidCredentialsError
+        return user, None
 
     async def save(self, user: User) -> Tuple[Optional[User], Error]:
         return await self.user_repository.save(user)
@@ -42,6 +56,7 @@ class UserUseCase:
     ) -> Tuple[Optional[User], Error]:
         user = User(
             email=user_create.email,
+            hashed_password=get_password_hash(user_create.password),
         )
         created_user, err = await self.user_repository.create_user(user=user)
         if err:

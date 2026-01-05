@@ -1,20 +1,46 @@
+import hashlib
 from typing import Callable
 
-import httpx
-from fastapi import (APIRouter, BackgroundTasks, Depends, Header,
-                     HTTPException, Request, Response, status)
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Header,
+    Request,
+    Response,
+    status,
+)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (BearerToken, get_otp_usecase,
-                                  get_session_usecase, get_user_usecases,
-                                  get_wallet_manager_factory)
+from src.api.dependencies import (
+    BearerToken,
+    get_jwt_usecase,
+    get_otp_usecase,
+    get_session_usecase,
+    get_user_usecases,
+    get_wallet_manager_factory,
+)
+
 # from src.api.rate_limiter import limiter
-from src.dtos import OnboardUserUpdate, OtpCreate, UserCreate, UserPublic
-from src.infrastructure.logger import get_logger
+from src.api.internals import send_otp_internal
+from src.dtos import (
+    LoginRequest,
+    OnboardUserUpdate,
+    OtpCreate,
+    RefreshTokenRequest,
+    UserCreate,
+    UserPublic,
+)
 from src.infrastructure import config
-from src.types import AccessTokenType, Chain, OnBoardingToken
-# from src.infrastructure.services.resend_service import ResendService
-from src.usecases import OtpUseCase, UserUseCase, WalletManagerUsecase, SessionUseCase
+from src.infrastructure.logger import get_logger
+from src.types import AccessToken, Chain, OnBoardingToken, Platform, TokenType
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    SessionUseCase,
+    UserUseCase,
+    WalletManagerUsecase,
+)
 
 logger = get_logger(__name__)
 
@@ -24,12 +50,10 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 @router.post("/create-user")
 # @limiter.limit("2/minute")
 async def create_user(
-    request: Request,
     user_data: UserCreate,
-    background_tasks: BackgroundTasks,
     user_usecases: UserUseCase = Depends(get_user_usecases),
-) -> UserPublic:
-    """API endpoint to create a new user."""
+    otp_usecases: OtpUseCase = Depends(get_otp_usecase),
+) -> dict:
     created_user, err = await user_usecases.create_user(user_create=user_data)
     if err:
         logger.error("Failed to create user: %s", err.message)
@@ -37,27 +61,21 @@ async def create_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": "Could not create user"},
         )
-
-    async def trigger_send_otp():
-        """Triggers the send_otp endpoint in the background."""
-        url = request.url_for("send_otp")
-        async with httpx.AsyncClient(base_url=request.base_url) as client:
-            try:
-                await client.post(url, json={"email": created_user.email})
-            except httpx.RequestError as e:
-                logger.error("HTTPX error calling send_otp: %s", e)
-
-    background_tasks.add_task(trigger_send_otp)
+    token = await send_otp_internal(
+        email=created_user.email,
+        otp_usecases=otp_usecases,
+    )
 
     logger.info("User %s registered successfully.", created_user.username)
+
     return {
-        "user": UserPublic.model_validate(created_user).model_dump_json(
-            exclude_none=True
-        )
+        "user": UserPublic.model_validate(created_user).model_dump(exclude_none=True),
+        "otp_token": token,
     }
 
 
 @router.post("/complete_onboarding")
+# @limiter.limit("2/minute")
 async def complete_onboarding(
     request: Request,
     user_data: OnboardUserUpdate,
@@ -69,11 +87,13 @@ async def complete_onboarding(
     ),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
     device_id: str = Header(..., alias="X-Device-ID"),
+    platform: Platform = Header(..., alias="X-Platform"),
+    jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
 ):
-    if token.token_type != AccessTokenType.ONBOARDING_TOKEN:
+    if token.token_type != TokenType.ONBOARDING_TOKEN:
         logger.error(
             "Invalid token type expected %s got %s for %s",
-            AccessTokenType.ONBOARDING_TOKEN,
+            TokenType.ONBOARDING_TOKEN,
             token.token_type,
             token.sub,
         )
@@ -126,9 +146,10 @@ async def complete_onboarding(
 
     background_tasks.add_task(create_wallets_in_background, current_user.id)
 
-    session, err = await session_usecase.create_session(
-        user=UserPublic.model_validate(current_user),
+    session, raw_refresh_token = await session_usecase.create_session(
+        user_id=current_user.id,
         device_id=device_id,
+        platform=platform,
         ip_address=request.client.host,
     )
     if err:
@@ -139,57 +160,224 @@ async def complete_onboarding(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": "Internal server error"},
         )
-
+    access_token_data = AccessToken(
+        sub=current_user.id,
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id=session.id,
+        platform=platform,
+    )
+    access_token = jwt_usecase.create_token(
+        data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
+    )
     return JSONResponse(
         status_code=status.HTTP_202_ACCEPTED,
         content={
             "message": "User onboarded successfully, wallet creation in progress.",
-            "session_id": str(session.session_id),
+            "user": UserPublic.model_validate(current_user).model_dump(
+                exclude_none=True
+            ),
+            "access_token": access_token,
+            "refresh_token": raw_refresh_token,
         },
+    )
+
+
+@router.post("/login")
+# @limiter.limit("2/minute")
+async def login(
+    request: Request,
+    login_request: LoginRequest,
+    user_usecases: UserUseCase = Depends(get_user_usecases),
+    session_usecase: SessionUseCase = Depends(get_session_usecase),
+    device_id: str = Header(..., alias="X-Device-ID"),
+    platform: str = Header(..., alias="X-Platform"),
+    jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
+):
+    user, err = await user_usecases.authenticate_user(
+        email=login_request.email, password=login_request.password
+    )
+    if err:
+        logger.error(
+            "Authentication failed for user %s: %s", login_request.email, err.message
+        )
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"error": "Invalid credentials"},
+        )
+
+    session, raw_refresh_token = await session_usecase.create_session(
+        user_id=user.id,
+        device_id=device_id,
+        platform=platform,
+        ip_address=request.client.host,
+    )
+    if err:
+        logger.error("Could not create session for user %s: %s", user.id, err.message)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": "Internal server error"},
+        )
+
+    access_token_data = AccessToken(
+        sub=user.id,
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id=session.id,
+        platform=platform,
+        device_id=device_id,
+    )
+    access_token = jwt_usecase.create_token(
+        data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
+    )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "message": "Login successful.",
+            "user": UserPublic.model_validate(user).model_dump(exclude_none=True),
+            "access_token": access_token,
+            "refresh_token": raw_refresh_token,
+        },
+    )
+
+
+@router.post("/token", summary="Refresh Access Token")
+# @limiter.limit("2/minute")
+async def refresh_token(
+    request: Request,
+    refresh_token_request: RefreshTokenRequest,
+    session_usecase: SessionUseCase = Depends(get_session_usecase),
+    jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
+    device_id: str = Header(..., alias="X-Device-ID"),
+    platform: Platform = Header(..., alias="X-Platform"),
+):
+    incoming_refresh_token_hash = hashlib.sha256(
+        refresh_token_request.refresh_token.encode()
+    ).hexdigest()
+
+    refresh_token_db, err = await session_usecase.get_valid_refresh_token_by_hash(
+        incoming_refresh_token_hash
+    )
+    if err or not refresh_token_db:
+        logger.error(
+            "Invalid or expired refresh token: %s", err.message if err else "Not found"
+        )
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"error": "Invalid or expired refresh token"},
+        )
+
+    if refresh_token_db.replaced_by_hash is not None:
+        logger.warning(
+            "Refresh token reuse detected for session %s", refresh_token_db.session_id
+        )
+        await session_usecase.revoke_session(refresh_token_db.session_id)
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"error": "Refresh token reused. Please log in again."},
+        )
+
+    # Get the session details
+    session, err = await session_usecase.get_session(refresh_token_db.session_id)
+    if err or not session:
+        logger.error("Session not found for refresh token %s", refresh_token_db.id)
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"error": "Session not found."},
+        )
+
+    # Rotate the refresh token
+    new_raw_refresh_token = jwt_usecase.create_refresh_token()
+    _, err = await session_usecase.rotate_refresh_token(
+        old_refresh_token=refresh_token_db,
+        new_refresh_token_string=new_raw_refresh_token,
+    )
+    if err:
+        logger.error(
+            "Failed to rotate refresh token for session %s: %s", session.id, err.message
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": "Internal server error during token rotation"},
+        )
+
+    # Issue a new access token
+    access_token_data = AccessToken(
+        sub=session.user_id,
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id=session.id,
+        platform=platform,
+        device_id=device_id,
+    )
+    new_access_token = jwt_usecase.create_token(
+        data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
+    )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "access_token": new_access_token,
+            "refresh_token": new_raw_refresh_token,
+        },
+    )
+
+
+@router.post("/logout", summary="Logout from current session")
+# @limiter.limit("2/minute")
+async def logout(
+    current_token: AccessToken = Depends(BearerToken[AccessToken]),
+    session_usecase: SessionUseCase = Depends(get_session_usecase),
+):
+    err = await session_usecase.revoke_session(current_token.session_id)
+    if err:
+        logger.error(
+            "Failed to revoke session %s for user %s: %s",
+            current_token.session_id,
+            current_token.sub,
+            err.message,
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": "Failed to logout"},
+        )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK, content={"message": "Logged out successfully"}
+    )
+
+
+@router.post("/logout-all", summary="Logout from all sessions")
+# @limiter.limit("2/minute")
+async def logout_all(
+    current_token: AccessToken = Depends(BearerToken[AccessToken]),
+    session_usecase: SessionUseCase = Depends(get_session_usecase),
+):
+    err = await session_usecase.revoke_all_user_sessions(current_token.sub)
+    if err:
+        logger.error(
+            "Failed to revoke all sessions for user %s: %s",
+            current_token.sub,
+            err.message,
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": "Failed to logout from all sessions"},
+        )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": "Logged out from all sessions successfully"},
     )
 
 
 @router.post("/send-otp")
 # @limiter.limit("1/minute")
 async def send_otp(
-    request: Request,
     response: Response,
     otp_data: OtpCreate,
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
-    # resend_service: ResendService = Depends(get_resend_service),
 ):
-    """API endpoint to send OTP to a user."""
+    token = await send_otp_internal(
+        email=otp_data.email,
+        otp_usecases=otp_usecases,
+    )
 
-    _, err = await otp_usecases.get_user_token(user_email=otp_data.email)
-    if err and err != "Not found":
-        logger.error("Error getting user token %s", err)
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"message": "Server Error"},
-        )
-    err = await otp_usecases.delete_otp(user_email=otp_data.email)
-    if err and err != "Not found":
-        logger.error("Error deleting user token %s", err)
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"message": "Server Error"},
-        )
-
-    otp_code, token, err = await otp_usecases.generate_otp(user_email=otp_data.email)
-    if err:
-        logger.error("Failed to generate OTP: %s", err)
-        raise HTTPException(status_code=400, detail=err.message)
-
-    print(otp_code)
-    # _, err = await resend_service.send_otp(
-    #     to=otp_data.email,
-    #     _from="team@looprail.com",
-    #     otp_code=otp_code,
-    # )
-    # if err:
-    #     logger.error("Failed to send OTP: %s", err)
-    #     raise HTTPException(status_code=500, detail="Failed to send OTP.")
-    #
     response.headers["X-OTP-Token"] = token
-    logger.info("OTP sent to %s successfully.", otp_data.email)
-    return {"message": "OTP sent successfully."}
+    return {"message": "OTP sent successfully"}

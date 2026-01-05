@@ -33,9 +33,8 @@ class FailedAttemptError(error):
         super().__init__(message)
 
 
-
-class FailedAttemptError(error):
-    def __init__(self, message: str = "Failed attempt"):
+class InvalidCredentialsError(error):
+    def __init__(self, message: str = "Invalid credentials"):
         super().__init__(message)
 
 

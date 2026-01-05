@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import date
-from enum import StrEnum
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
@@ -22,6 +21,7 @@ class User(Base, table=True):
     first_name: str | None = None
     last_name: str | None = None
     email: EmailStr = Field(unique=True)
+    hashed_password: str
     is_active: bool = Field(default=True)
     is_email_verified: bool = Field(default=False)
     has_completed_onboarding: bool = Field(default=False)
