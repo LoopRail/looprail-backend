@@ -2,11 +2,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
-from src.types.types import AccessTokenType
+from src.types.types import TokenType
 from src.utils.app_utils import kebab_case
 
 
-class AccessToken(BaseModel):
+class Token(BaseModel):
     model_config = ConfigDict(
         from_attributes=True,
         extra="allow",
@@ -15,8 +15,8 @@ class AccessToken(BaseModel):
         populate_by_name=True,
     )
     sub: str
-    token_type: AccessTokenType = Field(
-        default=AccessTokenType.ONBOARDING_TOKEN, alias="token"
+    token_type: TokenType = Field(
+        default=TokenType.ONBOARDING_TOKEN, alias="token"
     )
 
     @field_serializer("sub")
@@ -27,6 +27,13 @@ class AccessToken(BaseModel):
         return value
 
 
-class OnBoardingToken(AccessToken):
+class OnBoardingToken(Token):
     __sub_prefix__ = "onboarding"
     user_id: UUID
+
+
+class AccessToken(Token):
+    __sub_prefix__ = "access"
+    sub: UUID
+    session_id: UUID
+    platform: str
