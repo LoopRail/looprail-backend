@@ -1,5 +1,6 @@
 import hashlib
 from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
@@ -7,19 +8,21 @@ from sqlmodel import Session, select
 from src.models import RefreshToken
 from src.models import Session as DBSession
 from src.models import User
-from src.utils import get_password_hash
+from src.utils import auth_utils
+from src.types import auth_types
 
 
 @pytest.fixture(name="test_user")
 def test_user_fixture(db_session: Session):
     password = "testpassword"
-    hashed_password = get_password_hash(password)
+    hashed_password_obj = auth_utils.hash_password_argon2(password)
     user = User(
         email="test@example.com",
-        hashed_password=hashed_password,
+        password_hash=hashed_password_obj.password_hash,
+        salt=hashed_password_obj.salt,
         first_name="Test",
         last_name="User",
-        is_verified=True,
+        is_email_verified=True,
     )
     db_session.add(user)
     db_session.commit()
@@ -28,15 +31,11 @@ def test_user_fixture(db_session: Session):
 
 
 @pytest.fixture(name="authenticated_client")
-def authenticated_client_fixture(
-    client: TestClient, test_user: tuple[User, str]
-):
+def authenticated_client_fixture(client: TestClient, test_user: tuple[User, str]):
     user, password = test_user
     login_data = {"email": user.email, "password": password}
     headers = {"X-Device-ID": "test_device_id", "X-Platform": "web"}
-    response = client.post(
-        "/api/v1/auth/login", json=login_data, headers=headers
-    )
+    response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
     assert response.status_code == 200
     tokens = response.json()
     return client, tokens["access_token"], tokens["refresh_token"]
@@ -49,9 +48,7 @@ def test_login_success(
     login_data = {"email": user.email, "password": password}
     headers = {"X-Device-ID": "test_device_id", "X-Platform": "web"}
 
-    response = client.post(
-        "/api/v1/auth/login", json=login_data, headers=headers
-    )
+    response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
 
     assert response.status_code == 200
     response_json = response.json()
@@ -79,16 +76,12 @@ def test_login_success(
     assert refresh_token.expires_at > datetime.utcnow()
 
 
-def test_login_invalid_credentials(
-    client: TestClient, test_user: tuple[User, str]
-):
+def test_login_invalid_credentials(client: TestClient, test_user: tuple[User, str]):
     user, _ = test_user
     login_data = {"email": user.email, "password": "wrongpassword"}
     headers = {"X-Device-ID": "test_device_id", "X-Platform": "web"}
 
-    response = client.post(
-        "/api/v1/auth/login", json=login_data, headers=headers
-    )
+    response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
 
     assert response.status_code == 401
     assert response.json() == {"error": "Invalid credentials"}
@@ -232,17 +225,13 @@ def test_logout_all_success(
     # Create multiple sessions for the user
     login_data = {"email": user.email, "password": password}
     headers1 = {"X-Device-ID": "device1", "X-Platform": "web"}
-    response1 = client.post(
-        "/api/v1/auth/login", json=login_data, headers=headers1
-    )
+    response1 = client.post("/api/v1/auth/login", json=login_data, headers=headers1)
     assert response1.status_code == 200
     tokens1 = response1.json()
     access_token1 = tokens1["access_token"]
 
     headers2 = {"X-Device-ID": "device2", "X-Platform": "mobile"}
-    response2 = client.post(
-        "/api/v1/auth/login", json=login_data, headers=headers2
-    )
+    response2 = client.post("/api/v1/auth/login", json=login_data, headers=headers2)
     assert response2.status_code == 200
 
     # Verify multiple sessions are active initially
