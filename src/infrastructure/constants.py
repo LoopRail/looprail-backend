@@ -16,3 +16,11 @@ USDC_ABI = [
         "stateMutability": "nonpayable",
     }
 ]
+
+# Argon2 constants
+ARGON2_TIME_COST = 3
+ARGON2_MEMORY_COST = 65536
+ARGON2_PARALLELISM = 4
+ARGON2_HASH_LEN = 32
+ARGON2_SALT_LEN = 16
+

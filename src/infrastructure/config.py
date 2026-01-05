@@ -9,7 +9,7 @@ from src.infrastructure.settings import (AppSettings, BlockRaderConfig,
                                          DatabaseConfig, JWTConfig, OTPConfig,
                                          PayCrestConfig, PaystackConfig,
                                          RedisConfig, ResendConfig,
-                                         WalletConfig)
+                                         WalletConfig, Argon2Config)
 from src.types.country_types import CountriesData
 from src.utils import return_base_dir
 
@@ -64,6 +64,7 @@ class Config:
         self.paystack: PaystackConfig = PaystackConfig()
         self.database: DatabaseConfig = DatabaseConfig()
         self.redis: RedisConfig = RedisConfig()
+        self.argon2: Argon2Config = Argon2Config()
         self.countries: CountriesData = load_countries()
         self.disposable_email_domains: List[str] = load_disposable_email_domains()
 

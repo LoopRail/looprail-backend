@@ -8,8 +8,11 @@ from src.utils.app_utils import (
 from src.utils.otp_utils import generate_otp_code, hash_otp, make_token
 from src.utils.country_utils import is_valid_country_code, get_country_info
 from src.utils.phone_number_utils import validate_and_format_phone_number
-from src.utils.auth_utils import verify_password, get_password_hash
-from src.utils.validation_utils import validate_password_strength
+from src.utils.auth_utils import (
+    verify_password_argon2,
+    hash_password_argon2,
+    validate_password_strength
+)
 
 __all__ = [
     "camel_case",
@@ -23,7 +26,7 @@ __all__ = [
     "is_valid_country_code",
     "get_country_info",
     "validate_and_format_phone_number",
-    "verify_password",
-    "get_password_hash",
+    "verify_password_argon2",
+    "hash_password_argon2",
     "validate_password_strength",
 ]
