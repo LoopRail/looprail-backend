@@ -5,17 +5,17 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
+from src.infrastructure.security import Argon2Config
 from src.models import RefreshToken
 from src.models import Session as DBSession
 from src.models import User
-from src.utils import auth_utils
-from src.types import auth_types
+from src.utils import hash_password_argon2
 
 
 @pytest.fixture(name="test_user")
-def test_user_fixture(db_session: Session):
+def test_user_fixture(db_session: Session, argon2_config: Argon2Config):
     password = "testpassword"
-    hashed_password_obj = auth_utils.hash_password_argon2(password)
+    hashed_password_obj = hash_password_argon2(password, argon2_config)
     user = User(
         email="test@example.com",
         password_hash=hashed_password_obj.password_hash,

@@ -31,6 +31,12 @@ def db_session_fixture() -> Generator[Session, None, None]:
     SQLModel.metadata.drop_all(engine)  # Clean up after tests
 
 
+@pytest.fixture(name="argon2_config")
+def argon2_config_fixture():
+    with TestClient(app) as client:
+        return client.app.state.argon2_config
+
+
 @pytest.fixture(name="client")
 def client_fixture(db_session: Session) -> Generator[TestClient, None, None]:
     def get_session_override():
