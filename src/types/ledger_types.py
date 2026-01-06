@@ -13,6 +13,7 @@ class LedgerMetaData(BaseModel):
 class Ledger(BaseModel):
     name: str
     ledger_id: str
+    api_key: str
     meta_data: LedgerMetaData
 
     @field_validator("ledger_id")
