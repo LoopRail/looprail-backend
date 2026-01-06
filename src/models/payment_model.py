@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from src.models.user_model import User
 
 
-class PaymentOrder(Base):
+class PaymentOrder(Base, table=True):
     __tablename__ = "payment_orders"
     __protected_fields__ = "all"
 

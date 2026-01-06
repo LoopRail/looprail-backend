@@ -50,7 +50,7 @@ def verify_password_argon2(
         type=Type.ID,
     )
 
-    return new_hash.hex() == hashed_password_obj.hash
+    return new_hash.hex() == hashed_password_obj.password_hash
 
 
 def validate_password_strength(password: str) -> Optional[Error]:

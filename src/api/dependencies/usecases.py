@@ -2,21 +2,30 @@ from typing import Callable, Optional
 
 from fastapi import Depends, Header, HTTPException, Request, status
 
-from src.api.dependencies.repositories import (get_refresh_token_repository,
-                                               get_session_repository,
-                                               get_user_repository,
-                                               get_wallet_repository)
-from src.api.dependencies.services import (get_blockrader_config,
-                                           get_redis_service)
+from src.api.dependencies.repositories import (
+    get_refresh_token_repository,
+    get_session_repository,
+    get_user_repository,
+    get_wallet_repository,
+)
+from src.api.dependencies.services import get_blockrader_config, get_redis_service
 from src.infrastructure import RedisClient, config
-from src.infrastructure.repositories import (RefreshTokenRepository,
-                                             SessionRepository, UserRepository,
-                                             WalletRepository)
+from src.infrastructure.repositories import (
+    RefreshTokenRepository,
+    SessionRepository,
+    UserRepository,
+    WalletRepository,
+)
 from src.infrastructure.settings import BlockRaderConfig
-from src.infrastructure.security import Argon2Config
 from src.types import Chain
-from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
-                          WalletManagerUsecase, WalletService)
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    SessionUseCase,
+    UserUseCase,
+    WalletManagerUsecase,
+    WalletService,
+)
 
 
 async def get_session_usecase(

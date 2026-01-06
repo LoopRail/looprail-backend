@@ -29,9 +29,9 @@ class SessionRepository:
             user_agent=user_agent,
         )
 
-        self.session.add(session)
-        await self.session.flush()  # Flush to get the session.id
-        await self.session.refresh(session)
+        err = await session.save(self.session)
+        if err:
+            return None, err
         return session, None
 
     async def get_session(self, session_id: UUID) -> Tuple[Optional[Session], Error]:

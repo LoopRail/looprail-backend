@@ -8,9 +8,15 @@ from sqlmodel import Field, SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.infrastructure.logger import get_logger
-from src.types import (Error, ItemDoesNotExistError, NotFoundError,
-                       ProtectedModelError, UpdatingProtectedFieldError, error)
-from src.types import DeletionFilter
+from src.types import (
+    DeletionFilter,
+    Error,
+    ItemDoesNotExistError,
+    NotFoundError,
+    ProtectedModelError,
+    UpdatingProtectedFieldError,
+    error,
+)
 
 logger = get_logger(__name__)
 __default_protected_fields__ = ["id", "created_at", "updated_at", "deleted_at"]
@@ -80,14 +86,14 @@ class DatabaseMixin:
         elif deletion == "deleted":
             statement = statement.where(cls.deleted_at.is_not(None))
 
-        result = await session.exec(statement)
+        result = session.exec(statement)
         return result.all()
 
     @classmethod
     async def find_one(
         cls, session: AsyncSession, deletion: DeletionFilter = "active", **kwargs
     ) -> Tuple[Optional["Self"], Error]:
-        results = cls.find_all(session, deletion, **kwargs)
+        results = await cls.find_all(session, deletion, **kwargs)
         if len(results) < 1:
             return None, NotFoundError
         return results[0], None
@@ -97,7 +103,7 @@ class DatabaseMixin:
         cls, session: AsyncSession, _id: UUID, deletion: DeletionFilter = "active"
     ) -> Tuple[Optional["Self"], Error]:
         filter_ = {"id": _id}
-        result, err = cls.get(session, deletion, **filter_)
+        result, err = await cls.find_one(session, deletion, **filter_)
         if err:
             return None, NotFoundError
         return result, None

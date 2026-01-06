@@ -1,23 +1,52 @@
 import hashlib
 from typing import Callable
 
-from fastapi import (APIRouter, BackgroundTasks, Depends, Header, Request,
-                     Response, status)
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Header,
+    Request,
+    Response,
+    status,
+)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (BearerToken, get_jwt_usecase,
-                                  get_otp_usecase, get_session_usecase,
-                                  get_user_usecases,
-                                  get_wallet_manager_factory)
+from src.api.dependencies import (
+    BearerToken,
+    get_jwt_usecase,
+    get_otp_usecase,
+    get_session_usecase,
+    get_user_usecases,
+    get_wallet_manager_factory,
+)
+
 # from src.api.rate_limiter import limiter
 from src.api.internals import send_otp_internal
-from src.dtos import (LoginRequest, OnboardUserUpdate, OtpCreate,
-                      RefreshTokenRequest, UserCreate, UserPublic)
+from src.dtos import (
+    LoginRequest,
+    OnboardUserUpdate,
+    OtpCreate,
+    RefreshTokenRequest,
+    UserCreate,
+    UserPublic,
+)
+from src.dtos.auth_dtos import (
+    AuthTokensResponse,
+    AuthWithTokensAndUserResponse,
+    CreateUserResponse,
+    MessageResponse,
+)
 from src.infrastructure import config
 from src.infrastructure.logger import get_logger
 from src.types import AccessToken, Chain, OnBoardingToken, Platform, TokenType
-from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
-                          WalletManagerUsecase)
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    SessionUseCase,
+    UserUseCase,
+    WalletManagerUsecase,
+)
 from src.utils import validate_password_strength
 
 logger = get_logger(__name__)
@@ -25,7 +54,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/create-user")
+@router.post("/create-user", response_model=CreateUserResponse)
 # @limiter.limit("2/minute")
 async def create_user(
     user_data: UserCreate,
@@ -53,12 +82,18 @@ async def create_user(
     logger.info("User %s registered successfully.", created_user.username)
 
     return {
-        "user": UserPublic.model_validate(created_user).model_dump(exclude_none=True),
+        "user": UserPublic.model_validate(created_user.model_dump()).model_dump(
+            exclude_none=True
+        ),
         "otp_token": token,
     }
 
 
-@router.post("/complete_onboarding")
+@router.post(
+    "/complete_onboarding",
+    response_model=AuthWithTokensAndUserResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 # @limiter.limit("2/minute")
 async def complete_onboarding(
     request: Request,
@@ -153,20 +188,17 @@ async def complete_onboarding(
     access_token = jwt_usecase.create_token(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
-    return JSONResponse(
-        status_code=status.HTTP_202_ACCEPTED,
-        content={
-            "message": "User onboarded successfully, wallet creation in progress.",
-            "user": UserPublic.model_validate(current_user).model_dump(
-                exclude_none=True
-            ),
-            "access_token": access_token,
-            "refresh_token": raw_refresh_token,
-        },
-    )
+    return {
+        "message": "User onboarded successfully, wallet creation in progress.",
+        "user": UserPublic.model_validate(current_user.model_dump()).model_dump(
+            exclude_none=True
+        ),
+        "access-token": access_token,
+        "refresh-token": raw_refresh_token,
+    }
 
 
-@router.post("/login")
+@router.post("/login", response_model=AuthWithTokensAndUserResponse)
 # @limiter.limit("2/minute")
 async def login(
     request: Request,
@@ -213,18 +245,19 @@ async def login(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={
-            "message": "Login successful.",
-            "user": UserPublic.model_validate(user).model_dump(exclude_none=True),
-            "access_token": access_token,
-            "refresh_token": raw_refresh_token,
-        },
-    )
+    return {
+        "message": "Login successful.",
+        "user": UserPublic.model_validate(user.model_dump()).model_dump(
+            exclude_none=True
+        ),
+        "access-token": access_token,
+        "refresh-token": raw_refresh_token,
+    }
 
 
-@router.post("/token", summary="Refresh Access Token")
+@router.post(
+    "/token", summary="Refresh Access Token", response_model=AuthTokensResponse
+)
 # @limiter.limit("2/minute")
 async def refresh_token(
     request: Request,
@@ -296,16 +329,15 @@ async def refresh_token(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={
-            "access_token": new_access_token,
-            "refresh_token": new_raw_refresh_token,
-        },
-    )
+    return {
+        "access-token": new_access_token,
+        "refresh-token": new_raw_refresh_token,
+    }
 
 
-@router.post("/logout", summary="Logout from current session")
+@router.post(
+    "/logout", summary="Logout from current session", response_model=MessageResponse
+)
 # @limiter.limit("2/minute")
 async def logout(
     current_token: AccessToken = Depends(BearerToken[AccessToken]),
@@ -323,12 +355,12 @@ async def logout(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": "Failed to logout"},
         )
-    return JSONResponse(
-        status_code=status.HTTP_200_OK, content={"message": "Logged out successfully"}
-    )
+    return {"message": "Logged out successfully"}
 
 
-@router.post("/logout-all", summary="Logout from all sessions")
+@router.post(
+    "/logout-all", summary="Logout from all sessions", response_model=MessageResponse
+)
 # @limiter.limit("2/minute")
 async def logout_all(
     current_token: AccessToken = Depends(BearerToken[AccessToken]),
@@ -345,13 +377,10 @@ async def logout_all(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": "Failed to logout from all sessions"},
         )
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={"message": "Logged out from all sessions successfully"},
-    )
+    return {"message": "Logged out from all sessions successfully"}
 
 
-@router.post("/send-otp")
+@router.post("/send-otp", response_model=MessageResponse)
 # @limiter.limit("1/minute")
 async def send_otp(
     response: Response,

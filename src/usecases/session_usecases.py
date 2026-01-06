@@ -39,7 +39,7 @@ class SessionUseCase:
         refresh_token, err = await self.refresh_token_repository.create_refresh_token(
             session_id=session.id,
             new_refresh_token_string=refresh_token_string,
-            expires_in_days=config.jwt.refresh_token_expire_days,
+            expires_in_days=config.jwt.refresh_token_expires_in_days,
         )
         if err:
             return None, "", err
@@ -79,7 +79,7 @@ class SessionUseCase:
         ) = await self.refresh_token_repository.create_refresh_token(
             session_id=old_refresh_token.session_id,
             new_refresh_token_string=new_refresh_token_string,
-            expires_in_days=config.jwt.refresh_token_expire_days,
+            expires_in_days=config.jwt.refresh_token_expires_in_days,
         )
         if err:
             return None, err

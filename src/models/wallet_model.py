@@ -1,13 +1,21 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 from uuid import UUID
 
+from sqlalchemy.orm import Mapped, relationship
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import (AssetType, Chain, Currency, PaymentMethod, TokenStandard, TransactionType)
+from src.types import (
+    AssetType,
+    Chain,
+    Currency,
+    PaymentMethod,
+    TokenStandard,
+    TransactionType,
+)
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -18,18 +26,19 @@ class Wallet(Base, table=True):
 
     user_id: UUID = Field(foreign_key="users.id", index=True)
     address: str = Field(unique=True, index=True, nullable=False)
-    balance: Decimal = Field(default=Decimal("0.00"), nullable=False)
     chain: Chain = Field(nullable=False)
     provider: str = Field(index=True, nullable=False)
     is_active: bool = Field(default=True, nullable=False)
 
     name: Optional[str] = Field(default=None)
     derivation_path: Optional[str] = Field(default=None)
-    # description: Optional[str] = Field(default=None)
-
     user: User = Relationship(back_populates="wallet")
-    transactions: list[Transaction] = Relationship(back_populates="wallet")
-    assets: list["Asset"] = Relationship(back_populates="wallet")
+    transactions: Mapped[List[Transaction]] = Relationship(
+        sa_relationship=relationship(back_populates="wallet")
+    )
+    assets: Mapped[List[Asset]] = Relationship(
+        sa_relationship=relationship(back_populates="wallet")
+    )
 
 
 class Asset(Base, table=True):

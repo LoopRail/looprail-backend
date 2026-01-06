@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta
 import hashlib
+from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from uuid import UUID
 
@@ -24,15 +24,15 @@ class RefreshTokenRepository:
             new_refresh_token_string.encode()
         ).hexdigest()
         expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
-        
+
         refresh_token = RefreshToken(
             session_id=session_id,
             token_hash=refresh_token_hash,
             expires_at=expires_at,
         )
-        self.session.add(refresh_token)
-        await self.session.flush()
-        await self.session.refresh(refresh_token)
+        err = refresh_token.save(self.session)
+        if err:
+            return None, err
         return refresh_token, None
 
     async def get_valid_refresh_token_by_hash(
@@ -72,4 +72,6 @@ class RefreshTokenRepository:
         # This requires joining with the Session table to find all sessions for a user
         # and then revoking their refresh tokens.
         # This will be handled in SessionRepository or SessionUseCase
-        return error("Not implemented: revoke_all_refresh_tokens_for_user in RefreshTokenRepository")
+        return error(
+            "Not implemented: revoke_all_refresh_tokens_for_user in RefreshTokenRepository"
+        )

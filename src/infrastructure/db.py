@@ -21,5 +21,6 @@ async def get_session() -> Optional[AsyncSession]:
             yield session
 
         finally:
+            await session.flush()
             await session.commit()
             await session.close()
