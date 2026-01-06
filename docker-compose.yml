@@ -10,6 +10,11 @@ services:
     depends_on:
       - db
       - redis
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/looprail_backend
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=looprail_backend
     command: uv run alembic upgrade head && uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
     develop:
       watch:
@@ -26,9 +31,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_USER=user
+      - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=looprail
+      - POSTGRES_DB=looprail_backend
     ports:
       - "5431:5432"
 
