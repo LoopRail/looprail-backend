@@ -4,10 +4,12 @@ from uuid import UUID
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import UserRepository, WalletRepository
 from src.infrastructure.services.blockrader_client import WalletManager
-from src.infrastructure.settings import BlockRaderConfig
+from src.infrastructure.services.ledger.service import LedgerService
+from src.infrastructure.settings import BlockRaderConfig, LedgderServiceConfig
 from src.models import Wallet
 from src.types import Chain, Error, Provider, error
 from src.types.blockrader import CreateAddressRequest
+from src.types.blnk.dtos import CreateBalanceRequest, CreateIdentityRequest
 
 logger = get_logger(__name__)
 
@@ -21,6 +23,7 @@ class WalletService:
     def __init__(
         self,
         blockrader_config: BlockRaderConfig,
+        ledger_service_config: LedgderServiceConfig,
         user_repository: UserRepository,
         wallet_repository: WalletRepository,
         provider: Provider = Provider.BLOCKRADER,
@@ -30,6 +33,8 @@ class WalletService:
 
         self.user_repository = user_repository
         self.wallet_repository = wallet_repository
+
+        self.ledger_service = LedgerService(ledger_service_config)
 
         self._manager: Optional[WalletManager] = None
         self._manager_id: Optional[str] = None
