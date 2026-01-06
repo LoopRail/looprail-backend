@@ -4,12 +4,10 @@ from typing import List
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from src.infrastructure.constants import (
-    ACCESS_TOKEN_EXP_MINS,
-    ONBOARDING_TOKEN_EXP_MINS,
-    REFRESH_TOKEN_EXP_DAYS,
-)
-from src.types import Ledger, LedgerConfig, WalletConfig
+from src.infrastructure.constants import (ACCESS_TOKEN_EXP_MINS,
+                                          ONBOARDING_TOKEN_EXP_MINS,
+                                          REFRESH_TOKEN_EXP_DAYS)
+from src.types import LedgerConfig, WalletConfig
 from src.utils import return_base_dir
 
 
@@ -45,7 +43,9 @@ class LedgderServiceConfig(ServerConfig):
                 env_var_name = ledger.api_key
                 api_key_value = os.getenv(env_var_name)
                 if not api_key_value:
-                    raise ValueError(f"Environment variable '{env_var_name}' not found for ledger '{ledger.name}'")
+                    raise ValueError(
+                        f"Environment variable '{env_var_name}' not found for ledger '{ledger.name}'"
+                    )
                 ledger.api_key = api_key_value
         return self
 
