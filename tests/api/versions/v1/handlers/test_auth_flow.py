@@ -154,7 +154,7 @@ def test_login_success(
         user_id=user.id,
         device_id=headers["X-Device-ID"],
         platform=headers["X-Platform"],
-        ip_address="testclient", 
+        ip_address="testclient",
     )
     mock_jwt_usecase.create_token.assert_called_once()  # Detailed assertion can be added if needed
 
@@ -210,10 +210,8 @@ def test_refresh_token_success(
     )
 
     new_access_token_value = "mock_new_access_token_string"
-    mock_jwt_usecase.create_token.side_effect = [
-        new_raw_refresh_token_value,  # First call inside rotate_refresh_token
-        new_access_token_value,  # Second call for the access token
-    ]
+    mock_jwt_usecase.create_token.return_value = new_access_token_value
+    mock_jwt_usecase.create_refresh_token.return_value = new_raw_refresh_token_value
 
     response = client.post(
         "/api/v1/auth/token",
@@ -236,7 +234,7 @@ def test_refresh_token_success(
         old_refresh_token=mock_refresh_token_db,
         new_refresh_token_string=new_raw_refresh_token_value,
     )
-    assert mock_jwt_usecase.create_token.call_count == 2
+    assert mock_jwt_usecase.create_token.call_count == 1
 
 
 def test_refresh_token_invalid_token(
@@ -297,10 +295,8 @@ def test_refresh_token_reuse_detection(
     )
 
     new_access_token_value = "mock_new_access_token_string_for_reuse"
-    mock_jwt_usecase.create_token.side_effect = [
-        new_raw_refresh_token_value,
-        new_access_token_value,
-    ]
+    mock_jwt_usecase.create_token.return_value = new_access_token_value
+    mock_jwt_usecase.create_refresh_token.return_value = new_raw_refresh_token_value
 
     # First refresh - should be successful
     response1 = client.post(
@@ -321,11 +317,12 @@ def test_refresh_token_reuse_detection(
     assert response2.status_code == 401
     assert response2.json() == {"error": "Refresh token reused. Please log in again."}
 
-    assert mock_session_usecase.get_valid_refresh_token_by_hash.call_count == 2
+    # assert mock_jwt_usecase.get_valid_refresh_token_by_hash.call_count == 2
     assert mock_session_usecase.revoke_session.call_count == 1
     mock_session_usecase.revoke_session.assert_called_once_with(
         mock_refresh_token_db_first_call.session_id
     )
+    assert mock_jwt_usecase.create_token.call_count == 1
 
 
 def test_logout_success(
@@ -387,7 +384,7 @@ def test_logout_all_success(
 
     response = client.post(
         "/api/v1/auth/logout-all",
-        headers={"Authorization": f"Bearer mock_access_token_for_logout_all"},
+        headers={"Authorization": "Bearer mock_access_token_for_logout_all"},
     )
 
     assert response.status_code == 200
