@@ -8,14 +8,8 @@ from src.infrastructure.constants import (
     ACCESS_TOKEN_EXP_MINS,
     ONBOARDING_TOKEN_EXP_MINS,
     REFRESH_TOKEN_EXP_DAYS,
-    ARGON2_TIME_COST,
-    ARGON2_MEMORY_COST,
-    ARGON2_PARALLELISM,
-    ARGON2_HASH_LEN,
-    ARGON2_SALT_LEN,
 )
-from src.infrastructure.security import Argon2Config
-from src.types.types import WalletConfig
+from src.types import LedgerConfig, WalletConfig
 from src.utils import return_base_dir
 
 
@@ -23,12 +17,11 @@ class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore", env_file_encoding="utf-8")
 
     testing: bool = Field(False, alias="TESTING")
-    env_file: str = ".env.dev"
+    env_file: str = ".env"
 
     @property
     def get_env_file_path(self) -> str:
-        env_file = ".env.dev" if self.testing else self.env_file
-        return os.path.join(return_base_dir(), "config", env_file)
+        return os.path.join(return_base_dir(), "config", self.env_file)
 
 
 class ServerConfig(BaseSettings):
@@ -37,6 +30,12 @@ class ServerConfig(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+
+class LedgderServiceConfig(ServerConfig):
+    ledger_service_name: str
+    ledger_service_host: str
+    ledgers: LedgerConfig | None = None
 
 
 class JWTConfig(ServerConfig):
@@ -60,7 +59,7 @@ class ResendConfig(ServerConfig):
 
 class BlockRaderConfig(ServerConfig):
     blockrader_api_key: str
-    wallets: List[WalletConfig] = []
+    wallets: List[WalletConfig] | None = None
 
 
 class PayCrestConfig(ServerConfig):
