@@ -3,28 +3,34 @@ import os
 from typing import List
 
 import toml
-import yaml
 
 from src.infrastructure.logger import get_logger
-from src.infrastructure.settings import (AppSettings, BlockRaderConfig,
-                                         DatabaseConfig, JWTConfig, OTPConfig,
-                                         PayCrestConfig, PaystackConfig,
-                                         RedisConfig, ResendConfig,
-                                         WalletConfig)
 from src.infrastructure.security import Argon2Config
-from src.types import CountriesData, LedgerSettings
+from src.infrastructure.settings import (
+    AppSettings,
+    BlockRaderConfig,
+    DatabaseConfig,
+    JWTConfig,
+    OTPConfig,
+    PayCrestConfig,
+    PaystackConfig,
+    RedisConfig,
+    ResendConfig,
+)
+from src.types import CountriesData, LedgerConfig, WalletConfig
 from src.utils import return_base_dir
+
 logger = get_logger(__name__)
 
 
-def load_wallet_configs_into_config(config: BlockRaderConfig):
-    config_path = os.path.join(return_base_dir(), "config", "blockrader.yaml")
+def load_wallet_configs_into_config() -> List[WalletConfig] | None:
+    config_path = os.path.join(return_base_dir(), "config", "blockrader.json")
     try:
         with open(config_path, "r", encoding="utf-8") as f:
-            raw_configs = yaml.safe_load(f)
-        config.wallets = [WalletConfig(**c) for c in raw_configs]
-    except FileNotFoundError:
-        config.wallets = []
+            raw_configs = json.load(f)
+            return [WalletConfig(**c) for c in raw_configs]
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
 
 
 def load_countries() -> CountriesData:
@@ -54,19 +60,16 @@ def load_disposable_email_domains() -> List[str]:
         return []
 
 
-def load_ledger_settings_from_file() -> LedgerSettings:
+def load_ledger_settings_from_file() -> LedgerConfig:
     config_path = os.path.join(return_base_dir(), "config", "ledger_config.toml")
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             raw_configs = toml.load(f)
         logger.debug("Loaded %s", config_path)
-        return LedgerSettings(**raw_configs)
-    except FileNotFoundError:
+        return LedgerConfig(**raw_configs)
+    except (FileNotFoundError, toml.TomlDecodeError):
         logger.debug("Could not load %s", config_path)
-        return LedgerSettings(ledgers=[])
-    except Exception as e:
-        logger.error("Error loading ledger config: %s", e)
-        return LedgerSettings(ledgers=[])
+        return LedgerConfig(ledgers=[])
 
 
 class Config:
@@ -82,10 +85,10 @@ class Config:
         self.redis: RedisConfig = RedisConfig()
         self.argon2: Argon2Config = Argon2Config()
         self.countries: CountriesData = load_countries()
-        self.disposable_email_domains: List[str] = load_disposable_email_domains()
-        self.ledger: LedgerSettings = load_ledger_settings_from_file()
 
-        load_wallet_configs_into_config(self.block_rader)
+        self.disposable_email_domains: List[str] = load_disposable_email_domains()
+        self.ledger: LedgerConfig = load_ledger_settings_from_file()
+        self.block_rader.wallets: List[WalletConfig] = load_wallet_configs_into_config()
 
 
 def load_config() -> Config:
