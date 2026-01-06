@@ -16,6 +16,7 @@ from src.infrastructure.settings import (
     PaystackConfig,
     RedisConfig,
     ResendConfig,
+    LedgderServiceConfig,
 )
 from src.types import CountriesData, LedgerConfig, WalletConfig
 from src.utils import return_base_dir
@@ -79,6 +80,7 @@ class Config:
         self.otp: OTPConfig = OTPConfig()
         self.resend: ResendConfig = ResendConfig()
         self.block_rader: BlockRaderConfig = BlockRaderConfig()
+        self.ledger: LedgderServiceConfig = LedgderServiceConfig()
         self.paycrest: PayCrestConfig = PayCrestConfig()
         self.paystack: PaystackConfig = PaystackConfig()
         self.database: DatabaseConfig = DatabaseConfig()
@@ -87,7 +89,7 @@ class Config:
         self.countries: CountriesData = load_countries()
 
         self.disposable_email_domains: List[str] = load_disposable_email_domains()
-        self.ledger: LedgerConfig = load_ledger_settings_from_file()
+        self.ledger.ledgers: LedgerConfig = load_ledger_settings_from_file()
         self.block_rader.wallets: List[WalletConfig] = load_wallet_configs_into_config()
 
 
