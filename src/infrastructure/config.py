@@ -2,6 +2,7 @@ import json
 import os
 from typing import List
 
+import toml
 import yaml
 
 from src.infrastructure.logger import get_logger
@@ -11,9 +12,8 @@ from src.infrastructure.settings import (AppSettings, BlockRaderConfig,
                                          RedisConfig, ResendConfig,
                                          WalletConfig)
 from src.infrastructure.security import Argon2Config
-from src.types.country_types import CountriesData
+from src.types import CountriesData, LedgerSettings
 from src.utils import return_base_dir
-
 logger = get_logger(__name__)
 
 
@@ -54,6 +54,21 @@ def load_disposable_email_domains() -> List[str]:
         return []
 
 
+def load_ledger_settings_from_file() -> LedgerSettings:
+    config_path = os.path.join(return_base_dir(), "config", "ledger_config.toml")
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            raw_configs = toml.load(f)
+        logger.debug("Loaded %s", config_path)
+        return LedgerSettings(**raw_configs)
+    except FileNotFoundError:
+        logger.debug("Could not load %s", config_path)
+        return LedgerSettings(ledgers=[])
+    except Exception as e:
+        logger.error("Error loading ledger config: %s", e)
+        return LedgerSettings(ledgers=[])
+
+
 class Config:
     def __init__(self):
         self.app: AppSettings = AppSettings()
@@ -68,6 +83,7 @@ class Config:
         self.argon2: Argon2Config = Argon2Config()
         self.countries: CountriesData = load_countries()
         self.disposable_email_domains: List[str] = load_disposable_email_domains()
+        self.ledger: LedgerSettings = load_ledger_settings_from_file()
 
         load_wallet_configs_into_config(self.block_rader)
 
