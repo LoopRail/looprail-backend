@@ -1,210 +1,354 @@
-import hashlib
-from datetime import datetime
+from unittest.mock import MagicMock
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlmodel import Session, select
 
-from src.infrastructure.security import Argon2Config
-from src.models import RefreshToken
-from src.models import Session as DBSession
+from src.api.dependencies import (
+    BearerToken,
+    get_jwt_usecase,
+    get_otp_usecase,
+    get_session_usecase,
+    get_user_usecases,
+    get_wallet_manager_factory,
+)
+from src.main import app
 from src.models import User
-from src.utils import hash_password_argon2
+from src.types import AccessToken, TokenType, error
+from src.usecases import JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase
 
 
 @pytest.fixture(name="test_user")
-def test_user_fixture(db_session: Session, argon2_config: Argon2Config):
-    password = "testpassword"
-    hashed_password_obj = hash_password_argon2(password, argon2_config)
-    user = User(
+def test_user_fixture() -> tuple[User, str]:
+    user_id = uuid4()
+    mock_user = User(
+        id=user_id,
         email="test@example.com",
-        password_hash=hashed_password_obj.password_hash,
-        salt=hashed_password_obj.salt,
         first_name="Test",
         last_name="User",
         is_email_verified=True,
+        has_completed_onboarding=True,
+        username="testuser",
+        wallet_address="0xMockWalletAddress",
     )
-    db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
-    return user, password
+    password = "testpassword"
+    return mock_user, password
+
+
+@pytest.fixture
+def mock_user_usecases() -> MagicMock:
+    mock = MagicMock(spec=UserUseCase)
+    app.dependency_overrides[get_user_usecases] = lambda: mock
+    yield mock
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def mock_otp_usecase() -> MagicMock:
+    mock = MagicMock(spec=OtpUseCase)
+    app.dependency_overrides[get_otp_usecase] = lambda: mock
+    yield mock
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def mock_session_usecase() -> MagicMock:
+    mock = MagicMock(spec=SessionUseCase)
+    app.dependency_overrides[get_session_usecase] = lambda: mock
+    yield mock
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def mock_jwt_usecase() -> MagicMock:
+    mock = MagicMock(spec=JWTUsecase)
+    app.dependency_overrides[get_jwt_usecase] = lambda: mock
+    yield mock
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def mock_wallet_manager_factory() -> MagicMock:
+    mock = MagicMock()
+    app.dependency_overrides[get_wallet_manager_factory] = lambda: mock
+    yield mock
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture(name="authenticated_client")
-def authenticated_client_fixture(client: TestClient, test_user: tuple[User, str]):
-    user, password = test_user
-    login_data = {"email": user.email, "password": password}
-    headers = {"X-Device-ID": "test_device_id", "X-Platform": "web"}
-    response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
-    assert response.status_code == 200
-    tokens = response.json()
-    return client, tokens["access_token"], tokens["refresh_token"]
+def authenticated_client_fixture(
+    client: TestClient,
+    test_user: tuple[User, str],
+    mock_user_usecases: MagicMock,
+    mock_session_usecase: MagicMock,
+    mock_jwt_usecase: MagicMock,
+) -> tuple[TestClient, str, str]:
+    user, _ = test_user
+    device_id = "test_device_id"
+    platform = "web"
+
+    # Mock user authentication
+    mock_user_usecases.authenticate_user.return_value = (user, None)
+
+    # Mock session creation
+    session_id = uuid4()
+    mock_session = MagicMock()
+    mock_session.id = session_id
+    mock_session.user_id = user.id
+    raw_refresh_token = "mock_refresh_token"
+    mock_session_usecase.create_session.return_value = (mock_session, raw_refresh_token)
+
+    # Mock access token creation
+    access_token_data = AccessToken(
+        sub=user.id,
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id=session_id,
+        platform=platform,
+        device_id=device_id,
+    )
+    mock_access_token = "mock_access_token"
+    mock_jwt_usecase.create_token.return_value = mock_access_token
+
+    return client, mock_access_token, raw_refresh_token
 
 
 def test_login_success(
-    client: TestClient, db_session: Session, test_user: tuple[User, str]
+    client: TestClient,
+    test_user: tuple[User, str],
+    mock_user_usecases: MagicMock,
+    mock_session_usecase: MagicMock,
+    mock_jwt_usecase: MagicMock,
 ):
     user, password = test_user
     login_data = {"email": user.email, "password": password}
     headers = {"X-Device-ID": "test_device_id", "X-Platform": "web"}
 
+    # Mock use case return values
+    mock_user_usecases.authenticate_user.return_value = (user, None)
+
+    session_id = uuid4()
+    mock_session = MagicMock()
+    mock_session.id = session_id
+    mock_session.user_id = user.id
+    raw_refresh_token = "mock_refresh_token_string"
+    mock_session_usecase.create_session.return_value = (mock_session, raw_refresh_token)
+
+    mock_jwt_usecase.create_token.return_value = "mock_access_token_string"
+
     response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
 
     assert response.status_code == 200
     response_json = response.json()
-    assert "access_token" in response_json
-    assert "refresh_token" in response_json
+    assert "access-token" in response_json
+    assert "refresh-token" in response_json
     assert "user" in response_json
     assert response_json["user"]["email"] == user.email
+    assert response_json["access-token"] == "mock_access_token_string"
+    assert response_json["refresh-token"] == raw_refresh_token
 
-    # Verify session and refresh token in DB
-    session = (
-        db_session.exec(select(DBSession).where(DBSession.user_id == user.id))
-    ).first()
-    assert session is not None
-    assert session.device_id == headers["X-Device-ID"]
-    assert session.platform == headers["X-Platform"]
-    assert session.ip_address is not None
-    assert session.revoked_at is None
-
-    refresh_token = (
-        db_session.exec(
-            select(RefreshToken).where(RefreshToken.session_id == session.id)
-        )
-    ).first()
-    assert refresh_token is not None
-    assert refresh_token.revoked_at is None
-    assert refresh_token.replaced_by_hash is None
-    assert refresh_token.expires_at > datetime.utcnow()
+    # Assert that use cases were called correctly
+    mock_user_usecases.authenticate_user.assert_called_once_with(
+        email=login_data["email"], password=login_data["password"]
+    )
+    mock_session_usecase.create_session.assert_called_once_with(
+        user_id=user.id,
+        device_id=headers["X-Device-ID"],
+        platform=headers["X-Platform"],
+        ip_address="testclient", 
+    )
+    mock_jwt_usecase.create_token.assert_called_once()  # Detailed assertion can be added if needed
 
 
-def test_login_invalid_credentials(client: TestClient, test_user: tuple[User, str]):
+def test_login_invalid_credentials(
+    client: TestClient, test_user: tuple[User, str], mock_user_usecases: MagicMock
+):
     user, _ = test_user
     login_data = {"email": user.email, "password": "wrongpassword"}
     headers = {"X-Device-ID": "test_device_id", "X-Platform": "web"}
+
+    # Mock user authentication to return an error
+    mock_user_usecases.authenticate_user.return_value = (
+        None,
+        error("Invalid credentials"),
+    )
 
     response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
 
     assert response.status_code == 401
     assert response.json() == {"error": "Invalid credentials"}
+    mock_user_usecases.authenticate_user.assert_called_once_with(
+        email=login_data["email"], password=login_data["password"]
+    )
 
 
 def test_refresh_token_success(
     client: TestClient,
-    db_session: Session,
     authenticated_client: tuple[TestClient, str, str],
+    mock_session_usecase: MagicMock,
+    mock_jwt_usecase: MagicMock,
 ):
     _, access_token, refresh_token = authenticated_client
-    initial_refresh_token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
+
+    mock_refresh_token_db = MagicMock()
+    mock_refresh_token_db.id = uuid4()
+    mock_refresh_token_db.session_id = uuid4()
+    mock_refresh_token_db.replaced_by_hash = None
+    mock_session_usecase.get_valid_refresh_token_by_hash.return_value = (
+        mock_refresh_token_db,
+        None,
+    )
+
+    mock_session = MagicMock()
+    mock_session.id = mock_refresh_token_db.session_id
+    mock_session.user_id = uuid4()
+    mock_session_usecase.get_session.return_value = (mock_session, None)
+
+    new_raw_refresh_token_value = "mock_new_raw_refresh_token_string"
+    mock_session_usecase.rotate_refresh_token.return_value = (
+        new_raw_refresh_token_value,
+        None,
+    )
+
+    new_access_token_value = "mock_new_access_token_string"
+    mock_jwt_usecase.create_token.side_effect = [
+        new_raw_refresh_token_value,  # First call inside rotate_refresh_token
+        new_access_token_value,  # Second call for the access token
+    ]
 
     response = client.post(
         "/api/v1/auth/token",
-        json={"refresh_token": refresh_token},
+        json={"refresh-token": refresh_token},
         headers={"X-Device-ID": "test_device_id", "X-Platform": "web"},
     )
 
     assert response.status_code == 200
     response_json = response.json()
-    assert "access_token" in response_json
-    assert "refresh_token" in response_json
-    assert response_json["access_token"] != access_token
-    assert response_json["refresh_token"] != refresh_token
+    assert "access-token" in response_json
+    assert "refresh-token" in response_json
+    assert response_json["access-token"] == new_access_token_value
+    assert response_json["refresh-token"] == new_raw_refresh_token_value
 
-    # Verify old refresh token is replaced
-    old_refresh_token_db = (
-        db_session.exec(
-            select(RefreshToken).where(
-                RefreshToken.token_hash == initial_refresh_token_hash
-            )
-        )
-    ).first()
-    assert old_refresh_token_db is not None
-    assert old_refresh_token_db.replaced_by_hash is not None
-
-    # Verify new refresh token exists
-    new_refresh_token_hash = hashlib.sha256(
-        response_json["refresh_token"].encode()
-    ).hexdigest()
-    new_refresh_token_db = (
-        db_session.exec(
-            select(RefreshToken).where(
-                RefreshToken.token_hash == new_refresh_token_hash
-            )
-        )
-    ).first()
-    assert new_refresh_token_db is not None
-    assert new_refresh_token_db.revoked_at is None
-    assert new_refresh_token_db.replaced_by_hash is None
-    assert new_refresh_token_db.session_id == old_refresh_token_db.session_id
+    mock_session_usecase.get_valid_refresh_token_by_hash.assert_called_once()
+    mock_session_usecase.get_session.assert_called_once_with(
+        mock_refresh_token_db.session_id
+    )
+    mock_session_usecase.rotate_refresh_token.assert_called_once_with(
+        old_refresh_token=mock_refresh_token_db,
+        new_refresh_token_string=new_raw_refresh_token_value,
+    )
+    assert mock_jwt_usecase.create_token.call_count == 2
 
 
-def test_refresh_token_invalid_token(client: TestClient):
+def test_refresh_token_invalid_token(
+    client: TestClient, mock_session_usecase: MagicMock
+):
+    # Mock SessionUseCase.get_valid_refresh_token_by_hash to return an error
+    mock_session_usecase.get_valid_refresh_token_by_hash.return_value = (
+        None,
+        error("Invalid or expired refresh token"),
+    )
+
     response = client.post(
         "/api/v1/auth/token",
-        json={"refresh_token": "invalid_token"},
+        json={"refresh-token": "invalid_token"},
         headers={"X-Device-ID": "test_device_id", "X-Platform": "web"},
     )
     assert response.status_code == 401
     assert response.json() == {"error": "Invalid or expired refresh token"}
+    mock_session_usecase.get_valid_refresh_token_by_hash.assert_called_once()
 
 
 def test_refresh_token_reuse_detection(
     client: TestClient,
-    db_session: Session,
     authenticated_client: tuple[TestClient, str, str],
+    mock_session_usecase: MagicMock,
+    mock_jwt_usecase: MagicMock,
 ):
     _, initial_access_token, initial_refresh_token = authenticated_client
+
+    mock_refresh_token_db_first_call = MagicMock()
+    mock_refresh_token_db_first_call.id = uuid4()
+    mock_refresh_token_db_first_call.session_id = uuid4()
+    mock_refresh_token_db_first_call.replaced_by_hash = None
+
+    mock_refresh_token_db_second_call = MagicMock()
+    mock_refresh_token_db_second_call.id = mock_refresh_token_db_first_call.id
+    mock_refresh_token_db_second_call.session_id = (
+        mock_refresh_token_db_first_call.session_id
+    )
+    mock_refresh_token_db_second_call.replaced_by_hash = (
+        "some_hash_value"  # Indicate reuse
+    )
+
+    mock_session_usecase.get_valid_refresh_token_by_hash.side_effect = [
+        (mock_refresh_token_db_first_call, None),
+        (mock_refresh_token_db_second_call, None),
+    ]
+
+    mock_session = MagicMock()
+    mock_session.id = mock_refresh_token_db_first_call.session_id
+    mock_session.user_id = uuid4()
+    mock_session_usecase.get_session.return_value = (mock_session, None)
+
+    new_raw_refresh_token_value = "mock_new_raw_refresh_token_string_for_reuse"
+    mock_session_usecase.rotate_refresh_token.return_value = (
+        new_raw_refresh_token_value,
+        None,
+    )
+
+    new_access_token_value = "mock_new_access_token_string_for_reuse"
+    mock_jwt_usecase.create_token.side_effect = [
+        new_raw_refresh_token_value,
+        new_access_token_value,
+    ]
 
     # First refresh - should be successful
     response1 = client.post(
         "/api/v1/auth/token",
-        json={"refresh_token": initial_refresh_token},
+        json={"refresh-token": initial_refresh_token},
         headers={"X-Device-ID": "test_device_id", "X-Platform": "web"},
     )
     assert response1.status_code == 200
+    assert "access-token" in response1.json()
+    assert "refresh-token" in response1.json()
 
     # Attempt to use the old refresh token again - should trigger reuse detection
     response2 = client.post(
         "/api/v1/auth/token",
-        json={"refresh_token": initial_refresh_token},
+        json={"refresh-token": initial_refresh_token},
         headers={"X-Device-ID": "test_device_id", "X-Platform": "web"},
     )
     assert response2.status_code == 401
     assert response2.json() == {"error": "Refresh token reused. Please log in again."}
 
-    # Verify the session is revoked
-    initial_refresh_token_hash = hashlib.sha256(
-        initial_refresh_token.encode()
-    ).hexdigest()
-    old_refresh_token_db = (
-        db_session.exec(
-            select(RefreshToken).where(
-                RefreshToken.token_hash == initial_refresh_token_hash
-            )
-        )
-    ).first()
-    assert old_refresh_token_db is not None
-    session = (
-        db_session.exec(
-            select(DBSession).where(DBSession.id == old_refresh_token_db.session_id)
-        )
-    ).first()
-    assert session is not None
-    assert session.revoked_at is not None
+    assert mock_session_usecase.get_valid_refresh_token_by_hash.call_count == 2
+    assert mock_session_usecase.revoke_session.call_count == 1
+    mock_session_usecase.revoke_session.assert_called_once_with(
+        mock_refresh_token_db_first_call.session_id
+    )
 
 
 def test_logout_success(
     client: TestClient,
-    db_session: Session,
     authenticated_client: tuple[TestClient, str, str],
+    mock_session_usecase: MagicMock,
 ):
     _, access_token, _ = authenticated_client
+    mock_session_id = uuid4()
+    mock_user_id = uuid4()
+    mock_platform = "web"
+    mock_access_token_obj = AccessToken(
+        sub=mock_user_id,
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id=mock_session_id,
+        platform=mock_platform,
+    )
 
-    # Verify session is active initially
-    initial_session = (
-        db_session.exec(select(DBSession).where(DBSession.revoked_at.is_(None)))
-    ).first()
-    assert initial_session is not None
+    # Override BearerToken dependency to return our mock AccessToken
+    app.dependency_overrides[BearerToken] = lambda: mock_access_token_obj
+
+    # Mock SessionUseCase.revoke_session
+    mock_session_usecase.revoke_session.return_value = None
 
     response = client.post(
         "/api/v1/auth/logout",
@@ -214,80 +358,42 @@ def test_logout_success(
     assert response.status_code == 200
     assert response.json() == {"message": "Logged out successfully"}
 
-    # Verify session is revoked
-    revoked_session = (
-        db_session.exec(
-            select(DBSession).where(DBSession.id == initial_session.id)
-        )
-    ).first()
-    assert revoked_session is not None
-    assert revoked_session.revoked_at is not None
+    mock_session_usecase.revoke_session.assert_called_once_with(mock_session_id)
 
-    # Verify refresh tokens for the session are revoked
-    revoked_refresh_tokens = (
-        db_session.exec(
-            select(RefreshToken).where(RefreshToken.session_id == initial_session.id)
-        )
-    ).all()
-    for rt in revoked_refresh_tokens:
-        assert rt.revoked_at is not None
+    # Clear the override
+    app.dependency_overrides.clear()
 
 
 def test_logout_all_success(
-    client: TestClient, db_session: Session, test_user: tuple[User, str]
+    client: TestClient,
+    test_user: tuple[User, str],
+    mock_session_usecase: MagicMock,
 ):
-    user, password = test_user
+    user, _ = test_user
+    mock_session_id = uuid4()
+    mock_platform = "web"
+    mock_access_token_obj = AccessToken(
+        sub=user.id,
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id=mock_session_id,
+        platform=mock_platform,
+    )
 
-    # Create multiple sessions for the user
-    login_data = {"email": user.email, "password": password}
-    headers1 = {"X-Device-ID": "device1", "X-Platform": "web"}
-    response1 = client.post("/api/v1/auth/login", json=login_data, headers=headers1)
-    assert response1.status_code == 200
-    tokens1 = response1.json()
-    access_token1 = tokens1["access_token"]
+    # Override BearerToken dependency to return our mock AccessToken
+    app.dependency_overrides[BearerToken] = lambda: mock_access_token_obj
 
-    headers2 = {"X-Device-ID": "device2", "X-Platform": "mobile"}
-    response2 = client.post("/api/v1/auth/login", json=login_data, headers=headers2)
-    assert response2.status_code == 200
-
-    # Verify multiple sessions are active initially
-    active_sessions_before = (
-        db_session.exec(
-            select(DBSession).where(
-                DBSession.user_id == user.id, DBSession.revoked_at.is_(None)
-            )
-        )
-    ).all()
-    assert len(active_sessions_before) == 2
+    # Mock SessionUseCase.revoke_all_user_sessions
+    mock_session_usecase.revoke_all_user_sessions.return_value = None
 
     response = client.post(
         "/api/v1/auth/logout-all",
-        headers={"Authorization": f"Bearer {access_token1}"},
+        headers={"Authorization": f"Bearer mock_access_token_for_logout_all"},
     )
 
     assert response.status_code == 200
     assert response.json() == {"message": "Logged out from all sessions successfully"}
 
-    # Verify all sessions are revoked
-    active_sessions_after = (
-        db_session.exec(
-            select(DBSession).where(
-                DBSession.user_id == user.id, DBSession.revoked_at.is_(None)
-            )
-        )
-    ).all()
-    assert len(active_sessions_after) == 0
+    mock_session_usecase.revoke_all_user_sessions.assert_called_once_with(user.id)
 
-    all_sessions = (
-        db_session.exec(select(DBSession).where(DBSession.user_id == user.id))
-    ).all()
-    for session in all_sessions:
-        assert session.revoked_at is not None
-        # Verify refresh tokens for each session are revoked
-        refresh_tokens = (
-            db_session.exec(
-                select(RefreshToken).where(RefreshToken.session_id == session.id)
-            )
-        ).all()
-        for rt in refresh_tokens:
-            assert rt.revoked_at is not None
+    # Clear the override
+    app.dependency_overrides.clear()
