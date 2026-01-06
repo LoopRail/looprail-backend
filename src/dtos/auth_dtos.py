@@ -1,5 +1,3 @@
-from pydantic import BaseModel
-from typing import Optional
 
 from src.dtos import UserPublic
 from src.dtos.base import Base
