@@ -108,11 +108,3 @@ class WalletManagerUsecase(TransactionMixin):
             )
             return None, err("Could not get wallet Provider")
         return wallet, None
-
-
-class AddressManagerUsecase:
-    def __init__(self) -> None:
-        pass
-
-
-# TODO we still need to make some fixes her but leave that for later
