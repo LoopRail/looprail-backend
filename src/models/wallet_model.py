@@ -28,6 +28,7 @@ class Wallet(Base, table=True):
     address: str = Field(unique=True, index=True, nullable=False)
     chain: Chain = Field(nullable=False)
     provider: str = Field(index=True, nullable=False)
+    ledger_id: str = Field(index=True, nullable=False)
     is_active: bool = Field(default=True, nullable=False)
 
     name: Optional[str] = Field(default=None)
@@ -45,6 +46,7 @@ class Asset(Base, table=True):
     __tablename__ = "assets"
 
     wallet_id: UUID = Field(foreign_key="wallets.id", index=True)
+    ledger_balance_id: str = Field(nullable=False)
     name: AssetType = Field(nullable=False)
     asset_id: str = Field(unique=True, index=True, nullable=False)  # External asset ID
     symbol: str = Field(nullable=False)

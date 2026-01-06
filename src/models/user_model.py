@@ -24,6 +24,7 @@ class User(Base, table=True):
     password_hash: str
     salt: str
     is_active: bool = Field(default=True)
+    ledger_identiy_id: str = Field(nullable=False)
     is_email_verified: bool = Field(default=False)
     has_completed_onboarding: bool = Field(default=False)
     transaction_pin: Optional[str] = Field(default=None)
