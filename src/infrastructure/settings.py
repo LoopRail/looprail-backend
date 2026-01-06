@@ -35,6 +35,7 @@ class ServerConfig(BaseSettings):
 class LedgderServiceConfig(ServerConfig):
     ledger_service_name: str
     ledger_service_host: str
+    ledger_service_api_key: str
     ledgers: LedgerConfig | None = None
 
 

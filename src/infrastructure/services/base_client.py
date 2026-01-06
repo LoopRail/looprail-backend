@@ -151,4 +151,28 @@ class BaseClient(ABC):
             return None, err
         return self._process_response(res, response_model)
 
+    async def _put(
+        self,
+        response_model: Type[T],
+        path_suffix: str = "",
+        data: dict[str, Any] | None = None,
+        req_params: dict[str, Any] | None = None,
+    ) -> Tuple[Optional[T], Error]:
+        """Sends a PUT request to the API.
 
+        Args:
+            response_model: The Pydantic model to validate the response against.
+            path_suffix: The suffix to append to the base path.
+            data: The data to send with the request.
+            req_params: The request parameters.
+
+        Returns:
+            A tuple containing the response data and an error, if any.
+        """
+        url = self._get_url(path_suffix)
+        res, err = await self._send(
+            url, HTTPMethod.PUT, data=data, req_params=req_params
+        )
+        if err:
+            return None, err
+        return self._process_response(res, response_model)

@@ -217,7 +217,7 @@ class TransactionManager(BlnkClient):
         self, transaction_id: str, request: UpdateInflightTransactionRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Update Inflight Transaction endpoint."""
-        return await self._put(  # Assuming PUT method based on Postman
+        return await self._put( 
             BlnkBase,  # Placeholder
             path_suffix=f"/inflight/{transaction_id}",
             data=request.model_dump(by_alias=True),
