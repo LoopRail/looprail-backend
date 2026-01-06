@@ -4,7 +4,15 @@ from alembic import context
 from sqlmodel import SQLModel
 
 from src.infrastructure.db import engine
-
+from src.models import (
+    PaymentOrder,
+    RefreshToken,
+    Session,
+    Transaction,
+    User,
+    UserProfile,
+    Wallet,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
