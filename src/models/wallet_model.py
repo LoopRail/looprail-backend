@@ -53,7 +53,7 @@ class Asset(Base, table=True):
     decimals: int = Field(nullable=False)
     address: str = Field(nullable=False)  # Contract address for tokens
     network: str = Field(nullable=False)
-    logo_url: Optional[HttpUrl] = Field(default=None) # Changed to HttpUrl
+    logo_url: Optional[HttpUrl] = Field(default=None)  # Changed to HttpUrl
     standard: Optional[TokenStandard] = Field(default=None)
     is_active: bool = Field(default=True, nullable=False)
 

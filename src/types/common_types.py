@@ -13,10 +13,8 @@ _HEX_ADDRESS_REGEXP = re.compile("(0x)?[0-9a-f]{40}", re.IGNORECASE | re.ASCII)
 
 
 def validate_address(v: str) -> str:
-    # Validate as EVM address using regex
     if _HEX_ADDRESS_REGEXP.fullmatch(v):
         return v
-    # Validate as Solana address
     try:
         PublicKey(v)
         return v
