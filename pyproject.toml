@@ -26,4 +26,5 @@ dependencies = [
     "argon2-cffi>=25.1.0",
     "aiosqlite>=0.22.1",
     "toml>=0.10.2",
+    "pydantic-extra-types>=2.9.0", # Added for PhoneNumberValidator
 ]

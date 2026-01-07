@@ -1,30 +1,16 @@
 from datetime import date
-from typing import Annotated, UUID
+from uuid import UUID
 
 from email_validator import EmailNotValidError, validate_email
-from pydantic import BeforeValidator, EmailStr, Field, field_validator, model_validator
+from pydantic import EmailStr, Field, field_validator, model_validator
 
 from src.dtos.base import Base
 from src.infrastructure import config
 from src.types import Gender, KYCStatus, error
+from src.types.common_types import CommonPhoneNumber
 from src.utils import (get_country_info, is_valid_country_code,
                        validate_and_format_phone_number,
                        validate_password_strength)
-
-
-def validate_e164_phone_number(v: str, info) -> str:
-    # This validator expects `country_code` to be available in the validation info context
-    country_code = info.data.get("country_code")
-    if not country_code:
-        raise ValueError("Country code is required for phone number validation.")
-
-    try:
-        formatted_number = validate_and_format_phone_number(v, country_code)
-        return formatted_number
-    except Exception as e:
-        raise ValueError(f"Invalid phone number: {e}")
-
-E164PhoneNumber = Annotated[str, BeforeValidator(validate_e164_phone_number)]
 
 
 class OnboardUserUpdate(Base):
@@ -40,7 +26,7 @@ class UserCreate(Base):
     last_name: str
     country_code: str
     gender: Gender
-    phone_number: E164PhoneNumber
+    phone_number: CommonPhoneNumber
 
     @field_validator("password")
     @classmethod
@@ -83,7 +69,7 @@ class UserProfileCreate(Base):
     state: str
     postal_code: str
     country: str
-    phone_number: E164PhoneNumber
+    phone_number: CommonPhoneNumber
     date_of_birth: date
 
 
@@ -96,7 +82,7 @@ class UserProfilePublic(Base):
     state: str
     postal_code: str
     country: str
-    phone_number: E164PhoneNumber
+    phone_number: CommonPhoneNumber
     date_of_birth: date
     user_id: UUID
 
