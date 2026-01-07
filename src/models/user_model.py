@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 from uuid import UUID
 
-from pydantic import EmailStr
+from pydantic import EmailStr, HttpUrl
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
@@ -53,6 +53,7 @@ class UserProfile(Base, table=True):
     country: str
     phone_number: str
     date_of_birth: date
+    links: Optional[List[HttpUrl]] = Field(default_factory=list)
 
     user_id: UUID = Field(foreign_key="users.id")
     user: User = Relationship(back_populates="profile")
