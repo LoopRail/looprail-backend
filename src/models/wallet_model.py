@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional
 from uuid import UUID
 
+from pydantic import HttpUrl # Added HttpUrl import
 from sqlalchemy.orm import Mapped, relationship
 from sqlmodel import Field, Relationship
 
@@ -52,7 +53,7 @@ class Asset(Base, table=True):
     decimals: int = Field(nullable=False)
     address: str = Field(nullable=False)  # Contract address for tokens
     network: str = Field(nullable=False)
-    logo_url: Optional[str] = Field(default=None)
+    logo_url: Optional[HttpUrl] = Field(default=None) # Changed to HttpUrl
     standard: Optional[TokenStandard] = Field(default=None)
     is_active: bool = Field(default=True, nullable=False)
 
