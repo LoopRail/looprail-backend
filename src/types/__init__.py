@@ -1,7 +1,7 @@
 from src.types.access_token_types import AccessToken, OnBoardingToken, Token
 from src.types.auth_lock_types import LockedAccount
 from src.types.auth_types import HashedPassword
-from src.types.common_types import DeletionFilter
+from src.types.common_types import DeletionFilter, PhoneNumber
 from src.types.country_types import CountriesData
 from src.types.error import (
     Error,
@@ -70,4 +70,6 @@ __all__ = [
     "TransactionStatus",
     "TransactionType",
     "WalletConfig",
+    "PhoneNumber",
 ]
+
