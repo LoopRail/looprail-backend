@@ -7,7 +7,7 @@ from pydantic import EmailStr, Field, field_validator, model_validator
 from src.dtos.base import Base
 from src.infrastructure import config
 from src.types import Gender, KYCStatus, error
-from src.types.common_types import CommonPhoneNumber
+from src.types.common_types import PhoneNumber
 from src.utils import (get_country_info, is_valid_country_code,
                        validate_and_format_phone_number,
                        validate_password_strength)
@@ -26,7 +26,7 @@ class UserCreate(Base):
     last_name: str
     country_code: str
     gender: Gender
-    phone_number: CommonPhoneNumber
+    phone_number: PhoneNumber
 
     @field_validator("password")
     @classmethod
