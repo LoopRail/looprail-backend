@@ -8,7 +8,7 @@ from pydantic import EmailStr, HttpUrl
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import KYCStatus
+from src.types import KYCStatus, PhoneNumber
 
 if TYPE_CHECKING:
     from src.models.payment_model import PaymentOrder
@@ -51,7 +51,7 @@ class UserProfile(Base, table=True):
     state: str
     postal_code: str
     country: str
-    phone_number: str
+    phone_number: PhoneNumber
     date_of_birth: date
     links: Optional[List[HttpUrl]] = Field(default_factory=list)
 
