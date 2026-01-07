@@ -1,8 +1,8 @@
 from datetime import date
-from uuid import UUID
+from typing import Annotated, UUID
 
 from email_validator import EmailNotValidError, validate_email
-from pydantic import EmailStr, Field, field_validator, model_validator
+from pydantic import BeforeValidator, EmailStr, Field, field_validator, model_validator
 
 from src.dtos.base import Base
 from src.infrastructure import config
@@ -12,37 +12,25 @@ from src.utils import (get_country_info, is_valid_country_code,
                        validate_password_strength)
 
 
+def validate_e164_phone_number(v: str, info) -> str:
+    # This validator expects `country_code` to be available in the validation info context
+    country_code = info.data.get("country_code")
+    if not country_code:
+        raise ValueError("Country code is required for phone number validation.")
+
+    try:
+        formatted_number = validate_and_format_phone_number(v, country_code)
+        return formatted_number
+    except Exception as e:
+        raise ValueError(f"Invalid phone number: {e}")
+
+E164PhoneNumber = Annotated[str, BeforeValidator(validate_e164_phone_number)]
+
+
 class OnboardUserUpdate(Base):
     transaction_pin: list[int]
     allow_notificatiosn: bool
     questioner: list[str]
-
-
-class PhoneNumber(Base):
-    code: str
-    number: str
-    country_code: str
-
-    @field_validator("country_code")
-    @classmethod
-    def validate_country_code(cls, v: str) -> str:
-        if not is_valid_country_code(config.countries, v):
-            raise error(f"Country code '{v}' is not supported")
-        return v.upper()
-
-    @model_validator(mode="after")
-    def check_dial_code(self) -> "PhoneNumber":
-        country_info = get_country_info(config.countries, self.country_code)
-        if country_info and country_info.dial_code != self.code:
-            raise error(
-                f"Dial code '{self.code}' does not match country '{self.country_code}'"
-            )
-        return self
-
-    @model_validator(mode="after")
-    def validate_and_format_number(self) -> "PhoneNumber":
-        self.number = validate_and_format_phone_number(self.number, self.country_code)
-        return self
 
 
 class UserCreate(Base):
@@ -52,7 +40,7 @@ class UserCreate(Base):
     last_name: str
     country_code: str
     gender: Gender
-    phone_number: PhoneNumber
+    phone_number: E164PhoneNumber
 
     @field_validator("password")
     @classmethod
@@ -95,7 +83,7 @@ class UserProfileCreate(Base):
     state: str
     postal_code: str
     country: str
-    phone_number: str
+    phone_number: E164PhoneNumber
     date_of_birth: date
 
 
@@ -108,7 +96,7 @@ class UserProfilePublic(Base):
     state: str
     postal_code: str
     country: str
-    phone_number: str
+    phone_number: E164PhoneNumber
     date_of_birth: date
     user_id: UUID
 
