@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, relationship
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import (AssetType, Chain, Currency, PaymentMethod,
+from src.types import (Address, AssetType, Chain, Currency, PaymentMethod,
                        TokenStandard, TransactionType)
 
 if TYPE_CHECKING:
@@ -22,7 +22,7 @@ class Wallet(Base, table=True):
     __tablename__ = "wallets"
 
     user_id: UUID = Field(foreign_key="users.id", index=True)
-    address: str = Field(unique=True, index=True, nullable=False)
+    address: Address = Field(unique=True, index=True, nullable=False)
     chain: Chain = Field(nullable=False)
     provider: str = Field(index=True, nullable=False)
     ledger_id: str = Field(index=True, nullable=False)
@@ -48,7 +48,7 @@ class Asset(Base, table=True):
     asset_id: AssetType = Field(
         unique=True, index=True, nullable=False
     )  # External asset ID
-    address: str = Field(nullable=False)
+    address: Address = Field(nullable=False)
     symbol: str = Field(nullable=False)
     decimals: int = Field(nullable=False)
     address: str = Field(nullable=False)  # Contract address for tokens
@@ -67,8 +67,8 @@ class Transaction(Base, table=True):
     transaction_type: TransactionType = Field(nullable=False)
     method: PaymentMethod = Field(nullable=False)
     currency: Currency = Field(nullable=False)
-    sender: str = Field(nullable=False)
-    receiver: str = Field(nullable=False)
+    sender: Address | UUID = Field(nullable=False)
+    receiver: Address | UUID = Field(nullable=False)
     amount: Decimal = Field(nullable=False)
     status: str = Field(nullable=False)
     transaction_hash: str = Field(unique=True, index=True, nullable=False)
