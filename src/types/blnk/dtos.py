@@ -24,6 +24,7 @@ class LedgerResponse(BlnkBase):
 # =========== Balance DTOs ===========
 class CreateBalanceRequest(BlnkBase):
     ledger_id: str
+    identity_id: str | None = None
     currency: str
 
 

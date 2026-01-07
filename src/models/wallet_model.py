@@ -8,17 +8,13 @@ from sqlalchemy.orm import Mapped, relationship
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import (
-    AssetType,
-    Chain,
-    Currency,
-    PaymentMethod,
-    TokenStandard,
-    TransactionType,
-)
+from src.types import (AssetType, Chain, Currency, PaymentMethod,
+                       TokenStandard, TransactionType)
 
 if TYPE_CHECKING:
     from src.models.user_model import User
+
+# TODO we need to creat tairs and then add limits to tht rairs and stuff
 
 
 class Wallet(Base, table=True):
@@ -47,14 +43,18 @@ class Asset(Base, table=True):
 
     wallet_id: UUID = Field(foreign_key="wallets.id", index=True)
     ledger_balance_id: str = Field(nullable=False)
-    name: AssetType = Field(nullable=False)
-    asset_id: str = Field(unique=True, index=True, nullable=False)  # External asset ID
+    name: str = Field(nullable=False)
+    asset_id: AssetType = Field(
+        unique=True, index=True, nullable=False
+    )  # External asset ID
+    address: str = Field(nullable=False)
     symbol: str = Field(nullable=False)
     decimals: int = Field(nullable=False)
     address: str = Field(nullable=False)  # Contract address for tokens
     network: str = Field(nullable=False)
     logo_url: Optional[str] = Field(default=None)
     standard: Optional[TokenStandard] = Field(default=None)
+    is_active: bool = Field(default=True, nullable=False)
 
     wallet: Wallet = Relationship(back_populates="assets")
 

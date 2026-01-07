@@ -8,8 +8,8 @@ from src.infrastructure.services.ledger.service import LedgerService
 from src.infrastructure.settings import BlockRaderConfig, LedgderServiceConfig
 from src.models import Wallet
 from src.types import Chain, Error, Provider, error
-from src.types.blockrader import CreateAddressRequest
 from src.types.blnk.dtos import CreateBalanceRequest, CreateIdentityRequest
+from src.types.blockrader import CreateAddressRequest
 
 logger = get_logger(__name__)
 
@@ -83,19 +83,32 @@ class WalletManagerUsecase(TransactionMixin):
             first_name=user.first_name,
             last_name=user.last_name,
             email_address=user.email,
-            phone_number=user.phone_number, # Assuming phone_number exists on user model
+            phone_number=user.phone_number,
         )
-        ledger_identity, err = await self.service.ledger_service.identities.create_identity(identity_request)
+        (
+            ledger_identity,
+            err,
+        ) = await self.service.ledger_service.identities.create_identity(
+            identity_request
+        )
         if err:
-            logger.error("Could not create ledger identity for user %s Error: %s", user.id, err.message)
+            logger.error(
+                "Could not create ledger identity for user %s Error: %s",
+                user.id,
+                err.message,
+            )
             return None, error("Could not create ledger identity")
 
         # Update user with ledger_identity_id
         user.ledger_identiy_id = ledger_identity.identity_id
         _, err = await self.service.user_repository.update_user(user)
         if err:
-            logger.error("Could not update user with ledger identity ID %s Error: %s", user.id, err.message)
-            # Potentially revert ledger identity creation here, or handle separately
+            logger.error(
+                "Could not update user with ledger identity ID %s Error: %s",
+                user.id,
+                err.message,
+            )
+            # TODO Potentially revert ledger identity creation here, or handle separately
             return None, error("Could not update user with ledger identity ID")
 
         wallet_request = CreateAddressRequest(
@@ -105,7 +118,7 @@ class WalletManagerUsecase(TransactionMixin):
         if err:
             logger.error("Could not generate blockrader wallet %s", err.message)
             return None, error("Could not generate wallet")
-        # Assuming wallet_provider_repository exists on service
+
         provider, err = await self.service.wallet_provider_repository.get_by_name(
             self.service.provider, is_active=True
         )
@@ -135,36 +148,44 @@ class WalletManagerUsecase(TransactionMixin):
             )
             return None, err("Could not get wallet Provider")
 
-        # Create Ledger Balance
-        # Assuming for now there's only one ledger configured and currency is known
-        if not self.service.ledger_service.config.ledgers or not self.service.ledger_service.config.ledgers.ledgers:
+        if (
+            not self.service.ledger_service.config.ledgers
+            or not self.service.ledger_service.config.ledgers.ledgers
+        ):
             return None, error("Ledger configuration not found")
-        
-        ledger_config = self.service.ledger_service.config.ledgers.ledgers[0]
-        
-        # Currency needs to be derived from the wallet or asset type
-        # For now, let's assume a default or derive from `chain` or `new_wallet.asset_type` if available
-        # Placeholder: Using a dummy currency 'USD' or trying to infer
-        currency = "USD" # This needs proper derivation based on asset/chain
-        if hasattr(new_wallet, 'asset_type') and new_wallet.asset_type:
-            # Assuming AssetType has a value property for currency and new_wallet has asset_type
-            currency = new_wallet.asset_type.value 
+
+        ledger_config = self.service.ledger_service.config.ledgers.ledgers[
+            0
+        ]  # TODO add get method here to get the ledger with a specifc name
+
+        currency = "USD"
+        if hasattr(new_wallet, "asset_type") and new_wallet.asset_type:
+            currency = new_wallet.asset_type.value
 
         balance_request = CreateBalanceRequest(
             ledger_id=ledger_config.ledger_id,
+            identity_id=user.ledger_identity,
             currency=currency,
         )
-        ledger_balance, err = await self.service.ledger_service.balances.create_balance(balance_request)
+        ledger_balance, err = await self.service.ledger_service.balances.create_balance(
+            balance_request
+        )
         if err:
-            logger.error("Could not create ledger balance for wallet %s Error: %s", wallet.id, err.message)
+            logger.error(
+                "Could not create ledger balance for wallet %s Error: %s",
+                wallet.id,
+                err.message,
+            )
             return None, error("Could not create ledger balance")
 
-        # Update wallet with ledger_balance_id
-        # Assuming Wallet model has a ledger_balance_id field
         wallet.ledger_balance_id = ledger_balance.balance_id
         _, err = await self.service.wallet_repository.update_wallet(wallet)
         if err:
-            logger.error("Could not update wallet with ledger balance ID %s Error: %s", wallet.id, err.message)
+            logger.error(
+                "Could not update wallet with ledger balance ID %s Error: %s",
+                wallet.id,
+                err.message,
+            )
             return None, error("Could not update wallet with ledger balance ID")
 
         return wallet, None
