@@ -5,11 +5,11 @@ from pydantic import Field
 
 from src.types.blockrader.base import baseBlockRaderType, baseResponse
 from src.types.blockrader.types import (AML, AMLCheckData, Analytics, Asset,
-                                        AssetInner, BlockNetwork, Configurations,
-                                        Meta, TransactionAddress,
-                                        TransactionAsset, WalletInfo)
-from src.types.common_types import Address
-from src.types.types import Chain
+                                        AssetInner, BlockNetwork,
+                                        Configurations, Meta,
+                                        TransactionAddress, TransactionAsset,
+                                        WalletInfo)
+from src.types.types import Address, Chain
 
 
 class WalletDetailsData(baseBlockRaderType):

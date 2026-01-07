@@ -3,8 +3,7 @@ from typing import Any, Optional
 
 from pydantic import Field
 
-from src.types.blockrader.base import baseBlockRaderType
-from src.types.common_types import Address
+from src.types.blockrader.base import Address, baseBlockRaderType
 
 
 class BlockNetwork(baseBlockRaderType):
