@@ -2,15 +2,15 @@ from datetime import date
 from uuid import UUID
 
 from email_validator import EmailNotValidError, validate_email
-from pydantic import EmailStr, Field, field_validator, model_validator
+from pydantic import EmailStr, Field, field_validator 
 
 from src.dtos.base import Base
 from src.infrastructure import config
-from src.types import Gender, KYCStatus, error
-from src.types.common_types import PhoneNumber
-from src.utils import (get_country_info, is_valid_country_code,
-                       validate_and_format_phone_number,
-                       validate_password_strength)
+from src.types import Gender, KYCStatus, error, PhoneNumber
+from src.utils import (
+    is_valid_country_code,
+    validate_password_strength,
+)
 
 
 class OnboardUserUpdate(Base):
@@ -69,7 +69,7 @@ class UserProfileCreate(Base):
     state: str
     postal_code: str
     country: str
-    phone_number: CommonPhoneNumber
+    phone_number: PhoneNumber
     date_of_birth: date
 
 
@@ -82,7 +82,7 @@ class UserProfilePublic(Base):
     state: str
     postal_code: str
     country: str
-    phone_number: CommonPhoneNumber
+    phone_number: PhoneNumber
     date_of_birth: date
     user_id: UUID
 
