@@ -8,12 +8,13 @@ from src.types.blockrader.types import (AML, AMLCheckData, Analytics, Asset,
                                         AssetInner, BlockNetwork, Configurations,
                                         Meta, TransactionAddress,
                                         TransactionAsset, WalletInfo)
+from src.types.common_types import Address
 from src.types.types import Chain
 
 
 class WalletDetailsData(baseBlockRaderType):
     wallet_id: str = Field(alias="id")
-    address: str
+    address: Address
     analytics: Analytics
     assets: List[Asset]
     blockNetwork: BlockNetwork
@@ -36,7 +37,7 @@ class WalletBalanceData(baseBlockRaderType):
 class Data(baseBlockRaderType):
     data_id: str = Field(alias="id")
     data_type: str = Field(alias="type")
-    address: str
+    address: Address
     blockNetwork: BlockNetwork
     configurations: Configurations
     createdAt: datetime
@@ -63,8 +64,8 @@ class TransactionData(baseBlockRaderType):
     assetSweptAt: Optional[datetime] = None
     assetSweptGasFee: Optional[str] = None
     assetSweptHash: Optional[str] = None
-    assetSweptRecipientAddress: Optional[str] = None
-    assetSweptSenderAddress: Optional[str] = None
+    assetSweptRecipientAddress: Optional[Address] = None
+    assetSweptSenderAddress: Optional[Address] = None
     blockHash: Optional[str] = None
     blockNumber: Optional[int] = None
     blockNetwork: BlockNetwork
@@ -81,9 +82,9 @@ class TransactionData(baseBlockRaderType):
     network: str
     note: Optional[Any] = None
     reason: Optional[str] = None
-    recipientAddress: str
+    recipientAddress: Address
     reference: str
-    senderAddress: str
+    senderAddress: Address
     status: str
     updatedAt: datetime
 
@@ -133,9 +134,9 @@ class WithdrawalData(baseBlockRaderType):
     assetSweptAt: Optional[datetime] = None
     assetSweptGasFee: Optional[str] = None
     assetSweptHash: Optional[str] = None
-    assetSweptRecipientAddress: Optional[str] = None
+    assetSweptRecipientAddress: Optional[Address] = None
     assetSweptResponse: Optional[Any] = None
-    assetSweptSenderAddress: Optional[str] = None
+    assetSweptSenderAddress: Optional[Address] = None
     blockHash: Optional[str] = None
     blockNumber: Optional[int] = None
     blockNetwork: BlockNetwork
@@ -153,8 +154,8 @@ class WithdrawalData(baseBlockRaderType):
     network: str
     note: Optional[Any] = None
     reason: Optional[str] = None
-    recipientAddress: str
-    senderAddress: str
+    recipientAddress: Address
+    senderAddress: Address
     status: str
     tokenAddress: Optional[str] = None
     updatedAt: datetime
@@ -174,14 +175,14 @@ class CreateAddressRequest(baseBlockRaderType):
 
 
 class NetworkFeeRequest(baseBlockRaderType):
-    address: str
+    address: Address
     amount: str
     assetId: str
 
 
 class WithdrawalRequest(baseBlockRaderType):
     assetId: str
-    address: str
+    address: Address
     amount: str
     reference: Optional[str] = None
     metadata: Optional[dict[str, Any]] = None
@@ -192,5 +193,5 @@ class AMLCheckResponse(baseResponse):
 
 
 class AMLCheckRequest(baseBlockRaderType):
-    address: str
+    address: Address
     blockNetwork: Chain

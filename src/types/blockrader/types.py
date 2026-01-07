@@ -4,6 +4,7 @@ from typing import Any, Optional
 from pydantic import Field
 
 from src.types.blockrader.base import baseBlockRaderType
+from src.types.common_types import Address
 
 
 class BlockNetwork(baseBlockRaderType):
@@ -22,7 +23,7 @@ class BlockNetwork(baseBlockRaderType):
 
 class AssetInner(baseBlockRaderType):
     address_id: str = Field(alias="id")
-    address: str
+    address: Address
     blockNetwork: BlockNetwork
     createdAt: datetime
     decimals: int
@@ -81,7 +82,7 @@ class Meta(baseBlockRaderType):
 
 class TransactionAsset(baseBlockRaderType):
     transaction_asset_id: str = Field(alias="id")
-    address: str
+    address: Address
     createdAt: datetime
     decimals: int
     isActive: bool
@@ -95,7 +96,7 @@ class TransactionAsset(baseBlockRaderType):
 
 class TransactionAddress(baseBlockRaderType):
     transaction_address_id: str = Field(alias="id")
-    address: str
+    address: Address
     configurations: Configurations
     createdAt: datetime
     derivationPath: Optional[str]
