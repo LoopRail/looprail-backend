@@ -1,0 +1,352 @@
+from datetime import datetime
+from typing import Any, List, Optional
+
+from pydantic import Field
+
+from src.types.blockrader.base import baseBlockRaderType, baseResponse
+from src.types.blockrader.types import (AML, Analytics, BlockNetwork,
+                                        Configurations, TransactionAddress,
+                                        TransactionAsset, WalletInfo)
+from src.types.common_types import Address
+
+
+class WebhookEvent(baseBlockRaderType):
+    event: str
+    data: Any # This will be replaced by specific data models
+
+
+class AssetData(baseBlockRaderType):
+    asset_id: str = Field(alias="id")
+    name: str
+    symbol: str
+    decimals: int
+    address: Address
+    standard: Optional[str] = None
+    isActive: bool
+    logoUrl: str
+    network: str
+    createdAt: datetime
+    updatedAt: datetime
+
+
+class AddressData(baseBlockRaderType):
+    address_id: str = Field(alias="id")
+    address: Address
+    name: str
+    isActive: bool
+    type: str
+    derivationPath: str
+    metadata: Optional[Any] = None
+    configurations: Configurations
+    network: str
+    createdAt: datetime
+    updatedAt: datetime
+
+
+class BlockchainData(baseBlockRaderType):
+    blockchain_id: str = Field(alias="id")
+    name: str
+    symbol: str
+    slug: str
+    derivationPath: str
+    isEvmCompatible: bool
+    logoUrl: str
+    isActive: bool
+    tokenStandard: Optional[str] = None
+    createdAt: datetime
+    updatedAt: datetime
+
+
+class BusinessData(baseBlockRaderType):
+    business_id: str = Field(alias="id")
+    name: str
+    sector: str
+    status: str
+    createdAt: datetime
+    updatedAt: datetime
+    userId: Optional[str] = None # Assuming userId might be present
+    pipedriveOrganizationId: Optional[str] = None # Assuming pipedriveOrganizationId might be present
+
+
+class WalletWebhookData(baseBlockRaderType):
+    wallet_id: str = Field(alias="id")
+    name: str
+    description: Optional[str] = None
+    address: Address
+    derivationPath: str
+    isActive: bool
+    status: str
+    network: str
+    configurations: Optional[Any] = None # Can be Configurations or specific for withdrawal/autoSweeping
+    createdAt: datetime
+    updatedAt: datetime
+    business: Optional[BusinessData] = None
+
+
+class DepositSuccessData(baseBlockRaderType):
+    id: str
+    reference: str
+    senderAddress: Address
+    recipientAddress: Address
+    amount: str
+    amountPaid: str
+    fee: Optional[str] = None
+    currency: str
+    blockNumber: Optional[int] = None
+    blockHash: Optional[str] = None
+    hash: Optional[str] = None
+    confirmations: int
+    confirmed: bool
+    gasPrice: Optional[str] = None
+    gasUsed: Optional[str] = None
+    gasFee: Optional[str] = None
+    status: str
+    type: str
+    note: Optional[str] = None
+    amlScreening: AML
+    assetSwept: Optional[bool] = None
+    assetSweptAt: Optional[datetime] = None
+    assetSweptGasFee: Optional[str] = None
+    assetSweptHash: Optional[str] = None
+    assetSweptSenderAddress: Optional[Address] = None
+    assetSweptRecipientAddress: Optional[Address] = None
+    assetSweptAmount: Optional[str] = None
+    reason: Optional[str] = None
+    network: str
+    chainId: Optional[int] = None
+    metadata: Optional[Any] = None # Can be a dict
+    createdAt: datetime
+    updatedAt: datetime
+    asset: AssetData
+    address: AddressData
+    blockchain: BlockchainData
+    wallet: WalletWebhookData
+    beneficiary: Optional[Any] = None
+
+
+class WebhookDepositSuccess(WebhookEvent):
+    event: str = "deposit.success"
+    data: DepositSuccessData
+
+
+class DepositProcessingData(DepositSuccessData):
+    event: str = "deposit.processing"
+    status: str = "PROCESSING"
+    blockNumber: Optional[int] = None
+    blockHash: Optional[str] = None
+    hash: Optional[str] = None
+    confirmations: int = 0
+    confirmed: bool = False
+    gasPrice: Optional[str] = None
+    gasUsed: Optional[str] = None
+    gasFee: Optional[str] = None
+
+
+class WebhookDepositProcessing(WebhookEvent):
+    event: str = "deposit.processing"
+    data: DepositProcessingData
+
+
+class WithdrawSuccessData(DepositSuccessData):
+    event: str = "withdraw.success"
+    senderAddress: Address
+    recipientAddress: Address
+    status: str = "SUCCESS"
+    type: str = "WITHDRAW"
+
+
+class WebhookWithdrawSuccess(WebhookEvent):
+    event: str = "withdraw.success"
+    data: WithdrawSuccessData
+
+
+class SignedSuccessData(DepositSuccessData):
+    event: str = "signed.success"
+    tokenAddress: Optional[Address] = None
+    amountUSD: Optional[str] = None
+    rateUSD: Optional[str] = None
+    feeHash: Optional[str] = None
+    currency: str
+    toCurrency: Optional[str] = None
+    signedTransaction: Optional[str] = None
+    rate: Optional[str] = None
+
+
+class WebhookSignedSuccess(WebhookEvent):
+    event: str = "signed.success"
+    data: SignedSuccessData
+
+
+class SwapSuccessData(DepositSuccessData):
+    event: str = "swap.success"
+    tokenAddress: Optional[Address] = None
+    amountUSD: Optional[str] = None
+    rateUSD: Optional[str] = None
+    feeHash: Optional[str] = None
+    currency: Optional[str] = None # Can be null
+    toCurrency: Optional[str] = None
+    toAmount: Optional[str] = None
+    rate: Optional[str] = None
+    toAsset: Optional[AssetData] = None
+    toBlockchain: Optional[BlockchainData] = None
+    toWallet: Optional[WalletWebhookData] = None
+
+
+class WebhookSwapSuccess(WebhookEvent):
+    event: str = "swap.success"
+    data: SwapSuccessData
+
+
+class DepositSweptSuccessData(DepositSuccessData):
+    event: str = "deposit.swept.success"
+    assetSwept: bool = True
+    assetSweptAt: Optional[datetime] = None
+    assetSweptGasFee: Optional[str] = None
+    assetSweptHash: Optional[str] = None
+    assetSweptSenderAddress: Optional[Address] = None
+    assetSweptRecipientAddress: Optional[Address] = None
+    assetSweptAmount: Optional[str] = None
+    reason: Optional[str] = None
+
+
+class WebhookDepositSweptSuccess(WebhookEvent):
+    event: str = "deposit.swept.success"
+    data: DepositSweptSuccessData
+
+
+class DepositFailedData(DepositSuccessData):
+    event: str = "deposit.failed"
+    status: str = "FAILED"
+    amlScreening: AML
+    reason: Optional[str] = None
+
+
+class WebhookDepositFailed(WebhookEvent):
+    event: str = "deposit.failed"
+    data: DepositFailedData
+
+
+class WithdrawFailedData(DepositSuccessData):
+    event: str = "withdraw.failed"
+    status: str = "FAILED"
+    amlScreening: AML
+    reason: Optional[str] = None
+
+
+class WebhookWithdrawFailed(WebhookEvent):
+    event: str = "withdraw.failed"
+    data: WithdrawFailedData
+
+
+class DepositSweptFailedData(DepositSweptSuccessData):
+    event: str = "deposit.swept.failed"
+    assetSwept: bool = False
+    reason: Optional[str] = None
+
+
+class WebhookDepositSweptFailed(WebhookEvent):
+    event: str = "deposit.swept.failed"
+    data: DepositSweptFailedData
+
+
+class StakingSuccessData(DepositSuccessData):
+    event: str = "staking.success"
+    senderAddress: Address
+    recipientAddress: Address
+    fee: Optional[str] = None
+    amlScreening: AML
+    metadata: Optional[Any] = None
+
+
+class WebhookStakingSuccess(WebhookEvent):
+    event: str = "staking.success"
+    data: StakingSuccessData
+
+
+class CustomSmartContractSuccessData(DepositSuccessData):
+    event: str = "custom-smart-contract.success"
+    senderAddress: Address
+    recipientAddress: Address
+    fee: Optional[str] = None
+    amlScreening: AML
+    metadata: Optional[Any] = None
+
+
+class WebhookCustomSmartContractSuccess(WebhookEvent):
+    event: str = "custom-smart-contract.success"
+    data: CustomSmartContractSuccessData
+
+
+class GatewayDepositSuccessData(DepositSuccessData):
+    event: str = "gateway-deposit.success"
+    tokenAddress: Address
+    amountUSD: Optional[str] = None
+    rateUSD: Optional[str] = None
+    currency: str
+    amlScreening: AML
+    metadata: Optional[Any] = None
+    toCurrency: Optional[str] = None
+    signedTransaction: Optional[str] = None
+    rate: Optional[str] = None
+
+
+class WebhookGatewayDepositSuccess(WebhookEvent):
+    event: str = "gateway-deposit.success"
+    data: GatewayDepositSuccessData
+
+
+class GatewayWithdrawSuccessData(DepositSuccessData):
+    event: str = "gateway-withdraw.success"
+    tokenAddress: Address
+    amountUSD: Optional[str] = None
+    rateUSD: Optional[str] = None
+    currency: str
+    amlScreening: AML
+    metadata: Optional[Any] = None
+    toCurrency: Optional[str] = None
+    signedTransaction: Optional[str] = None
+    rate: Optional[str] = None
+
+
+class WebhookGatewayWithdrawSuccess(WebhookEvent):
+    event: str = "gateway-withdraw.success"
+    data: GatewayWithdrawSuccessData
+
+
+# Generic Webhook model for parsing the event type
+class GenericWebhookEvent(baseBlockRaderType):
+    event: str
+    data: dict[str, Any] # Use dict to allow dynamic parsing
+
+    def to_specific_event(self) -> WebhookEvent:
+        event_type = self.event
+        if event_type == "deposit.success":
+            return WebhookDepositSuccess(event=self.event, data=self.data)
+        elif event_type == "deposit.processing":
+            return WebhookDepositProcessing(event=self.event, data=self.data)
+        elif event_type == "withdraw.success":
+            return WebhookWithdrawSuccess(event=self.event, data=self.data)
+        elif event_type == "signed.success":
+            return WebhookSignedSuccess(event=self.event, data=self.data)
+        elif event_type == "swap.success":
+            return WebhookSwapSuccess(event=self.event, data=self.data)
+        elif event_type == "deposit.swept.success":
+            return WebhookDepositSweptSuccess(event=self.event, data=self.data)
+        elif event_type == "deposit.failed":
+            return WebhookDepositFailed(event=self.event, data=self.data)
+        elif event_type == "withdraw.failed":
+            return WebhookWithdrawFailed(event=self.event, data=self.data)
+        elif event_type == "deposit.swept.failed":
+            return WebhookDepositSweptFailed(event=self.event, data=self.data)
+        elif event_type == "staking.success":
+            return WebhookStakingSuccess(event=self.event, data=self.data)
+        elif event_type == "custom-smart-contract.success":
+            return WebhookCustomSmartContractSuccess(event=self.event, data=self.data)
+        elif event_type == "gateway-deposit.success":
+            return WebhookGatewayDepositSuccess(event=self.event, data=self.data)
+        elif event_type == "gateway-withdraw.success":
+            return WebhookGatewayWithdrawSuccess(event=self.event, data=self.data)
+        # Add other event types here
+        else:
+            raise ValueError(f"Unknown webhook event type: {event_type}")
+
