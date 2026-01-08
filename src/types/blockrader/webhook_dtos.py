@@ -1,8 +1,8 @@
-from src.types.blockrader.dtos import WalletData
 from datetime import datetime
 from typing import Any, Optional
 
 from src.types.blockrader.base import baseBlockRaderType
+from src.types.blockrader.dtos import WalletData
 from src.types.blockrader.types import (AML, AddressData, AssetData,
                                         BlockchainData)
 from src.types.common_types import Address
@@ -200,7 +200,6 @@ class GenericWebhookEvent(baseBlockRaderType):
     event: str
     data: dict[str, Any]  # Use dict to allow dynamic parsing
 
-    # Mapping of event names to their specific WebhookEvent models
     WEBHOOK_EVENT_MAP = {
         "deposit.success": WebhookDepositSuccess,
         "deposit.processing": WebhookDepositProcessing,
