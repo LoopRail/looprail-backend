@@ -4,28 +4,28 @@ from typing import Any, List, Optional
 from pydantic import Field
 
 from src.types.blockrader.base import baseBlockRaderType, baseResponse
-from src.types.blockrader.types import (AML, AMLCheckData, Analytics, Asset,
-                                        AssetData, BlockchainData,
-                                        Configurations, AddressData, Meta, # Added Meta
-                                        TransactionAsset, WalletInfo, BusinessData)
-from src.types.types import Address, Chain
+from src.types.blockrader.types import (AML, AddressData, AMLCheckData,
+                                        Analytics, Asset, AssetData,
+                                        BlockchainData, Configurations, Meta,
+                                        TransactionAsset, WalletInfo)
+from src.types.common_types import Address
+from src.types.types import Chain
 
 
-class WalletData(baseBlockRaderType): # Renamed
+class WalletData(baseBlockRaderType):  # Renamed
     wallet_id: str = Field(alias="id")
     address: Address
-    analytics: Optional[Analytics] = None # Made optional
-    assets: Optional[List[Asset]] = None # Made optional
-    blockNetwork: Optional[BlockchainData] = None # Made optional
+    analytics: Optional[Analytics] = None
+    assets: Optional[List[Asset]] = None
+    blockNetwork: Optional[BlockchainData] = None
     createdAt: datetime
     derivationPath: str
-    description: Optional[str] = None # Added Optional
+    description: Optional[str] = None
     isActive: bool
     name: str
     network: str
-    status: Optional[str] = None # Added Optional
+    status: Optional[str] = None
     updatedAt: datetime
-    business: Optional[BusinessData] = None # Added business field
 
 
 class WalletBalanceData(baseBlockRaderType):
@@ -68,7 +68,7 @@ class TransactionData(baseBlockRaderType):
     assetSweptSenderAddress: Optional[Address] = None
     blockHash: Optional[str] = None
     blockNumber: Optional[int] = None
-    blockNetwork: BlockchainData # Changed to BlockchainData
+    blockNetwork: BlockchainData  # Changed to BlockchainData
     NetworkId: int
     confirmations: int
     confirmed: bool
