@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Any, Optional
 
-from src.types.blockrader.base import baseBlockRaderType
+from src.types.blockrader.base import (baseBlockRaderType, WebhookEventType,
+                                        TransactionStatus, TransactionType)
 from src.types.blockrader.dtos import WalletData
 from src.types.blockrader.types import (AML, AddressData, AssetData,
                                         BlockchainData)
@@ -9,7 +10,7 @@ from src.types.common_types import Address
 
 
 class WebhookEvent(baseBlockRaderType):
-    event: str
+    event: WebhookEventType
     data: Any
 
 
@@ -30,8 +31,8 @@ class DepositSuccessData(baseBlockRaderType):
     gasPrice: Optional[str] = None
     gasUsed: Optional[str] = None
     gasFee: Optional[str] = None
-    status: str
-    type: str
+    status: TransactionStatus
+    type: TransactionType
     note: Optional[str] = None
     amlScreening: AML
     assetSwept: Optional[bool] = None
@@ -55,13 +56,13 @@ class DepositSuccessData(baseBlockRaderType):
 
 
 class WebhookDepositSuccess(WebhookEvent):
-    event: str = "deposit.success"
+    event: WebhookEventType = WebhookEventType.DEPOSIT_SUCCESS
     data: DepositSuccessData
 
 
 class DepositProcessingData(DepositSuccessData):
-    event: str = "deposit.processing"
-    status: str = "PROCESSING"
+    event: WebhookEventType = WebhookEventType.DEPOSIT_PROCESSING
+    status: TransactionStatus = TransactionStatus.PROCESSING
     blockNumber: Optional[int] = None
     blockHash: Optional[str] = None
     hash: Optional[str] = None
@@ -73,25 +74,25 @@ class DepositProcessingData(DepositSuccessData):
 
 
 class WebhookDepositProcessing(WebhookEvent):
-    event: str = "deposit.processing"
+    event: WebhookEventType = WebhookEventType.DEPOSIT_PROCESSING
     data: DepositProcessingData
 
 
 class WithdrawSuccessData(DepositSuccessData):
-    event: str = "withdraw.success"
+    event: WebhookEventType = WebhookEventType.WITHDRAW_SUCCESS
     senderAddress: Address
     recipientAddress: Address
-    status: str = "SUCCESS"
-    type: str = "WITHDRAW"
+    status: TransactionStatus = TransactionStatus.SUCCESS
+    type: TransactionType = TransactionType.WITHDRAW
 
 
 class WebhookWithdrawSuccess(WebhookEvent):
-    event: str = "withdraw.success"
+    event: WebhookEventType = WebhookEventType.WITHDRAW_SUCCESS
     data: WithdrawSuccessData
 
 
 class SignedSuccessData(DepositSuccessData):
-    event: str = "signed.success"
+    event: WebhookEventType = WebhookEventType.SIGNED_SUCCESS
     tokenAddress: Optional[Address] = None
     amountUSD: Optional[str] = None
     rateUSD: Optional[str] = None
@@ -103,12 +104,12 @@ class SignedSuccessData(DepositSuccessData):
 
 
 class WebhookSignedSuccess(WebhookEvent):
-    event: str = "signed.success"
+    event: WebhookEventType = WebhookEventType.SIGNED_SUCCESS
     data: SignedSuccessData
 
 
 class DepositSweptSuccessData(DepositSuccessData):
-    event: str = "deposit.swept.success"
+    event: WebhookEventType = WebhookEventType.DEPOSIT_SWEPT_SUCCESS
     assetSwept: bool = True
     assetSweptAt: Optional[datetime] = None
     assetSweptGasFee: Optional[str] = None
@@ -120,47 +121,47 @@ class DepositSweptSuccessData(DepositSuccessData):
 
 
 class WebhookDepositSweptSuccess(WebhookEvent):
-    event: str = "deposit.swept.success"
+    event: WebhookEventType = WebhookEventType.DEPOSIT_SWEPT_SUCCESS
     data: DepositSweptSuccessData
 
 
 class DepositFailedData(DepositSuccessData):
-    event: str = "deposit.failed"
-    status: str = "FAILED"
+    event: WebhookEventType = WebhookEventType.DEPOSIT_FAILED
+    status: TransactionStatus = TransactionStatus.FAILED
     amlScreening: AML
     reason: Optional[str] = None
 
 
 class WebhookDepositFailed(WebhookEvent):
-    event: str = "deposit.failed"
+    event: WebhookEventType = WebhookEventType.DEPOSIT_FAILED
     data: DepositFailedData
 
 
 class WithdrawFailedData(DepositSuccessData):
-    event: str = "withdraw.failed"
-    status: str = "FAILED"
+    event: WebhookEventType = WebhookEventType.WITHDRAW_FAILED
+    status: TransactionStatus = TransactionStatus.FAILED
     amlScreening: AML
     reason: Optional[str] = None
 
 
 class WebhookWithdrawFailed(WebhookEvent):
-    event: str = "withdraw.failed"
+    event: WebhookEventType = WebhookEventType.WITHDRAW_FAILED
     data: WithdrawFailedData
 
 
 class DepositSweptFailedData(DepositSweptSuccessData):
-    event: str = "deposit.swept.failed"
+    event: WebhookEventType = WebhookEventType.DEPOSIT_SWEPT_FAILED
     assetSwept: bool = False
     reason: Optional[str] = None
 
 
 class WebhookDepositSweptFailed(WebhookEvent):
-    event: str = "deposit.swept.failed"
+    event: WebhookEventType = WebhookEventType.DEPOSIT_SWEPT_FAILED
     data: DepositSweptFailedData
 
 
 class GatewayDepositSuccessData(DepositSuccessData):
-    event: str = "gateway-deposit.success"
+    event: WebhookEventType = WebhookEventType.GATEWAY_DEPOSIT_SUCCESS
     tokenAddress: Address
     amountUSD: Optional[str] = None
     rateUSD: Optional[str] = None
@@ -173,12 +174,12 @@ class GatewayDepositSuccessData(DepositSuccessData):
 
 
 class WebhookGatewayDepositSuccess(WebhookEvent):
-    event: str = "gateway-deposit.success"
+    event: WebhookEventType = WebhookEventType.GATEWAY_DEPOSIT_SUCCESS
     data: GatewayDepositSuccessData
 
 
 class GatewayWithdrawSuccessData(DepositSuccessData):
-    event: str = "gateway-withdraw.success"
+    event: WebhookEventType = WebhookEventType.GATEWAY_WITHDRAW_SUCCESS
     tokenAddress: Address
     amountUSD: Optional[str] = None
     rateUSD: Optional[str] = None
@@ -191,26 +192,29 @@ class GatewayWithdrawSuccessData(DepositSuccessData):
 
 
 class WebhookGatewayWithdrawSuccess(WebhookEvent):
-    event: str = "gateway-withdraw.success"
+    event: WebhookEventType = WebhookEventType.GATEWAY_WITHDRAW_SUCCESS
     data: GatewayWithdrawSuccessData
 
 
 # Generic Webhook model for parsing the event type
 class GenericWebhookEvent(baseBlockRaderType):
-    event: str
+    event: WebhookEventType
     data: dict[str, Any]  # Use dict to allow dynamic parsing
 
     WEBHOOK_EVENT_MAP = {
-        "deposit.success": WebhookDepositSuccess,
-        "deposit.processing": WebhookDepositProcessing,
-        "withdraw.success": WebhookWithdrawSuccess,
-        "signed.success": WebhookSignedSuccess,
-        "deposit.swept.success": WebhookDepositSweptSuccess,
-        "deposit.failed": WebhookDepositFailed,
-        "withdraw.failed": WebhookWithdrawFailed,
-        "deposit.swept.failed": WebhookDepositSweptFailed,
-        "gateway-deposit.success": WebhookGatewayDepositSuccess,
-        "gateway-withdraw.success": WebhookGatewayWithdrawSuccess,
+        WebhookEventType.DEPOSIT_SUCCESS: WebhookDepositSuccess,
+        WebhookEventType.DEPOSIT_PROCESSING: WebhookDepositProcessing,
+        WebhookEventType.WITHDRAW_SUCCESS: WebhookWithdrawSuccess,
+        WebhookEventType.SIGNED_SUCCESS: WebhookSignedSuccess,
+        WebhookEventType.SWAP_SUCCESS: WebhookSwapSuccess,
+        WebhookEventType.DEPOSIT_SWEPT_SUCCESS: WebhookDepositSweptSuccess,
+        WebhookEventType.DEPOSIT_FAILED: WebhookDepositFailed,
+        WebhookEventType.WITHDRAW_FAILED: WebhookWithdrawFailed,
+        WebhookEventType.DEPOSIT_SWEPT_FAILED: WebhookDepositSweptFailed,
+        WebhookEventType.STAKING_SUCCESS: WebhookStakingSuccess,
+        WebhookEventType.CUSTOM_SMART_CONTRACT_SUCCESS: WebhookCustomSmartContractSuccess,
+        WebhookEventType.GATEWAY_DEPOSIT_SUCCESS: WebhookGatewayDepositSuccess,
+        WebhookEventType.GATEWAY_WITHDRAW_SUCCESS: WebhookGatewayWithdrawSuccess,
     }
 
     def to_specific_event(self) -> WebhookEvent:
