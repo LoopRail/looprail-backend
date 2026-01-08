@@ -28,4 +28,5 @@ dependencies = [
     "toml>=0.10.2",
     "pydantic-extra-types>=2.9.0", # Added for PhoneNumberValidator
     "solana>=0.19.0",
+    "phonenumbers>=9.0.21",
 ]

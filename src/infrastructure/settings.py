@@ -4,11 +4,9 @@ from typing import List
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from src.infrastructure.constants import (
-    ACCESS_TOKEN_EXP_MINS,
-    ONBOARDING_TOKEN_EXP_MINS,
-    REFRESH_TOKEN_EXP_DAYS,
-)
+from src.infrastructure.constants import (ACCESS_TOKEN_EXP_MINS,
+                                          ONBOARDING_TOKEN_EXP_MINS,
+                                          REFRESH_TOKEN_EXP_DAYS)
 from src.types import LedgerConfig, WalletConfig
 from src.utils import return_base_dir
 
@@ -33,9 +31,9 @@ class ServerConfig(BaseSettings):
 
 
 class LedgderServiceConfig(ServerConfig):
-    ledger_service_name: str
-    ledger_service_host: str
-    ledger_service_api_key: str
+    ledger_service_name: str | None = None
+    ledger_service_host: str | None = None
+    ledger_service_api_key: str | None = None
     ledgers: LedgerConfig | None = None
 
 
