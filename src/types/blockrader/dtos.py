@@ -6,8 +6,8 @@ from pydantic import Field
 from src.types.blockrader.base import baseBlockRaderType, baseResponse
 from src.types.blockrader.types import (AML, AMLCheckData, Analytics, Asset,
                                         AssetData, BlockchainData,
-                                        Configurations, AddressData,
-                                        TransactionAsset, WalletInfo, BusinessData) # Added BusinessData
+                                        Configurations, AddressData, Meta, # Added Meta
+                                        TransactionAsset, WalletInfo, BusinessData)
 from src.types.types import Address, Chain
 
 
@@ -26,7 +26,6 @@ class WalletData(baseBlockRaderType): # Renamed
     status: Optional[str] = None # Added Optional
     updatedAt: datetime
     business: Optional[BusinessData] = None # Added business field
-
 
 
 class WalletBalanceData(baseBlockRaderType):
@@ -69,7 +68,10 @@ class TransactionData(baseBlockRaderType):
     assetSweptSenderAddress: Optional[Address] = None
     blockHash: Optional[str] = None
     blockNumber: Optional[int] = None
-    blockNetwork: BlockNetwork
+    blockNetwork: BlockchainData # Changed to BlockchainData
+    NetworkId: int
+    confirmations: int
+    confirmed: bool
     NetworkId: int
     confirmations: int
     confirmed: bool

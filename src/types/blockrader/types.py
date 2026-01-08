@@ -37,7 +37,7 @@ class AssetData(baseBlockRaderType):
 
 class Asset(baseBlockRaderType):
     asset_id: str = Field(alias="id")
-    asset: AssetInner
+    asset: AssetData
     createdAt: datetime
     isActive: bool
     updatedAt: datetime

@@ -1,7 +1,7 @@
 import os
 from typing import List
 
-from pydantic import Field, model_validator
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.infrastructure.constants import (
