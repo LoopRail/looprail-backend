@@ -1,4 +1,5 @@
 import os
+from enum import Enum
 from typing import List
 
 from pydantic import Field
@@ -11,15 +12,27 @@ from src.types import LedgerConfig, WalletConfig
 from src.utils import return_base_dir
 
 
+class ENVIRONMENT(str, Enum):
+    DEVELOPMENT = "dev"
+    STAGING = "staging"
+    PRODUCTION = "prod"
+
+
 class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore", env_file_encoding="utf-8")
-
-    testing: bool = Field(False, alias="TESTING")
-    env_file: str = ".env"
+    environment: ENVIRONMENT = Field(
+        default=ENVIRONMENT.DEVELOPMENT,
+        alias="ENVIRONMENT",
+    )
 
     @property
     def get_env_file_path(self) -> str:
-        return os.path.join(return_base_dir(), "config", self.env_file)
+        filename = (
+            ".env"
+            if self.environment == ENVIRONMENT.DEVELOPMENT
+            else f".env.{self.environment}"
+        )
+        return os.path.join(return_base_dir(), "config", filename)
 
 
 class ServerConfig(BaseSettings):
