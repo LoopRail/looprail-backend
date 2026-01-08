@@ -30,19 +30,20 @@ class Wallet(Base, table=True):
 
     name: Optional[str] = Field(default=None)
     derivation_path: Optional[str] = Field(default=None)
-    user: User = Relationship(back_populates="wallet")
-    transactions: Mapped[List[Transaction]] = Relationship(
-        sa_relationship=relationship(back_populates="wallet")
-    )
-    assets: Mapped[List[Asset]] = Relationship(
-        sa_relationship=relationship(back_populates="wallet")
-    )
+    user: "User" = Relationship(back_populates="wallet")
+    transactions: Mapped[List["Transaction"]] = Relationship(back_populates="wallet")
+    assets: Mapped[List["Asset"]] = Relationship(back_populates="wallet")
 
 
 class Asset(Base, table=True):
     __tablename__ = "assets"
 
-    wallet_id: UUID = Field(foreign_key="wallets.id", index=True)
+    wallet_id: Optional[UUID] = Field(
+        default=None,
+        foreign_key="wallets.id",
+        index=True,
+        sa_column_kwargs={"ondelete": "SET NULL"},
+    )
     ledger_balance_id: str = Field(nullable=False)
     name: str = Field(nullable=False)
     asset_id: AssetType = Field(
@@ -57,13 +58,18 @@ class Asset(Base, table=True):
     standard: Optional[TokenStandard] = Field(default=None)
     is_active: bool = Field(default=True, nullable=False)
 
-    wallet: Wallet = Relationship(back_populates="assets")
+    wallet: Optional["Wallet"] = Relationship(back_populates="assets")
 
 
 class Transaction(Base, table=True):
     __tablename__ = "transactions"
 
-    wallet_id: UUID = Field(foreign_key="wallets.id", index=True)
+    wallet_id: Optional[UUID] = Field(
+        default=None,
+        foreign_key="wallets.id",
+        index=True,
+        sa_column_kwargs={"ondelete": "SET NULL"},
+    )
     transaction_type: TransactionType = Field(nullable=False)
     method: PaymentMethod = Field(nullable=False)
     currency: Currency = Field(nullable=False)
@@ -88,4 +94,4 @@ class Transaction(Base, table=True):
     reason: Optional[str] = Field(default=None)
     fee: Optional[Decimal] = Field(default=None)
 
-    wallet: Wallet = Relationship(back_populates="transactions")
+    wallet: Optional["Wallet"] = Relationship(back_populates="transactions")
