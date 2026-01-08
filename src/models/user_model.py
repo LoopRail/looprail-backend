@@ -8,7 +8,8 @@ from pydantic import EmailStr, HttpUrl
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import KYCStatus, PhoneNumber
+from src.types import KYCStatus
+
 
 if TYPE_CHECKING:
     from src.models.payment_model import PaymentOrder
@@ -29,9 +30,9 @@ class User(Base, table=True):
     has_completed_onboarding: bool = Field(default=False)
     transaction_pin: Optional[str] = Field(default=None)
 
-    profile: UserProfile = Relationship(back_populates="user")
-    wallet: Wallet = Relationship(back_populates="user")
-    payment_orders: PaymentOrder = Relationship(back_populates="user")
+    profile: "UserProfile" = Relationship(back_populates="user")
+    wallet: "Wallet" = Relationship(back_populates="user")
+    payment_orders: "PaymentOrder" = Relationship(back_populates="user")
 
     @property
     def full_name(self) -> str:
@@ -51,12 +52,12 @@ class UserProfile(Base, table=True):
     state: str
     postal_code: str
     country: str
-    phone_number: PhoneNumber
+    phone_number: str
     date_of_birth: date
     links: Optional[List[HttpUrl]] = Field(default_factory=list)
 
     user_id: UUID = Field(foreign_key="users.id")
-    user: User = Relationship(back_populates="profile")
+    user: "User" = Relationship(back_populates="profile")
 
 
 # TODO Add role management for admins
