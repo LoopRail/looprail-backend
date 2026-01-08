@@ -5,15 +5,16 @@ from pydantic import Field
 
 from src.types.blockrader.base import baseBlockRaderType, baseResponse
 from src.types.blockrader.dtos import WalletData
-from src.types.blockrader.types import (AML, Analytics, AssetData, BlockchainData,
-                                        Configurations, AddressData,
-                                        TransactionAsset, WalletInfo, BusinessData)
+from src.types.blockrader.types import (AML, AddressData, Analytics, AssetData,
+                                        BlockchainData, BusinessData,
+                                        Configurations, TransactionAsset,
+                                        WalletInfo)
 from src.types.common_types import Address
 
 
 class WebhookEvent(baseBlockRaderType):
     event: str
-    data: Any # This will be replaced by specific data models
+    data: Any  # This will be replaced by specific data models
 
 
 class DepositSuccessData(baseBlockRaderType):
@@ -47,7 +48,7 @@ class DepositSuccessData(baseBlockRaderType):
     reason: Optional[str] = None
     network: str
     chainId: Optional[int] = None
-    metadata: Optional[Any] = None # Can be a dict
+    metadata: Optional[Any] = None  # Can be a dict
     createdAt: datetime
     updatedAt: datetime
     asset: AssetData
@@ -110,26 +111,6 @@ class WebhookSignedSuccess(WebhookEvent):
     data: SignedSuccessData
 
 
-class SwapSuccessData(DepositSuccessData):
-    event: str = "swap.success"
-    tokenAddress: Optional[Address] = None
-    amountUSD: Optional[str] = None
-    rateUSD: Optional[str] = None
-    feeHash: Optional[str] = None
-    currency: Optional[str] = None # Can be null
-    toCurrency: Optional[str] = None
-    toAmount: Optional[str] = None
-    rate: Optional[str] = None
-    toAsset: Optional[AssetData] = None
-    toBlockchain: Optional[BlockchainData] = None
-    toWallet: Optional[WalletWebhookData] = None
-
-
-class WebhookSwapSuccess(WebhookEvent):
-    event: str = "swap.success"
-    data: SwapSuccessData
-
-
 class DepositSweptSuccessData(DepositSuccessData):
     event: str = "deposit.swept.success"
     assetSwept: bool = True
@@ -182,34 +163,6 @@ class WebhookDepositSweptFailed(WebhookEvent):
     data: DepositSweptFailedData
 
 
-class StakingSuccessData(DepositSuccessData):
-    event: str = "staking.success"
-    senderAddress: Address
-    recipientAddress: Address
-    fee: Optional[str] = None
-    amlScreening: AML
-    metadata: Optional[Any] = None
-
-
-class WebhookStakingSuccess(WebhookEvent):
-    event: str = "staking.success"
-    data: StakingSuccessData
-
-
-class CustomSmartContractSuccessData(DepositSuccessData):
-    event: str = "custom-smart-contract.success"
-    senderAddress: Address
-    recipientAddress: Address
-    fee: Optional[str] = None
-    amlScreening: AML
-    metadata: Optional[Any] = None
-
-
-class WebhookCustomSmartContractSuccess(WebhookEvent):
-    event: str = "custom-smart-contract.success"
-    data: CustomSmartContractSuccessData
-
-
 class GatewayDepositSuccessData(DepositSuccessData):
     event: str = "gateway-deposit.success"
     tokenAddress: Address
@@ -251,35 +204,28 @@ class GenericWebhookEvent(baseBlockRaderType):
     event: str
     data: dict[str, Any] # Use dict to allow dynamic parsing
 
+    # Mapping of event names to their specific WebhookEvent models
+    WEBHOOK_EVENT_MAP = {
+        "deposit.success": WebhookDepositSuccess,
+        "deposit.processing": WebhookDepositProcessing,
+        "withdraw.success": WebhookWithdrawSuccess,
+        "signed.success": WebhookSignedSuccess,
+        "swap.success": WebhookSwapSuccess,
+        "deposit.swept.success": WebhookDepositSweptSuccess,
+        "deposit.failed": WebhookDepositFailed,
+        "withdraw.failed": WebhookWithdrawFailed,
+        "deposit.swept.failed": WebhookDepositSweptFailed,
+        "staking.success": WebhookStakingSuccess,
+        "custom-smart-contract.success": WebhookCustomSmartContractSuccess,
+        "gateway-deposit.success": WebhookGatewayDepositSuccess,
+        "gateway-withdraw.success": WebhookGatewayWithdrawSuccess,
+        # Add other event types here
+    }
+
     def to_specific_event(self) -> WebhookEvent:
         event_type = self.event
-        if event_type == "deposit.success":
-            return WebhookDepositSuccess(event=self.event, data=self.data)
-        elif event_type == "deposit.processing":
-            return WebhookDepositProcessing(event=self.event, data=self.data)
-        elif event_type == "withdraw.success":
-            return WebhookWithdrawSuccess(event=self.event, data=self.data)
-        elif event_type == "signed.success":
-            return WebhookSignedSuccess(event=self.event, data=self.data)
-        elif event_type == "swap.success":
-            return WebhookSwapSuccess(event=self.event, data=self.data)
-        elif event_type == "deposit.swept.success":
-            return WebhookDepositSweptSuccess(event=self.event, data=self.data)
-        elif event_type == "deposit.failed":
-            return WebhookDepositFailed(event=self.event, data=self.data)
-        elif event_type == "withdraw.failed":
-            return WebhookWithdrawFailed(event=self.event, data=self.data)
-        elif event_type == "deposit.swept.failed":
-            return WebhookDepositSweptFailed(event=self.event, data=self.data)
-        elif event_type == "staking.success":
-            return WebhookStakingSuccess(event=self.event, data=self.data)
-        elif event_type == "custom-smart-contract.success":
-            return WebhookCustomSmartContractSuccess(event=self.event, data=self.data)
-        elif event_type == "gateway-deposit.success":
-            return WebhookGatewayDepositSuccess(event=self.event, data=self.data)
-        elif event_type == "gateway-withdraw.success":
-            return WebhookGatewayWithdrawSuccess(event=self.event, data=self.data)
-        # Add other event types here
-        else:
+        if event_type not in self.WEBHOOK_EVENT_MAP:
             raise ValueError(f"Unknown webhook event type: {event_type}")
 
+        specific_model = self.WEBHOOK_EVENT_MAP[event_type]
+        return specific_model(event=self.event, data=self.data)
