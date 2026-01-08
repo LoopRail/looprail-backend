@@ -46,15 +46,13 @@ class Asset(Base, table=True):
     )
     ledger_balance_id: str = Field(nullable=False)
     name: str = Field(nullable=False)
-    asset_id: AssetType = Field(
-        unique=True, index=True, nullable=False
-    )  # External asset ID
+    asset_id: AssetType = Field(unique=True, index=True, nullable=False)
     address: Address = Field(nullable=False)
     symbol: str = Field(nullable=False)
     decimals: int = Field(nullable=False)
-    address: str = Field(nullable=False)  # Contract address for tokens
+    address: Address = Field(nullable=False)
     network: str = Field(nullable=False)
-    logo_url: Optional[HttpUrl] = Field(default=None)  # Changed to HttpUrl
+    logo_url: Optional[HttpUrl] = Field(default=None)
     standard: Optional[TokenStandard] = Field(default=None)
     is_active: bool = Field(default=True, nullable=False)
 
