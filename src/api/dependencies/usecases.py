@@ -21,6 +21,7 @@ from src.types import Chain
 from src.usecases import (
     JWTUsecase,
     OtpUseCase,
+    SecretsUsecase, # Added SecretsUsecase import
     SessionUseCase,
     UserUseCase,
     WalletManagerUsecase,
@@ -53,6 +54,12 @@ async def get_otp_usecase(
     redis_client: RedisClient = Depends(get_redis_service),
 ) -> OtpUseCase:
     yield OtpUseCase(redis_client, config.otp)
+
+
+async def get_secrets_usecase( # New dependency for SecretsUsecase
+    blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
+) -> SecretsUsecase:
+    yield SecretsUsecase(blockrader_config)
 
 
 async def get_otp_token(

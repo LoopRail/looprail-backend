@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
-from src.types import error
+from src.types import Error, error
 from src.types.blockrader.base import (TransactionStatus, TransactionType,
                                        WebhookEventType, baseBlockRaderType)
 from src.types.blockrader.dtos import WalletData
@@ -184,7 +184,7 @@ class GenericWebhookEvent(baseBlockRaderType):
     event: WebhookEventType
     data: dict[str, Any]
 
-    def to_specific_event(self) -> Optional[WebhookEvent]:
+    def to_specific_event(self) -> Tuple[Optional[WebhookEvent], Error]:
         WEBHOOK_EVENT_MAP = {
             WebhookEventType.DEPOSIT_SUCCESS: WebhookDepositSuccess,
             WebhookEventType.DEPOSIT_PROCESSING: WebhookDepositProcessing,
@@ -197,9 +197,10 @@ class GenericWebhookEvent(baseBlockRaderType):
             WebhookEventType.GATEWAY_WITHDRAW_SUCCESS: WebhookGatewayWithdrawSuccess,
         }
 
-        event_type = self.event
-        if event_type not in WEBHOOK_EVENT_MAP:
-            return None
-
-        specific_model = self.WEBHOOK_EVENT_MAP[event_type]
-        return specific_model(event=self.event, data=self.data)
+        event = WEBHOOK_EVENT_MAP.get(self.event, None)
+        if event is None:
+            return (
+                None,
+                error(f"{self.event} is not a valid supported event"),
+            )  # NOTE This may actually be unnessasy since pydanic aleady does this validation
+        return event(event=self.event, data=self.data), None

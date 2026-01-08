@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel
 
 
@@ -11,3 +13,7 @@ class Argon2HashConfig(BaseModel):
 class HashedPassword(BaseModel):
     password_hash: str
     salt: str
+
+
+class WebhookProvider(str, Enum):
+    BLOCKRADER = "blockrader"
