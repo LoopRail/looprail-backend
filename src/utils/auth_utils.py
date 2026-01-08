@@ -1,4 +1,6 @@
 import re
+import hmac
+import hashlib
 import secrets
 from typing import Optional
 
@@ -76,3 +78,22 @@ def validate_password_strength(password: str) -> Optional[Error]:
             "Password must contain at least one special character (@, #, $, %, ^, &, +, = or !)."
         )
     return None
+
+
+
+def verify_signature(
+    body: bytes,
+    received_signature: str,
+    secret: str,
+) -> bool:
+    """
+    Verify webhook signature using HMAC-SHA512.
+    """
+    computed_signature = hmac.new(
+        secret.encode("utf-8"),
+        body,
+        hashlib.sha512,
+    ).hexdigest()
+
+    return hmac.compare_digest(computed_signature, received_signature)
+
