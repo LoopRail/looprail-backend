@@ -73,5 +73,10 @@ async def custom_http_error_handler(request: Request, exc: HTTPException):
     )
 
 
+@app.get("/health", status_code=status.HTTP_200_OK, tags=["Monitoring"])
+async def health_check():
+    return {"status": "ok"}
+
+
 if __name__ == "__main__":
     uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
