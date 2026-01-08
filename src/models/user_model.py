@@ -54,7 +54,7 @@ class UserProfile(Base, table=True):
     country: str
     phone_number: str
     date_of_birth: date
-    links: Optional[List[HttpUrl]] = Field(default_factory=list)
+    # links: Optional[List[HttpUrl]] = Field(default_factory=list)
 
     user_id: UUID = Field(foreign_key="users.id")
     user: "User" = Relationship(back_populates="profile")
