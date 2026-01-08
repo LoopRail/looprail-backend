@@ -18,6 +18,8 @@ RUN uv sync
 # Copy the rest of the project files into the container.
 COPY . ./
 
+RUN ./migrate.sh
+
 # Expose the port the app runs on.
 EXPOSE 8000
 
