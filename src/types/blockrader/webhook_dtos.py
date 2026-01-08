@@ -1,20 +1,16 @@
-from datetime import datetime
-from typing import Any, List, Optional
-
-from pydantic import Field
-
-from src.types.blockrader.base import baseBlockRaderType, baseResponse
 from src.types.blockrader.dtos import WalletData
-from src.types.blockrader.types import (AML, AddressData, Analytics, AssetData,
-                                        BlockchainData, BusinessData,
-                                        Configurations, TransactionAsset,
-                                        WalletInfo)
+from datetime import datetime
+from typing import Any, Optional
+
+from src.types.blockrader.base import baseBlockRaderType
+from src.types.blockrader.types import (AML, AddressData, AssetData,
+                                        BlockchainData)
 from src.types.common_types import Address
 
 
 class WebhookEvent(baseBlockRaderType):
     event: str
-    data: Any  # This will be replaced by specific data models
+    data: Any
 
 
 class DepositSuccessData(baseBlockRaderType):
@@ -54,7 +50,7 @@ class DepositSuccessData(baseBlockRaderType):
     asset: AssetData
     address: AddressData
     blockchain: BlockchainData
-    wallet: WalletWebhookData
+    wallet: WalletData
     beneficiary: Optional[Any] = None
 
 
@@ -202,7 +198,7 @@ class WebhookGatewayWithdrawSuccess(WebhookEvent):
 # Generic Webhook model for parsing the event type
 class GenericWebhookEvent(baseBlockRaderType):
     event: str
-    data: dict[str, Any] # Use dict to allow dynamic parsing
+    data: dict[str, Any]  # Use dict to allow dynamic parsing
 
     # Mapping of event names to their specific WebhookEvent models
     WEBHOOK_EVENT_MAP = {
@@ -210,16 +206,12 @@ class GenericWebhookEvent(baseBlockRaderType):
         "deposit.processing": WebhookDepositProcessing,
         "withdraw.success": WebhookWithdrawSuccess,
         "signed.success": WebhookSignedSuccess,
-        "swap.success": WebhookSwapSuccess,
         "deposit.swept.success": WebhookDepositSweptSuccess,
         "deposit.failed": WebhookDepositFailed,
         "withdraw.failed": WebhookWithdrawFailed,
         "deposit.swept.failed": WebhookDepositSweptFailed,
-        "staking.success": WebhookStakingSuccess,
-        "custom-smart-contract.success": WebhookCustomSmartContractSuccess,
         "gateway-deposit.success": WebhookGatewayDepositSuccess,
         "gateway-withdraw.success": WebhookGatewayWithdrawSuccess,
-        # Add other event types here
     }
 
     def to_specific_event(self) -> WebhookEvent:
