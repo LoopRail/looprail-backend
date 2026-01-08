@@ -6,8 +6,8 @@ from pydantic import Field
 from src.types.blockrader.base import Address, baseBlockRaderType
 
 
-class BlockNetwork(baseBlockRaderType):
-    blockNetwork_id: str = Field(alias="id")
+class BlockchainData(baseBlockRaderType):
+    blockchain_id: str = Field(alias="id")
     createdAt: datetime
     derivationPath: str
     isActive: bool
@@ -20,10 +20,10 @@ class BlockNetwork(baseBlockRaderType):
     updatedAt: datetime
 
 
-class AssetInner(baseBlockRaderType):
-    address_id: str = Field(alias="id")
+class AssetData(baseBlockRaderType):
+    asset_id: str = Field(alias="id")
     address: Address
-    blockNetwork: BlockNetwork
+    blockNetwork: BlockchainData
     createdAt: datetime
     decimals: int
     isActive: bool
@@ -93,17 +93,17 @@ class TransactionAsset(baseBlockRaderType):
     updatedAt: datetime
 
 
-class TransactionAddress(baseBlockRaderType):
-    transaction_address_id: str = Field(alias="id")
+class AddressData(baseBlockRaderType):
+    address_id: str = Field(alias="id")
     address: Address
     configurations: Configurations
     createdAt: datetime
     derivationPath: Optional[str]
     isActive: bool
-    metadata: Optional[Any]
-    name: Optional[str]
+    metadata: Optional[Any] = None # Keeping it optional for now, adjust based on context if needed
+    name: str # Made not optional to match webhook_dtos.py
     network: str
-    transaction_address_type: str = Field(alias="type")
+    type: str = Field(alias="type") # Renamed from transaction_address_type, made not optional
     updatedAt: datetime
 
 

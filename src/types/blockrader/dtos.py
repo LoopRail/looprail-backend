@@ -5,27 +5,28 @@ from pydantic import Field
 
 from src.types.blockrader.base import baseBlockRaderType, baseResponse
 from src.types.blockrader.types import (AML, AMLCheckData, Analytics, Asset,
-                                        AssetInner, BlockNetwork,
-                                        Configurations, Meta,
-                                        TransactionAddress, TransactionAsset,
-                                        WalletInfo)
+                                        AssetData, BlockchainData,
+                                        Configurations, AddressData,
+                                        TransactionAsset, WalletInfo, BusinessData) # Added BusinessData
 from src.types.types import Address, Chain
 
 
-class WalletDetailsData(baseBlockRaderType):
+class WalletData(baseBlockRaderType): # Renamed
     wallet_id: str = Field(alias="id")
     address: Address
-    analytics: Analytics
-    assets: List[Asset]
-    blockNetwork: BlockNetwork
+    analytics: Optional[Analytics] = None # Made optional
+    assets: Optional[List[Asset]] = None # Made optional
+    blockNetwork: Optional[BlockchainData] = None # Made optional
     createdAt: datetime
     derivationPath: str
-    description: str
+    description: Optional[str] = None # Added Optional
     isActive: bool
     name: str
     network: str
-    status: str
+    status: Optional[str] = None # Added Optional
     updatedAt: datetime
+    business: Optional[BusinessData] = None # Added business field
+
 
 
 class WalletBalanceData(baseBlockRaderType):
@@ -38,7 +39,7 @@ class Data(baseBlockRaderType):
     data_id: str = Field(alias="id")
     data_type: str = Field(alias="type")
     address: Address
-    blockNetwork: BlockNetwork
+    blockNetwork: BlockchainData
     configurations: Configurations
     createdAt: datetime
     derivationPath: Optional[str]
@@ -54,7 +55,7 @@ class TransactionData(baseBlockRaderType):
     transaction_id: str = Field(alias="id")
     transaction_type: str = Field(alias="type")
 
-    address: TransactionAddress
+    address: AddressData
     amlScreening: AML
     amount: str
     amountPaid: str
@@ -96,7 +97,7 @@ class WalletAddressResponse(baseResponse):
 
 
 class WalletDetailsResponse(baseResponse):
-    data: WalletDetailsData | None = None
+    data: WalletData | None = None
 
 
 class WalletBalanceResponse(baseResponse):
@@ -128,7 +129,7 @@ class WithdrawalData(baseBlockRaderType):
     amlScreening: Optional[AML] = None
     amount: str
     amountPaid: str
-    asset: AssetInner
+    asset: AssetData
     assetSwept: Optional[bool] = None
     assetSweptAmount: Optional[str] = None
     assetSweptAt: Optional[datetime] = None
@@ -139,7 +140,7 @@ class WithdrawalData(baseBlockRaderType):
     assetSweptSenderAddress: Optional[Address] = None
     blockHash: Optional[str] = None
     blockNumber: Optional[int] = None
-    blockNetwork: BlockNetwork
+    blockNetwork: BlockchainData
     NetworkId: Optional[int] = None
     confirmations: Optional[int] = None
     confirmed: bool

@@ -4,83 +4,16 @@ from typing import Any, List, Optional
 from pydantic import Field
 
 from src.types.blockrader.base import baseBlockRaderType, baseResponse
-from src.types.blockrader.types import (AML, Analytics, BlockNetwork,
-                                        Configurations, TransactionAddress,
-                                        TransactionAsset, WalletInfo)
+from src.types.blockrader.dtos import WalletData
+from src.types.blockrader.types import (AML, Analytics, AssetData, BlockchainData,
+                                        Configurations, AddressData,
+                                        TransactionAsset, WalletInfo, BusinessData)
 from src.types.common_types import Address
 
 
 class WebhookEvent(baseBlockRaderType):
     event: str
     data: Any # This will be replaced by specific data models
-
-
-class AssetData(baseBlockRaderType):
-    asset_id: str = Field(alias="id")
-    name: str
-    symbol: str
-    decimals: int
-    address: Address
-    standard: Optional[str] = None
-    isActive: bool
-    logoUrl: str
-    network: str
-    createdAt: datetime
-    updatedAt: datetime
-
-
-class AddressData(baseBlockRaderType):
-    address_id: str = Field(alias="id")
-    address: Address
-    name: str
-    isActive: bool
-    type: str
-    derivationPath: str
-    metadata: Optional[Any] = None
-    configurations: Configurations
-    network: str
-    createdAt: datetime
-    updatedAt: datetime
-
-
-class BlockchainData(baseBlockRaderType):
-    blockchain_id: str = Field(alias="id")
-    name: str
-    symbol: str
-    slug: str
-    derivationPath: str
-    isEvmCompatible: bool
-    logoUrl: str
-    isActive: bool
-    tokenStandard: Optional[str] = None
-    createdAt: datetime
-    updatedAt: datetime
-
-
-class BusinessData(baseBlockRaderType):
-    business_id: str = Field(alias="id")
-    name: str
-    sector: str
-    status: str
-    createdAt: datetime
-    updatedAt: datetime
-    userId: Optional[str] = None # Assuming userId might be present
-    pipedriveOrganizationId: Optional[str] = None # Assuming pipedriveOrganizationId might be present
-
-
-class WalletWebhookData(baseBlockRaderType):
-    wallet_id: str = Field(alias="id")
-    name: str
-    description: Optional[str] = None
-    address: Address
-    derivationPath: str
-    isActive: bool
-    status: str
-    network: str
-    configurations: Optional[Any] = None # Can be Configurations or specific for withdrawal/autoSweeping
-    createdAt: datetime
-    updatedAt: datetime
-    business: Optional[BusinessData] = None
 
 
 class DepositSuccessData(baseBlockRaderType):
