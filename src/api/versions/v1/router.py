@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from src.api.dependencies import get_paycrest_service
 from src.api.versions.v1.handlers import (accounts_router, auth_router,
                                           offramp_router, payment_router,
-                                          verify_router)
+                                          verify_router, webhook_router)
 from src.infrastructure.services.paycrest.paycrest_service import \
     PaycrestService
 
@@ -31,3 +31,4 @@ v1_router.include_router(accounts_router.router)
 v1_router.include_router(offramp_router.router)
 v1_router.include_router(payment_router.router)
 v1_router.include_router(verify_router.router)
+v1_router.include_router(webhook_router.router)

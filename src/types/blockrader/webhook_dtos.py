@@ -1,7 +1,7 @@
 from datetime import datetime
-from src.types import error
 from typing import Any, Optional
 
+from src.types import error
 from src.types.blockrader.base import (TransactionStatus, TransactionType,
                                        WebhookEventType, baseBlockRaderType)
 from src.types.blockrader.dtos import WalletData
@@ -180,26 +180,25 @@ class WebhookGatewayWithdrawSuccess(WebhookEvent):
     data: GatewayWithdrawSuccessData
 
 
-# Generic Webhook model for parsing the event type
 class GenericWebhookEvent(baseBlockRaderType):
     event: WebhookEventType
     data: dict[str, Any]
 
-    WEBHOOK_EVENT_MAP = {
-        WebhookEventType.DEPOSIT_SUCCESS: WebhookDepositSuccess,
-        WebhookEventType.DEPOSIT_PROCESSING: WebhookDepositProcessing,
-        WebhookEventType.WITHDRAW_SUCCESS: WebhookWithdrawSuccess,
-        WebhookEventType.DEPOSIT_SWEPT_SUCCESS: WebhookDepositSweptSuccess,
-        WebhookEventType.DEPOSIT_FAILED: WebhookDepositFailed,
-        WebhookEventType.WITHDRAW_FAILED: WebhookWithdrawFailed,
-        WebhookEventType.DEPOSIT_SWEPT_FAILED: WebhookDepositSweptFailed,
-        WebhookEventType.GATEWAY_DEPOSIT_SUCCESS: WebhookGatewayDepositSuccess,
-        WebhookEventType.GATEWAY_WITHDRAW_SUCCESS: WebhookGatewayWithdrawSuccess,
-    }
-
     def to_specific_event(self) -> Optional[WebhookEvent]:
+        WEBHOOK_EVENT_MAP = {
+            WebhookEventType.DEPOSIT_SUCCESS: WebhookDepositSuccess,
+            WebhookEventType.DEPOSIT_PROCESSING: WebhookDepositProcessing,
+            WebhookEventType.WITHDRAW_SUCCESS: WebhookWithdrawSuccess,
+            WebhookEventType.DEPOSIT_SWEPT_SUCCESS: WebhookDepositSweptSuccess,
+            WebhookEventType.DEPOSIT_FAILED: WebhookDepositFailed,
+            WebhookEventType.WITHDRAW_FAILED: WebhookWithdrawFailed,
+            WebhookEventType.DEPOSIT_SWEPT_FAILED: WebhookDepositSweptFailed,
+            WebhookEventType.GATEWAY_DEPOSIT_SUCCESS: WebhookGatewayDepositSuccess,
+            WebhookEventType.GATEWAY_WITHDRAW_SUCCESS: WebhookGatewayWithdrawSuccess,
+        }
+
         event_type = self.event
-        if event_type not in self.WEBHOOK_EVENT_MAP:
+        if event_type not in WEBHOOK_EVENT_MAP:
             return None
 
         specific_model = self.WEBHOOK_EVENT_MAP[event_type]

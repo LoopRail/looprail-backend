@@ -1,10 +1,10 @@
 from typing import Any
 
-from fastapi import Depends, Header, HTTPException, Request, status
+from fastapi import Header, HTTPException, Request, status
 
 from src.infrastructure import config
-from src.types.blockrader.webhook_dtos import GenericWebhookEvent, WebhookEvent
-from src.utils.auth_utils import verify_signature
+from src.types import GenericWebhookEvent, WebhookEvent
+from src.utils import verify_signature
 
 
 async def get_verified_blockrader_webhook(
@@ -19,8 +19,6 @@ async def get_verified_blockrader_webhook(
     # Get the raw request body
     body = await request.body()
 
-    # Get the secret API key from config
-    # Assuming config.block_rader.blockrader_api_key holds the secret
     secret = config.block_rader.blockrader_api_key
 
     # Verify the signature
@@ -30,7 +28,6 @@ async def get_verified_blockrader_webhook(
             detail={"error": "Invalid BlockRadar webhook signature"},
         )
 
-    # Parse the payload into a generic webhook event
     try:
         generic_event = GenericWebhookEvent.model_validate_json(body)
     except Exception as e:
