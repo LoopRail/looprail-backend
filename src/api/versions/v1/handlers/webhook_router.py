@@ -2,30 +2,27 @@ from typing import Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from src.api.dependencies import get_secrets_usecase, VerifyWebhookRequest
+from src.api.dependencies import VerifyWebhookRequest, get_secrets_usecase
 from src.infrastructure.logger import get_logger
-from src.types.blockrader.webhook_dtos import GenericWebhookEvent, WebhookEvent
+from src.types.blockrader import GenericWebhookEvent
 from src.usecases.secrets_usecases import WebhookProvider
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/webhooks", tags=["Webhook"])
+router = APIRouter(
+    prefix="/webhooks",
+    tags=["Webhook"],
+    dependencies=Depends(
+        VerifyWebhookRequest(secrets_usecase=Depends(get_secrets_usecase))
+    ),
+)
 
 
 @router.post("/blockrader", status_code=status.HTTP_200_OK)
 async def handle_blockrader_webhook(
-    verified_webhook: Tuple[WebhookProvider, bytes] = Depends(
-        VerifyWebhookRequest(secrets_usecase=Depends(get_secrets_usecase))
-    ),
+    verified_webhook: Tuple[WebhookProvider, bytes] = Depends(),
 ):
     provider, body = verified_webhook
-
-    if provider != WebhookProvider.BLOCKRADER:
-        # This case should ideally not be reached if middleware/dependency is correctly configured
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": "Invalid webhook provider for this endpoint"},
-        )
 
     try:
         generic_event = GenericWebhookEvent.model_validate_json(body)

@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 
-from fastapi import Depends, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.api.dependencies.usecases import (get_jwt_usecase, get_otp_token,
@@ -12,6 +12,9 @@ from src.models import Otp
 from src.types import Error, OtpStatus
 from src.types.access_token_types import Token
 from src.usecases import JWTUsecase, OtpUseCase
+from src.types import httpError
+from src.usecases.secrets_usecases import SecretsUsecase, WebhookProvider
+from src.utils import verify_signature
 
 logger = get_logger(__name__)
 
@@ -94,3 +97,48 @@ async def verify_otp_dep(
         logger.error("Error deleting otp Error: %s", err.detail)
         raise OTPError(status_code=500, detail={"error": "Internal Server Error"})
     return otp
+
+
+class VerifyWebhookRequest:
+    def __init__(self, secrets_usecase: SecretsUsecase) -> None:
+        self.secrets_usecase = secrets_usecase
+
+    async def __call__(self, request: Request) -> Tuple[WebhookProvider, bytes]:
+        body = await request.body()
+
+        provider = self._detect_provider(request.headers, request)
+        if provider is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error": "Unknown webhook provider or missing signature header"
+                },
+            )
+
+        signature = request.state.webhook_signature
+        secret = self.secrets_usecase.get(provider)
+
+        if not secret:
+            raise httpError(
+                status.HTTP_403_FORBIDDEN,
+                f"Webhook not allowed for provider {provider.value}",
+            )
+
+        if not self._verify_signature(provider, body, secret, signature):
+            raise httpError(status.HTTP_401_UNAUTHORIZED, "Invalid webhook signature")
+
+        return provider
+
+    def _detect_provider(self, headers, request: Request) -> Optional[WebhookProvider]:
+        if "X-BlockRadar-Signature" in headers:
+            request.state.webhook_signature = headers.get("X-BlockRadar-Signature")
+            # TODO: Add origin checking here (e.g., IP whitelisting)
+            return WebhookProvider.BLOCKRADER
+        return None
+
+    def _verify_signature(
+        self, provider: WebhookProvider, body: bytes, secret: str, signature: str
+    ) -> bool:
+        if provider == WebhookProvider.BLOCKRADER:
+            return verify_signature(body, signature, secret)
+        return False
