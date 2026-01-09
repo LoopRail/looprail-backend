@@ -108,24 +108,28 @@ class VerifyWebhookRequest:
 
         provider = self._detect_provider(request.headers, request)
         if provider is None:
+            error_msg = "Unknown webhook provider or missing signature header"
+            logger.error(error_msg)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "error": "Unknown webhook provider or missing signature header"
-                },
+                detail={"error": error_msg},
             )
 
         signature = request.state.webhook_signature
         secret = self.secrets_usecase.get(provider)
 
         if not secret:
+            error_msg = f"Webhook not allowed for provider {provider.value}"
+            logger.error(error_msg)
             raise httpError(
-                status.HTTP_403_FORBIDDEN,
-                f"Webhook not allowed for provider {provider.value}",
+                status_code=status.HTTP_403_FORBIDDEN,
+                error_msg,
             )
 
         if not self._verify_signature(provider, body, secret, signature):
-            raise httpError(status.HTTP_401_UNAUTHORIZED, "Invalid webhook signature")
+            error_msg = "Invalid webhook signature"
+            logger.error(error_msg)
+            raise httpError(status.HTTP_401_UNAUTHORIZED, error_msg)
 
         return provider
 
