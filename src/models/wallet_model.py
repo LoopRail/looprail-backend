@@ -4,8 +4,6 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional
 from uuid import UUID
 
-from pydantic import HttpUrl
-from sqlalchemy.orm import Mapped, relationship
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
