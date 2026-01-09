@@ -129,7 +129,7 @@ class VerifyWebhookRequest:
         if not self._verify_signature(provider, body, secret, signature):
             error_msg = "Invalid webhook signature"
             logger.error(error_msg)
-            raise httpError(status.HTTP_401_UNAUTHORIZED, error_msg)
+            raise httpError(status.HTTP_401_UNAUTHORIZED, message=error_msg)
 
         return provider
 
