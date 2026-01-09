@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
-from pydantic import EmailStr, HttpUrl
+from pydantic import EmailStr
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
