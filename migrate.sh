@@ -1,2 +1,2 @@
 #!/bin/bash
-uv run alembic upgrade head
+uv run alembic revision --autogenerate -m "$1"
