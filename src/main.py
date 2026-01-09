@@ -48,7 +48,7 @@ add_rate_limiter(app)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://looprail.com"],
+    allow_origins=["looprail.xyz"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
