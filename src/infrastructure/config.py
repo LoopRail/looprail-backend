@@ -6,19 +6,12 @@ import toml
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.security import Argon2Config
-from src.infrastructure.settings import (
-    AppSettings,
-    BlockRaderConfig,
-    DatabaseConfig,
-    ENVIRONMENT,
-    JWTConfig,
-    OTPConfig,
-    PayCrestConfig,
-    PaystackConfig,
-    RedisConfig,
-    ResendConfig,
-    LedgderServiceConfig,
-)
+from src.infrastructure.settings import (ENVIRONMENT, AppSettings,
+                                         BlockRaderConfig, DatabaseConfig,
+                                         JWTConfig, LedgderServiceConfig,
+                                         OTPConfig, PayCrestConfig,
+                                         PaystackConfig, RedisConfig,
+                                         ResendConfig)
 from src.types import CountriesData, LedgerConfig, WalletConfig
 from src.utils import return_base_dir
 
@@ -94,11 +87,11 @@ class Config:
         self.block_rader.wallets: List[WalletConfig] = load_wallet_configs_into_config()
 
         if self.app.environment == ENVIRONMENT.PRODUCTION:
-            self.resend.default_sender_email = "noreply@looprail.com"
+            self.resend.default_sender_domain = "looprail.xyz"
         elif self.app.environment == ENVIRONMENT.STAGING:
-            self.resend.default_sender_email = "noreply@staging.looprail.xyz"
+            self.resend.default_sender_domain = "staging.looprail.xyz"
         else:
-            self.resend.default_sender_email = "noreply@dev.looprail.xyz"
+            self.resend.default_sender_domain = None
 
 
 def load_config() -> Config:

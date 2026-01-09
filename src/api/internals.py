@@ -27,14 +27,14 @@ async def send_otp_internal(
         raise HTTPException(status_code=400, detail=err.message)
 
     if config.app.environment == ENVIRONMENT.DEVELOPMENT:
-        logger.info(f"OTP Code for {email}: {otp_code}")
+        logger.info("OTP Code for %s: %s", email, otp_code)
     else:
         _, err = await resend_service.send_otp(
             to=email,
-            _from=config.resend.default_sender_email, 
+            _from=f"noreply@{config.resend.default_sender_email}",
             otp_code=otp_code,
         )
         if err:
-            logger.error(f"Error sending OTP: {err}")
+            logger.error("Error sending OTP: %s", err)
             raise HTTPException(status_code=500, detail="Failed to send OTP.")
     return token
