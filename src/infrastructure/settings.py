@@ -67,6 +67,7 @@ class OTPConfig(ServerConfig):
 
 class ResendConfig(ServerConfig):
     resend_api_key: str
+    default_sender_email: str
 
 
 class BlockRaderConfig(ServerConfig):
