@@ -4,7 +4,7 @@ from src.infrastructure import config
 from src.utils import verify_signature
 
 
-async def verify_blockrader_webhook_request(
+async def get_blockrader_webhook_event(
     request: Request,
     x_blockradar_signature: str = Header(
         ..., alias="X-BlockRadar-Signature", description="BlockRadar Webhook Signature"

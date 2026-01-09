@@ -12,9 +12,9 @@ logger = get_logger(__name__)
 router = APIRouter(
     prefix="/webhooks",
     tags=["Webhook"],
-    dependencies=Depends(
+    dependencies=[Depends(
         VerifyWebhookRequest(secrets_usecase=Depends(get_secrets_usecase))
-    ),
+    )],
 )
 
 
