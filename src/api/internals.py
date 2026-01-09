@@ -1,11 +1,15 @@
 from fastapi import HTTPException
 
+from src.infrastructure import config
+from src.infrastructure.services import ResendService
+from src.infrastructure.settings import ENVIRONMENT
 from src.usecases import OtpUseCase
 
 
 async def send_otp_internal(
     email: str,
     otp_usecases: OtpUseCase,
+    resend_service: ResendService,
 ) -> str:
     _, err = await otp_usecases.get_user_token(user_email=email)
     if err and err != "Not found":
@@ -19,14 +23,16 @@ async def send_otp_internal(
     if err:
         raise HTTPException(status_code=400, detail=err.message)
 
-    print(otp_code)  # send email here later
-    # _, err = await resend_service.send_otp(
-    #     to=otp_data.email,
-    #     _from="team@looprail.com",
-    #     otp_code=otp_code,
-    # )
-    # if err:
-    #     logger.error("Failed to send OTP: %s", err)
-    #     raise HTTPException(status_code=500, detail="Failed to send OTP.")
-    #
+    if config.app.environment == ENVIRONMENT.DEVELOPMENT:
+        print(f"OTP Code for {email}: {otp_code}")
+    else:
+        _, err = await resend_service.send_otp(
+            to=email,
+            _from="noreply@looprail.com", 
+            otp_code=otp_code,
+        )
+        if err:
+            # logger.error is not defined here, using print for now
+            print(f"Error sending OTP: {err}")
+            raise HTTPException(status_code=500, detail="Failed to send OTP.")
     return token

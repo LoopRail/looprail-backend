@@ -19,9 +19,11 @@ from src.api.dependencies import (
     get_session_usecase,
     get_user_usecases,
     get_wallet_manager_factory,
+    get_resend_service, # Added get_resend_service
 )
+from src.infrastructure.services import ResendService # Added ResendService import
 
-# from src.api.rate_limiter import limiter
+from src.api.rate_limiter import limiter
 from src.api.internals import send_otp_internal
 from src.dtos import (
     LoginRequest,
@@ -55,11 +57,12 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/create-user", response_model=CreateUserResponse)
-# @limiter.limit("2/minute")
+@limiter.limit("2/minute")
 async def create_user(
     user_data: UserCreate,
     user_usecases: UserUseCase = Depends(get_user_usecases),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
+    resend_service: ResendService = Depends(get_resend_service), # Added resend_service
 ) -> dict:
     validation_error = validate_password_strength(user_data.password)
     if validation_error:
@@ -77,6 +80,7 @@ async def create_user(
     token = await send_otp_internal(
         email=created_user.email,
         otp_usecases=otp_usecases,
+        resend_service=resend_service, # Passed resend_service
     )
 
     logger.info("User %s registered successfully.", created_user.username)
@@ -94,7 +98,7 @@ async def create_user(
     response_model=AuthWithTokensAndUserResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
-# @limiter.limit("2/minute")
+@limiter.limit("2/minute")
 async def complete_onboarding(
     request: Request,
     user_data: OnboardUserUpdate,
@@ -199,7 +203,7 @@ async def complete_onboarding(
 
 
 @router.post("/login", response_model=AuthWithTokensAndUserResponse)
-# @limiter.limit("2/minute")
+@limiter.limit("2/minute")
 async def login(
     request: Request,
     login_request: LoginRequest,
@@ -258,7 +262,7 @@ async def login(
 @router.post(
     "/token", summary="Refresh Access Token", response_model=AuthTokensResponse
 )
-# @limiter.limit("2/minute")
+@limiter.limit("2/minute")
 async def refresh_token(
     request: Request,
     refresh_token_request: RefreshTokenRequest,
@@ -338,7 +342,7 @@ async def refresh_token(
 @router.post(
     "/logout", summary="Logout from current session", response_model=MessageResponse
 )
-# @limiter.limit("2/minute")
+@limiter.limit("2/minute")
 async def logout(
     current_token: AccessToken = Depends(BearerToken[AccessToken]),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
@@ -361,7 +365,7 @@ async def logout(
 @router.post(
     "/logout-all", summary="Logout from all sessions", response_model=MessageResponse
 )
-# @limiter.limit("2/minute")
+@limiter.limit("2/minute")
 async def logout_all(
     current_token: AccessToken = Depends(BearerToken[AccessToken]),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
@@ -381,15 +385,17 @@ async def logout_all(
 
 
 @router.post("/send-otp", response_model=MessageResponse)
-# @limiter.limit("1/minute")
+@limiter.limit("1/minute")
 async def send_otp(
     response: Response,
     otp_data: OtpCreate,
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
+    resend_service: ResendService = Depends(get_resend_service),
 ):
     token = await send_otp_internal(
         email=otp_data.email,
         otp_usecases=otp_usecases,
+        resend_service=resend_service,
     )
 
     response.headers["X-OTP-Token"] = token
