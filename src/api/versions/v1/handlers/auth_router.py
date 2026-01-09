@@ -1,54 +1,29 @@
 import hashlib
 from typing import Callable
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Depends,
-    Header,
-    Request,
-    Response,
-    status,
-)
+from fastapi import (APIRouter, BackgroundTasks, Depends, Header, Request,
+                     Response, status)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (
-    BearerToken,
-    get_jwt_usecase,
-    get_otp_usecase,
-    get_session_usecase,
-    get_user_usecases,
-    get_wallet_manager_factory,
-    get_resend_service,  # Added get_resend_service
-)
-from src.infrastructure.services import ResendService  # Added ResendService import
-
-from src.api.rate_limiter import limiter
+from src.api.dependencies import get_resend_service  # Added get_resend_service
+from src.api.dependencies import (BearerToken, get_jwt_usecase,
+                                  get_otp_usecase, get_session_usecase,
+                                  get_user_usecases,
+                                  get_wallet_manager_factory)
 from src.api.internals import send_otp_internal
-from src.dtos import (
-    LoginRequest,
-    OnboardUserUpdate,
-    OtpCreate,
-    RefreshTokenRequest,
-    UserCreate,
-    UserPublic,
-)
-from src.dtos.auth_dtos import (
-    AuthTokensResponse,
-    AuthWithTokensAndUserResponse,
-    CreateUserResponse,
-    MessageResponse,
-)
+from src.api.rate_limiter import limiter
+from src.dtos import (LoginRequest, OnboardUserUpdate, OtpCreate,
+                      RefreshTokenRequest, UserCreate, UserPublic)
+from src.dtos.auth_dtos import (AuthTokensResponse,
+                                AuthWithTokensAndUserResponse,
+                                CreateUserResponse, MessageResponse)
 from src.infrastructure import config
 from src.infrastructure.logger import get_logger
+from src.infrastructure.services import \
+    ResendService  # Added ResendService import
 from src.types import AccessToken, Chain, OnBoardingToken, Platform, TokenType
-from src.usecases import (
-    JWTUsecase,
-    OtpUseCase,
-    SessionUseCase,
-    UserUseCase,
-    WalletManagerUsecase,
-)
+from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
+                          WalletManagerUsecase)
 from src.utils import validate_password_strength
 
 logger = get_logger(__name__)
@@ -345,6 +320,7 @@ async def refresh_token(
 )
 @limiter.limit("2/minute")
 async def logout(
+    request: Request,
     current_token: AccessToken = Depends(BearerToken[AccessToken]),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
 ):
@@ -368,6 +344,7 @@ async def logout(
 )
 @limiter.limit("2/minute")
 async def logout_all(
+    request: Request,
     current_token: AccessToken = Depends(BearerToken[AccessToken]),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
 ):
@@ -388,6 +365,7 @@ async def logout_all(
 @router.post("/send-otp", response_model=MessageResponse)
 @limiter.limit("1/minute")
 async def send_otp(
+    request: Request,
     response: Response,
     otp_data: OtpCreate,
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
