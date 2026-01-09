@@ -30,7 +30,6 @@ from src.types.blockrader.webhook_dtos import (DepositFailedData,
                                                WebhookEvent,
                                                WebhookGatewayDepositSuccess,
                                                WebhookGatewayWithdrawSuccess,
-                                               WebhookSignedSuccess,
                                                WebhookWithdrawFailed,
                                                WebhookWithdrawSuccess)
 
@@ -81,7 +80,6 @@ __all__ = [
     "WebhookEvent",
     "WebhookGatewayDepositSuccess",
     "WebhookGatewayWithdrawSuccess",
-    "WebhookSignedSuccess",
     "WebhookWithdrawFailed",
     "WebhookWithdrawSuccess",
 ]

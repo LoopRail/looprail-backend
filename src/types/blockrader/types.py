@@ -3,7 +3,8 @@ from typing import Any, Optional
 
 from pydantic import Field
 
-from src.types.blockrader.base import Address, baseBlockRaderType
+from src.types.blockrader.base import baseBlockRaderType
+from src.types.common_types import Address
 
 
 class BlockchainData(baseBlockRaderType):
@@ -100,10 +101,14 @@ class AddressData(baseBlockRaderType):
     createdAt: datetime
     derivationPath: Optional[str]
     isActive: bool
-    metadata: Optional[Any] = None # Keeping it optional for now, adjust based on context if needed
-    name: str # Made not optional to match webhook_dtos.py
+    metadata: Optional[Any] = (
+        None  # Keeping it optional for now, adjust based on context if needed
+    )
+    name: str  # Made not optional to match webhook_dtos.py
     network: str
-    type: str = Field(alias="type") # Renamed from transaction_address_type, made not optional
+    type: str = Field(
+        alias="type"
+    )  # Renamed from transaction_address_type, made not optional
     updatedAt: datetime
 
 

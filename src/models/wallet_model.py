@@ -31,8 +31,16 @@ class Wallet(Base, table=True):
     name: Optional[str] = Field(default=None)
     derivation_path: Optional[str] = Field(default=None)
     user: "User" = Relationship(back_populates="wallet")
-    transactions: Mapped[List["Transaction"]] = Relationship(back_populates="wallet")
-    assets: Mapped[List["Asset"]] = Relationship(back_populates="wallet")
+
+    transactions: List["Transaction"] = Relationship(
+        back_populates="wallet",
+        sa_relationship_kwargs={"passive_deletes": True},
+    )
+
+    assets: List["Asset"] = Relationship(
+        back_populates="wallet",
+        sa_relationship_kwargs={"passive_deletes": True},
+    )
 
 
 class Asset(Base, table=True):
@@ -42,7 +50,7 @@ class Asset(Base, table=True):
         default=None,
         foreign_key="wallets.id",
         index=True,
-        sa_column_kwargs={"ondelete": "SET NULL"},
+        sa_column_kwargs={"on_delete": "SET NULL"},
     )
     ledger_balance_id: str = Field(nullable=False)
     name: str = Field(nullable=False)
@@ -52,11 +60,14 @@ class Asset(Base, table=True):
     decimals: int = Field(nullable=False)
     address: Address = Field(nullable=False)
     network: str = Field(nullable=False)
-    logo_url: Optional[HttpUrl] = Field(default=None)
+    # logo_url: Optional[HttpUrl] = Field(default=None)
     standard: Optional[TokenStandard] = Field(default=None)
     is_active: bool = Field(default=True, nullable=False)
 
-    wallet: Optional["Wallet"] = Relationship(back_populates="assets")
+    wallet: Optional["Wallet"] = Relationship(
+        back_populates="assets",
+        sa_relationship_kwargs={"passive_deletes": True},
+    )
 
 
 class Transaction(Base, table=True):
@@ -66,13 +77,13 @@ class Transaction(Base, table=True):
         default=None,
         foreign_key="wallets.id",
         index=True,
-        sa_column_kwargs={"ondelete": "SET NULL"},
+        sa_column_kwargs={"on_delete": "SET NULL"},
     )
     transaction_type: TransactionType = Field(nullable=False)
     method: PaymentMethod = Field(nullable=False)
     currency: Currency = Field(nullable=False)
-    sender: Address | UUID = Field(nullable=False)
-    receiver: Address | UUID = Field(nullable=False)
+    sender: str = Field(nullable=False)
+    receiver: str = Field(nullable=False)
     amount: Decimal = Field(nullable=False)
     status: str = Field(nullable=False)
     transaction_hash: str = Field(unique=True, index=True, nullable=False)
