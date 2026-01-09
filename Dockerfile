@@ -22,4 +22,4 @@ COPY . ./
 EXPOSE 8000
 
 # Command to run the application.
-# CMD ["uv", "run","-m", "src.main"]
+CMD ["uv", "run","-m", "src.main"]
