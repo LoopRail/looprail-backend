@@ -48,7 +48,6 @@ class Asset(Base, table=True):
         default=None,
         foreign_key="wallets.id",
         index=True,
-        sa_column_kwargs={"on_delete": "SET NULL"},
     )
     ledger_balance_id: str = Field(nullable=False)
     name: str = Field(nullable=False)
@@ -75,7 +74,6 @@ class Transaction(Base, table=True):
         default=None,
         foreign_key="wallets.id",
         index=True,
-        sa_column_kwargs={"on_delete": "SET NULL"},
     )
     transaction_type: TransactionType = Field(nullable=False)
     method: PaymentMethod = Field(nullable=False)
