@@ -19,9 +19,9 @@ from src.api.dependencies import (
     get_session_usecase,
     get_user_usecases,
     get_wallet_manager_factory,
-    get_resend_service, # Added get_resend_service
+    get_resend_service,  # Added get_resend_service
 )
-from src.infrastructure.services import ResendService # Added ResendService import
+from src.infrastructure.services import ResendService  # Added ResendService import
 
 from src.api.rate_limiter import limiter
 from src.api.internals import send_otp_internal
@@ -59,10 +59,11 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 @router.post("/create-user", response_model=CreateUserResponse)
 @limiter.limit("2/minute")
 async def create_user(
+    request: Request,
     user_data: UserCreate,
     user_usecases: UserUseCase = Depends(get_user_usecases),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
-    resend_service: ResendService = Depends(get_resend_service), # Added resend_service
+    resend_service: ResendService = Depends(get_resend_service),  # Added resend_service
 ) -> dict:
     validation_error = validate_password_strength(user_data.password)
     if validation_error:
@@ -80,7 +81,7 @@ async def create_user(
     token = await send_otp_internal(
         email=created_user.email,
         otp_usecases=otp_usecases,
-        resend_service=resend_service, # Passed resend_service
+        resend_service=resend_service,  # Passed resend_service
     )
 
     logger.info("User %s registered successfully.", created_user.username)
