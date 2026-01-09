@@ -8,7 +8,7 @@ from pydantic_extra_types.phone_numbers import PhoneNumberValidator
 # from src.infrastructure import config
 # from src.utils.country_utils import get_all_country_codes
 
-# from solana.publickey import PublicKey
+from solders.pubkey import Pubkey
 
 
 _HEX_ADDRESS_REGEXP = re.compile("(0x)?[0-9a-f]{40}", re.IGNORECASE | re.ASCII)
@@ -17,11 +17,11 @@ _HEX_ADDRESS_REGEXP = re.compile("(0x)?[0-9a-f]{40}", re.IGNORECASE | re.ASCII)
 def validate_address(v: str) -> str:
     if _HEX_ADDRESS_REGEXP.fullmatch(v):
         return v
-    # try:
-    #     PublicKey(v)
-    #     return v
-    # except ValueError:
-    #     pass
+    try:
+        Pubkey(v)
+        return v
+    except ValueError:
+        pass
     raise ValueError("Invalid EVM or Solana address")
 
 

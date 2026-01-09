@@ -2,11 +2,14 @@ from datetime import datetime
 from typing import Any, Optional, Tuple
 
 from src.types import Error, error
-from src.types.blockrader.base import (TransactionStatus, TransactionType,
-                                       WebhookEventType, baseBlockRaderType)
+from src.types.blockrader.base import (
+    TransactionStatus,
+    TransactionType,
+    WebhookEventType,
+    baseBlockRaderType,
+)
 from src.types.blockrader.dtos import WalletData
-from src.types.blockrader.types import (AML, AddressData, AssetData,
-                                        BlockchainData)
+from src.types.blockrader.types import AML, AddressData, AssetData, BlockchainData
 from src.types.common_types import Address
 
 
@@ -182,7 +185,7 @@ class WebhookGatewayWithdrawSuccess(WebhookEvent):
 
 class GenericWebhookEvent(baseBlockRaderType):
     event: WebhookEventType
-    data: dict[str, Any]
+    data: dict
 
     def to_specific_event(self) -> Tuple[Optional[WebhookEvent], Error]:
         WEBHOOK_EVENT_MAP = {

@@ -8,17 +8,17 @@ logger = get_logger(__name__)
 
 
 async def get_blockrader_webhook_event(request: Request) -> WebhookEvent:
-    body = request.json()
+    body = await request.json()
 
     try:
-        generic_event = GenericWebhookEvent.model_validate_json(body)
+        generic_event = GenericWebhookEvent.model_validate(body)
     except Exception as e:
         error_msg = f"Invalid webhook payload: {e}"
         logger.error(error_msg)
         raise httpError(
             status.HTTP_400_BAD_REQUEST,
             error_msg,
-        )
+        ) from e
 
     specific_event = generic_event.to_specific_event()
     if specific_event is None:
