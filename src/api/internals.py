@@ -1,9 +1,12 @@
 from fastapi import HTTPException
 
 from src.infrastructure import config
+from src.infrastructure.logger import get_logger
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
 from src.usecases import OtpUseCase
+
+logger = get_logger(__name__)
 
 
 async def send_otp_internal(
@@ -24,7 +27,7 @@ async def send_otp_internal(
         raise HTTPException(status_code=400, detail=err.message)
 
     if config.app.environment == ENVIRONMENT.DEVELOPMENT:
-        print(f"OTP Code for {email}: {otp_code}")
+        logger.info(f"OTP Code for {email}: {otp_code}")
     else:
         _, err = await resend_service.send_otp(
             to=email,
@@ -32,7 +35,6 @@ async def send_otp_internal(
             otp_code=otp_code,
         )
         if err:
-            # logger.error is not defined here, using print for now
-            print(f"Error sending OTP: {err}")
+            logger.error(f"Error sending OTP: {err}")
             raise HTTPException(status_code=500, detail="Failed to send OTP.")
     return token
