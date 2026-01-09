@@ -31,7 +31,7 @@ async def send_otp_internal(
     else:
         _, err = await resend_service.send_otp(
             to=email,
-            _from=resend_service.config.default_sender_email, 
+            _from=config.resend.default_sender_email, 
             otp_code=otp_code,
         )
         if err:

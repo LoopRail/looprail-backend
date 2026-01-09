@@ -10,6 +10,7 @@ from src.infrastructure.settings import (
     AppSettings,
     BlockRaderConfig,
     DatabaseConfig,
+    ENVIRONMENT,
     JWTConfig,
     OTPConfig,
     PayCrestConfig,
@@ -91,6 +92,13 @@ class Config:
         self.disposable_email_domains: List[str] = load_disposable_email_domains()
         self.ledger.ledgers: LedgerConfig = load_ledger_settings_from_file()
         self.block_rader.wallets: List[WalletConfig] = load_wallet_configs_into_config()
+
+        if self.app.environment == ENVIRONMENT.PRODUCTION:
+            self.resend.default_sender_email = "noreply@looprail.com"
+        elif self.app.environment == ENVIRONMENT.STAGING:
+            self.resend.default_sender_email = "noreply@staging.looprail.xyz"
+        else:
+            self.resend.default_sender_email = "noreply@dev.looprail.xyz"
 
 
 def load_config() -> Config:
