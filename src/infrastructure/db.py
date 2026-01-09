@@ -7,8 +7,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.infrastructure import config
 
-print(config.database.get_uri())
-
 engine = create_async_engine(config.database.get_uri(), echo=True)
 
 

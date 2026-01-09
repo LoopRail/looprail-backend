@@ -30,7 +30,7 @@ class AppSettings(BaseSettings):
         filename = (
             ".env"
             if self.environment == ENVIRONMENT.DEVELOPMENT
-            else f".env.{self.environment}"
+            else f".env.{self.environment.value}"
         )
         return os.path.join(return_base_dir(), "config", filename)
 
