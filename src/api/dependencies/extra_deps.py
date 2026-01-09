@@ -123,7 +123,7 @@ class VerifyWebhookRequest:
             logger.error(error_msg)
             raise httpError(
                 status_code=status.HTTP_403_FORBIDDEN,
-                error_msg,
+                message=error_msg,
             )
 
         if not self._verify_signature(provider, body, secret, signature):
