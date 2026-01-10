@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
+from src.types.common_types import IdentiyType
+
 
 class BlnkBase(BaseModel):
     pass
@@ -50,7 +52,7 @@ class BalanceResponse(BlnkBase):
 
 # =========== Identity DTOs ===========
 class CreateIdentityRequest(BlnkBase):
-    identity_type: str
+    identity_type: IdentiyType
     first_name: str
     last_name: str
     other_names: Optional[str] = None

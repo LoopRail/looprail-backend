@@ -1,14 +1,14 @@
 import re
+from enum import Enum
 from typing import Annotated, Literal, Union
 
 import phonenumbers
 from pydantic import BeforeValidator
 from pydantic_extra_types.phone_numbers import PhoneNumberValidator
+from solders.pubkey import Pubkey
 
 # from src.infrastructure import config
 # from src.utils.country_utils import get_all_country_codes
-
-from solders.pubkey import Pubkey
 
 
 _HEX_ADDRESS_REGEXP = re.compile("(0x)?[0-9a-f]{40}", re.IGNORECASE | re.ASCII)
@@ -35,3 +35,14 @@ PhoneNumber = Annotated[
 ]
 
 Address = Annotated[str, BeforeValidator(validate_address)]
+
+
+class WorldLedger(str, Enum):
+    WORLD = "@world"
+    PAYCREST_FEES = "@paycrest_fees"
+    PLATFORM_FEES = "@platform_fees"
+    BLOCKCHAIN_FEES = "@blockchain_fees"
+
+
+class IdentiyType(str, Enum):
+    INDIVIDUAL = "individual"
