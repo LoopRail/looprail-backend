@@ -2,14 +2,14 @@ from typing import Optional, Self, Tuple
 from uuid import UUID
 
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import UserRepository, WalletRepository
-from src.infrastructure.services.blockrader_client import WalletManager
-from src.infrastructure.services.ledger.service import LedgerService
+from src.infrastructure.repositories import AssetRepository, UserRepository, WalletRepository
+from src.infrastructure.services import LedgerService, WalletManager
 from src.infrastructure.settings import BlockRaderConfig, LedgderServiceConfig
-from src.models import Wallet
-from src.types import Chain, Error, Provider, error
-from src.types.blnk.dtos import CreateBalanceRequest, CreateIdentityRequest
-from src.types.blockrader import CreateAddressRequest
+from src.models import Asset, User, Wallet # Added Asset import
+from src.types import AssetType, Chain, Error, IdentiyType, Provider, error # Added AssetType import
+from src.types.blnk import (BalanceResponse, CreateBalanceRequest,
+                            CreateIdentityRequest, IdentityResponse)
+from src.types.blockrader import CreateAddressRequest, WalletAddressResponse
 
 logger = get_logger(__name__)
 
@@ -26,6 +26,7 @@ class WalletService:
         ledger_service_config: LedgderServiceConfig,
         user_repository: UserRepository,
         wallet_repository: WalletRepository,
+        asset_repository: AssetRepository,
         provider: Provider = Provider.BLOCKRADER,
     ):
         self.blockrader_config = blockrader_config
@@ -33,6 +34,7 @@ class WalletService:
 
         self.user_repository = user_repository
         self.wallet_repository = wallet_repository
+        self.asset_repository = asset_repository
 
         self.ledger_service = LedgerService(ledger_service_config)
 
@@ -71,15 +73,18 @@ class WalletManagerUsecase(TransactionMixin):
         self.wallet_id = wallet_id
         self.chain = chain
 
-    async def create_user_wallet(self, user_id: UUID) -> Tuple[Optional[Self], Error]:
+    async def _get_user_data(self, user_id: UUID) -> Tuple[Optional[User], Error]:
         user, err = await self.service.user_repository.get_user_by_id(user_id)
         if err:
             logger.error("Could not get user %s Error: %s", user_id, err.message)
             return None, error("Could not get user")
+        return user, None
 
-        # Create Ledger Identity
+    async def _create_ledger_identity(
+        self, user: User
+    ) -> Tuple[Optional[IdentityResponse], Error]:
         identity_request = CreateIdentityRequest(
-            identity_type="individual",
+            identity_type=IdentiyType.INDIVIDUAL,
             first_name=user.first_name,
             last_name=user.last_name,
             email_address=user.email,
@@ -98,9 +103,12 @@ class WalletManagerUsecase(TransactionMixin):
                 err.message,
             )
             return None, error("Could not create ledger identity")
+        return ledger_identity, None
 
-        # Update user with ledger_identity_id
-        user.ledger_identiy_id = ledger_identity.identity_id
+    async def _update_user_ledger_identity(
+        self, user: User, ledger_identity_id: str
+    ) -> Optional[Error]:
+        user.ledger_identiy_id = ledger_identity_id
         _, err = await self.service.user_repository.update_user(user)
         if err:
             logger.error(
@@ -108,17 +116,26 @@ class WalletManagerUsecase(TransactionMixin):
                 user.id,
                 err.message,
             )
-            # TODO Potentially revert ledger identity creation here, or handle separately
-            return None, error("Could not update user with ledger identity ID")
+            return error("Could not update user with ledger identity ID")
+        return None
 
+    async def _generate_provider_wallet(
+        self, user_id: UUID
+    ) -> Tuple[Optional[WalletAddressResponse], Error]:
         wallet_request = CreateAddressRequest(
-            name=f"wallet:customer:{user.id}", disableAutoSweep=True
+            name=f"wallet:customer:{user_id}",
+            disableAutoSweep=True,
+            metadata={"user_id": user_id},
         )
         provider_wallet, err = await self.manager.generate_address(wallet_request)
         if err:
             logger.error("Could not generate blockrader wallet %s", err.message)
             return None, error("Could not generate wallet")
+        return provider_wallet, None
 
+    async def _create_local_wallet(
+        self, user: User, provider_wallet: WalletAddressResponse
+    ) -> Tuple[Optional[Wallet], Error]:
         provider, err = await self.service.wallet_provider_repository.get_by_name(
             self.service.provider, is_active=True
         )
@@ -134,7 +151,7 @@ class WalletManagerUsecase(TransactionMixin):
             address=provider_wallet.data.address,
             chain=self.chain,
             provider_id=provider.id,
-            name=wallet_request.name,
+            name=f"wallet:customer:{user.id}",
             derivation_path=provider_wallet.data.derivationPath,
         )
 
@@ -147,7 +164,11 @@ class WalletManagerUsecase(TransactionMixin):
                 err.message,
             )
             return None, err("Could not get wallet Provider")
+        return wallet, None
 
+    async def _create_ledger_balance(
+        self, user: User, local_wallet: Wallet
+    ) -> Tuple[Optional[BalanceResponse], Error]:
         if (
             not self.service.ledger_service.config.ledgers
             or not self.service.ledger_service.config.ledgers.ledgers
@@ -158,13 +179,23 @@ class WalletManagerUsecase(TransactionMixin):
             0
         ]  # TODO add get method here to get the ledger with a specifc name
 
-        currency = "USD"
-        if hasattr(new_wallet, "asset_type") and new_wallet.asset_type:
-            currency = new_wallet.asset_type.value
+        currency = "USD" # Default currency
+        asset_type = AssetType.USDC # Default asset type
+
+        # Attempt to derive asset type from local_wallet if it exists
+        if hasattr(local_wallet, "asset_type") and local_wallet.asset_type:
+            try:
+                asset_type = AssetType(local_wallet.asset_type.value)
+                currency = local_wallet.asset_type.value
+            except ValueError:
+                logger.warning(
+                    "Invalid asset_type found in local_wallet: %s. Defaulting to USDC.",
+                    local_wallet.asset_type.value,
+                )
 
         balance_request = CreateBalanceRequest(
             ledger_id=ledger_config.ledger_id,
-            identity_id=user.ledger_identity,
+            identity_id=user.ledger_identiy_id,
             currency=currency,
         )
         ledger_balance, err = await self.service.ledger_service.balances.create_balance(
@@ -173,19 +204,59 @@ class WalletManagerUsecase(TransactionMixin):
         if err:
             logger.error(
                 "Could not create ledger balance for wallet %s Error: %s",
-                wallet.id,
+                local_wallet.id,
                 err.message,
             )
             return None, error("Could not create ledger balance")
 
-        wallet.ledger_balance_id = ledger_balance.balance_id
-        _, err = await self.service.wallet_repository.update_wallet(wallet)
+        # Create Asset record in local DB
+        new_asset = Asset(
+            wallet_id=local_wallet.id,
+            ledger_balance_id=ledger_balance.balance_id,
+            name=f"{asset_type.value} for {local_wallet.address}",
+            asset_id=asset_type,
+            address=local_wallet.address,  # This might be the contract address for the token
+            symbol=asset_type.value,
+            decimals=6,  # Default for USDC, should be dynamic
+            network=local_wallet.chain.value,
+        )
+        _, err = await self.service.asset_repository.create_asset(asset=new_asset)
         if err:
             logger.error(
-                "Could not update wallet with ledger balance ID %s Error: %s",
-                wallet.id,
+                "Could not create local asset record for wallet %s, asset %s Error: %s",
+                local_wallet.id,
+                asset_type.value,
                 err.message,
             )
-            return None, error("Could not update wallet with ledger balance ID")
+            return None, error("Could not create local asset record")
+
+        return ledger_balance, None
+
+
+
+    async def create_user_wallet(self, user_id: UUID) -> Tuple[Optional[Self], Error]:
+        user, err = await self._get_user_data(user_id)
+        if err:
+            return None, err
+
+        ledger_identity, err = await self._create_ledger_identity(user)
+        if err:
+            return None, err
+
+        err = await self._update_user_ledger_identity(user, ledger_identity.identity_id)
+        if err:
+            return None, err
+
+        provider_wallet, err = await self._generate_provider_wallet(user.id)
+        if err:
+            return None, err
+
+        wallet, err = await self._create_local_wallet(user, provider_wallet)
+        if err:
+            return None, err
+
+        ledger_balance, err = await self._create_ledger_balance(user, wallet)
+        if err:
+            return None, err
 
         return wallet, None

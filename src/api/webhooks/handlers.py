@@ -1,19 +1,18 @@
-from src.types import PaymentMethod, TransactionType
-from src.dtos import CreateTransactionParams
-
 from src.api.webhooks.registry import register
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import WalletRepository
-from src.infrastructure.services.ledger import LedgerService
-from src.types.blnk.dtos import RecordTransactionRequest
-from src.types.blockrader.webhook_dtos import (
+from src.infrastructure.repositories import AssetRepository, WalletRepository
+from src.infrastructure.services import LedgerService
+from src.types import TransactionType
+from src.types.blnk import RecordTransactionRequest
+from src.types.blockrader import (
     WebhookDepositSuccess,
     WebhookEventType,
     WebhookWithdrawCancelled,
     WebhookWithdrawFailed,
     WebhookWithdrawSuccess,
 )
-from src.usecases.transaction_usecases import TransactionUsecase
+from src.usecases import TransactionUsecase
+from src.utils import create_transaction_params_from_event
 
 logger = get_logger(__name__)
 
@@ -25,6 +24,7 @@ async def handle_deposit_success(
     event: WebhookDepositSuccess,
     ledger_service: LedgerService,
     wallet_repo: WalletRepository,
+    asset_repo: AssetRepository,
     transaction_usecase: TransactionUsecase,
 ):
     logger.info("Handling deposit success event: %s", event.data.id)
@@ -32,7 +32,6 @@ async def handle_deposit_success(
     wallet, err = await wallet_repo.get_wallet_by_address(
         address=event.data.recipientAddress
     )
-    # TODO add checks here to make sure the user is still active or somthing
     if err:
         logger.error(
             "Wallet not found for address %s: %s",
@@ -41,14 +40,39 @@ async def handle_deposit_success(
         )
         return
 
-    await transaction_usecase.create_transaction(create_transaction_params)
+    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
+        wallet_id=wallet.id, asset_type=event.data.asset.asset_id
+    )
+    if err:
+        logger.error(
+            "Asset with type %s not found for wallet %s: %s",
+            event.data.asset.asset_id,
+            wallet.id,
+            err.message,
+        )
+        return
 
-    if not wallet.ledger_balance_id:
-        logger.error("Wallet %s has no ledger balance ID", wallet.id)
+    if not asset.ledger_balance_id:
+        logger.error(
+            "Asset %s has no ledger balance ID for wallet %s", asset.asset_id, wallet.id
+        )
+        return
+
+    create_transaction_params = create_transaction_params_from_event(
+        event_data=event.data,
+        wallet=wallet,
+        transaction_type=TransactionType.CREDIT,
+    )
+    err = await transaction_usecase.create_transaction(create_transaction_params)
+    if err:
+        logger.error(
+            "Failed to create local transaction record for event %s: %s",
+            event.data.id,
+            err.message,
+        )
         return
 
     try:
-        # Assuming amount is in major units, converting to minor units (cents)
         amount_in_minor_units = int(float(event.data.amount) * 100)
     except (ValueError, TypeError):
         logger.error("Invalid amount format: %s", event.data.amount)
@@ -58,7 +82,7 @@ async def handle_deposit_success(
         amount=amount_in_minor_units,
         reference=event.data.id,
         source=TREASURY_BALANCE_ID,
-        destination=wallet.ledger_balance_id,
+        destination=asset.ledger_balance_id,
         description=f"Deposit from {event.data.senderAddress}",
     )
 
@@ -76,6 +100,7 @@ async def handle_withdraw_success(
     event: WebhookWithdrawSuccess,
     ledger_service: LedgerService,
     wallet_repo: WalletRepository,
+    asset_repo: AssetRepository,
     transaction_usecase: TransactionUsecase,
 ):
     logger.info("Handling withdraw success event: %s", event.data.id)
@@ -91,35 +116,36 @@ async def handle_withdraw_success(
         )
         return
 
-    create_transaction_params = CreateTransactionParams(
-        wallet_id=wallet.id,
-        transaction_type=TransactionType.DEBIT,
-        method=PaymentMethod.WALLET_TRANSFER,  # Assuming, as PaymentMethod doesn't have crypto
-        currency=event.data.currency,
-        sender=event.data.senderAddress,
-        receiver=event.data.recipientAddress,
-        amount=Decimal(event.data.amount),
-        status=event.data.status.value,
-        transaction_hash=event.data.hash,
-        provider_id=event.data.id,
-        network=event.data.network,
-        confirmations=event.data.confirmations,
-        confirmed=event.data.confirmed,
-        reference=event.data.reference,
-        block_hash=event.data.blockHash,
-        block_number=event.data.blockNumber,
-        gas_price=event.data.gasPrice,
-        gas_fee=event.data.gasFee,
-        gas_used=event.data.gasUsed,
-        note=event.data.note,
-        chain_id=event.data.chainId,
-        reason=event.data.reason,
-        fee=Decimal(event.data.fee) if event.data.fee else None,
+    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
+        wallet_id=wallet.id, asset_type=event.data.asset.asset_id
     )
-    await transaction_usecase.create_transaction(create_transaction_params)
+    if err:
+        logger.error(
+            "Asset with type %s not found for wallet %s: %s",
+            event.data.asset.asset_id,
+            wallet.id,
+            err.message,
+        )
+        return
 
-    if not wallet.ledger_balance_id:
-        logger.error("Wallet %s has no ledger balance ID", wallet.id)
+    if not asset.ledger_balance_id:
+        logger.error(
+            "Asset %s has no ledger balance ID for wallet %s", asset.asset_id, wallet.id
+        )
+        return
+
+    create_transaction_params = create_transaction_params_from_event(
+        event_data=event.data,
+        wallet=wallet,
+        transaction_type=TransactionType.DEBIT,
+    )
+    err = await transaction_usecase.create_transaction(create_transaction_params)
+    if err:
+        logger.error(
+            "Failed to create local transaction record for event %s: %s",
+            event.data.id,
+            err.message,
+        )
         return
 
     try:
@@ -131,7 +157,7 @@ async def handle_withdraw_success(
     transaction_request = RecordTransactionRequest(
         amount=amount_in_minor_units,
         reference=event.data.id,
-        source=wallet.ledger_balance_id,
+        source=asset.ledger_balance_id,
         destination=TREASURY_BALANCE_ID,
         description=f"Withdrawal to {event.data.recipientAddress}",
     )
@@ -143,6 +169,8 @@ async def handle_withdraw_success(
             event.data.id,
             err.message,
         )
+        return
+    return
 
 
 @register(event_type=WebhookEventType.WITHDRAW_FAILED)
@@ -150,11 +178,18 @@ async def handle_withdraw_failed(
     event: WebhookWithdrawFailed,
     ledger_service: LedgerService,
     wallet_repo: WalletRepository,
+    asset_repo: AssetRepository,
     transaction_usecase: TransactionUsecase,
 ):
     logger.info("Handling withdraw failed event: %s", event.data.id)
-    await transaction_usecase.update_status_from_event(event.data)
-
+    err = await transaction_usecase.update_status_from_event(event.data)
+    if err:
+        logger.error(
+            "Failed to update local transaction status for event %s: %s",
+            event.data.id,
+            err.message,
+        )
+        return
     wallet, err = await wallet_repo.get_wallet_by_address(
         address=event.data.senderAddress
     )
@@ -166,14 +201,28 @@ async def handle_withdraw_failed(
         )
         return
 
-    if not wallet.ledger_balance_id:
-        logger.error("Wallet %s has no ledger balance ID", wallet.id)
+    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
+        wallet_id=wallet.id, asset_type=event.data.asset.asset_id
+    )
+    if err:
+        logger.error(
+            "Asset with type %s not found for wallet %s: %s",
+            event.data.asset.asset_id,
+            wallet.id,
+            err.message,
+        )
+        return
+
+    if not asset.ledger_balance_id:
+        logger.error(
+            "Asset %s has no ledger balance ID for wallet %s", asset.asset_id, wallet.id
+        )
         return
 
     transaction_request = RecordTransactionRequest(
         amount=0,
         reference=event.data.id,
-        source=wallet.ledger_balance_id,
+        source=asset.ledger_balance_id,
         destination=TREASURY_BALANCE_ID,
         description=f"Failed withdrawal to {event.data.recipientAddress}. Reason: {event.data.reason}",
     )
@@ -185,6 +234,8 @@ async def handle_withdraw_failed(
             event.data.id,
             err.message,
         )
+        return
+    return
 
 
 @register(event_type=WebhookEventType.WITHDRAW_CANCELLED)
@@ -192,11 +243,18 @@ async def handle_withdraw_cancelled(
     event: WebhookWithdrawCancelled,
     ledger_service: LedgerService,
     wallet_repo: WalletRepository,
+    asset_repo: AssetRepository,
     transaction_usecase: TransactionUsecase,
 ):
     logger.info("Handling withdraw cancelled event: %s", event.data.id)
-    await transaction_usecase.update_status_from_event(event.data)
-
+    err = await transaction_usecase.update_status_from_event(event.data)
+    if err:
+        logger.error(
+            "Failed to update local transaction status for event %s: %s",
+            event.data.id,
+            err.message,
+        )
+        return
     wallet, err = await wallet_repo.get_wallet_by_address(
         address=event.data.senderAddress
     )
@@ -208,14 +266,28 @@ async def handle_withdraw_cancelled(
         )
         return
 
-    if not wallet.ledger_balance_id:
-        logger.error("Wallet %s has no ledger balance ID", wallet.id)
+    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
+        wallet_id=wallet.id, asset_type=event.data.asset.asset_id
+    )
+    if err:
+        logger.error(
+            "Asset with type %s not found for wallet %s: %s",
+            event.data.asset.asset_id,
+            wallet.id,
+            err.message,
+        )
+        return
+
+    if not asset.ledger_balance_id:
+        logger.error(
+            "Asset %s has no ledger balance ID for wallet %s", asset.asset_id, wallet.id
+        )
         return
 
     transaction_request = RecordTransactionRequest(
         amount=0,
         reference=event.data.id,
-        source=wallet.ledger_balance_id,
+        source=asset.ledger_balance_id,
         destination=TREASURY_BALANCE_ID,
         description=f"Cancelled withdrawal to {event.data.recipientAddress}. Reason: {event.data.reason}",
     )

@@ -57,7 +57,6 @@ class Asset(Base, table=True):
     decimals: int = Field(nullable=False)
     address: Address = Field(nullable=False)
     network: str = Field(nullable=False)
-    # logo_url: Optional[HttpUrl] = Field(default=None)
     standard: Optional[TokenStandard] = Field(default=None)
     is_active: bool = Field(default=True, nullable=False)
 

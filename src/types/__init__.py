@@ -1,7 +1,8 @@
 from src.types.access_token_types import AccessToken, OnBoardingToken, Token
 from src.types.auth_lock_types import LockedAccount
 from src.types.auth_types import HashedPassword, WebhookProvider
-from src.types.common_types import Address, DeletionFilter, PhoneNumber
+from src.types.common_types import (Address, DeletionFilter, IdentiyType,
+                                    PhoneNumber, WorldLedger)
 from src.types.country_types import CountriesData
 from src.types.error import (Error, FailedAttemptError,
                              InvalidCredentialsError, ItemDoesNotExistError,
@@ -52,4 +53,6 @@ __all__ = [
     "PhoneNumber",
     "Address",
     "WebhookProvider",
+    "IdentiyType",
+    "WorldLedger",
 ]

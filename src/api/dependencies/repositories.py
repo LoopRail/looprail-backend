@@ -2,6 +2,7 @@ from fastapi import Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.infrastructure.repositories import (
+    AssetRepository,
     RefreshTokenRepository,
     SessionRepository,
     TransactionRepository,
@@ -26,6 +27,12 @@ async def get_transaction_repository(
     session: AsyncSession = Depends(get_session),
 ) -> TransactionRepository:
     yield TransactionRepository(session)
+
+
+async def get_asset_repository(
+    session: AsyncSession = Depends(get_session),
+) -> AssetRepository:
+    yield AssetRepository(session)
 
 
 async def get_session_repository(
