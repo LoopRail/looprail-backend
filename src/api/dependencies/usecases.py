@@ -5,28 +5,32 @@ from fastapi import Depends, Header, HTTPException, Request, status
 from src.api.dependencies.repositories import (
     get_refresh_token_repository,
     get_session_repository,
+    get_transaction_repository,
     get_user_repository,
     get_wallet_repository,
 )
 from src.api.dependencies.services import get_blockrader_config, get_redis_service
-from src.infrastructure import RedisClient, config
+from src.infrastructure import config
+from src.infrastructure.redis import RedisClient
 from src.infrastructure.repositories import (
     RefreshTokenRepository,
     SessionRepository,
+    TransactionRepository,
     UserRepository,
     WalletRepository,
 )
 from src.infrastructure.settings import BlockRaderConfig
-from src.types import Chain
 from src.usecases import (
     JWTUsecase,
     OtpUseCase,
-    SecretsUsecase, # Added SecretsUsecase import
+    SecretsUsecase,
     SessionUseCase,
     UserUseCase,
     WalletManagerUsecase,
     WalletService,
 )
+from src.usecases import TransactionUsecase
+from src.types import Chain
 
 
 async def get_session_usecase(
@@ -56,7 +60,7 @@ async def get_otp_usecase(
     yield OtpUseCase(redis_client, config.otp)
 
 
-async def get_secrets_usecase( # New dependency for SecretsUsecase
+async def get_secrets_usecase(
     blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
 ) -> SecretsUsecase:
     yield SecretsUsecase(blockrader_config)
@@ -82,6 +86,7 @@ async def get_blockrader_wallet_service(
     user_repository: UserRepository = Depends(get_user_repository),
     wallet_repository: WalletRepository = Depends(get_wallet_repository),
 ):
+    # NOTE: This dependency seems to be missing `ledger_service_config` for WalletService
     return WalletService(
         blockrader_config,
         user_repository,
@@ -109,3 +114,9 @@ async def get_wallet_manager_factory(
         )
 
     return factory
+
+
+def get_create_transaction_usecase(
+    transaction_repo: TransactionRepository = Depends(get_transaction_repository),
+) -> TransactionUsecase:
+    return TransactionUsecase(transaction_repo)
