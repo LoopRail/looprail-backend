@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.models.wallet_model import Transaction, Wallet
+from src.models.wallet_model import Wallet
 from src.types.error import Error, error
 
 
@@ -59,41 +59,4 @@ class WalletRepository:
             return None, err
         return wallet, None
 
-    async def create_transaction(
-        self, *, transaction: Transaction
-    ) -> Tuple[Optional[Transaction], Error]:
-        return await transaction.create(self.session)
-
-    async def get_transaction_by_id(
-        self, *, transaction_id: UUID
-    ) -> Tuple[Optional[Transaction], Error]:
-        transaction = await Transaction.get(self.session, transaction_id)
-        if not transaction:
-            return None, error("Transaction not found")
-        return transaction, None
-
-    async def get_transactions_by_wallet_id(
-        self, *, wallet_id: UUID, limit: int = 20, offset: int = 0
-    ) -> Tuple[list[Transaction], Error]:
-        try:
-            statement = (
-                select(Transaction)
-                .where(Transaction.wallet_id == wallet_id)
-                .offset(offset)
-                .limit(limit)
-            )
-            result = await self.session.exec(statement)
-            return result.all(), None
-        except SQLAlchemyError as e:
-            return [], error(str(e))
-
-    async def get_transaction_by_hash(
-        self, *, transaction_hash: str
-    ) -> Tuple[Optional[Transaction], Error]:
-        transaction = await Transaction.find_one(
-            self.session, transaction_hash=transaction_hash
-        )
-        if not transaction:
-            return None, error("Transaction not found")
-        return transaction, None
 

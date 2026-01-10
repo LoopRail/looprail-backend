@@ -4,6 +4,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.infrastructure.repositories import (
     RefreshTokenRepository,
     SessionRepository,
+    TransactionRepository,
     UserRepository,
     WalletRepository,
 )
@@ -19,6 +20,12 @@ async def get_wallet_repository(
     session: AsyncSession = Depends(get_session),
 ) -> WalletRepository:
     yield WalletRepository(session)
+
+
+async def get_transaction_repository(
+    session: AsyncSession = Depends(get_session),
+) -> TransactionRepository:
+    yield TransactionRepository(session)
 
 
 async def get_session_repository(
