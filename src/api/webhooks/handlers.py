@@ -2,21 +2,16 @@ from src.api.webhooks.registry import register
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import AssetRepository, WalletRepository
 from src.infrastructure.services import LedgerService
-from src.types import TransactionType
+from src.types import TransactionType, WorldLedger
 from src.types.blnk import RecordTransactionRequest
-from src.types.blockrader import (
-    WebhookDepositSuccess,
-    WebhookEventType,
-    WebhookWithdrawCancelled,
-    WebhookWithdrawFailed,
-    WebhookWithdrawSuccess,
-)
+from src.types.blockrader import (WebhookDepositSuccess, WebhookEventType,
+                                  WebhookWithdrawCancelled,
+                                  WebhookWithdrawFailed,
+                                  WebhookWithdrawSuccess)
 from src.usecases import TransactionUsecase
 from src.utils import create_transaction_params_from_event
 
 logger = get_logger(__name__)
-
-TREASURY_BALANCE_ID = "@world"  # TODO  we need to change this
 
 
 @register(event_type=WebhookEventType.DEPOSIT_SUCCESS)
@@ -81,7 +76,7 @@ async def handle_deposit_success(
     transaction_request = RecordTransactionRequest(
         amount=amount_in_minor_units,
         reference=event.data.id,
-        source=TREASURY_BALANCE_ID,
+        source=WorldLedger.WORLD,
         destination=asset.ledger_balance_id,
         description=f"Deposit from {event.data.senderAddress}",
     )
@@ -158,7 +153,7 @@ async def handle_withdraw_success(
         amount=amount_in_minor_units,
         reference=event.data.id,
         source=asset.ledger_balance_id,
-        destination=TREASURY_BALANCE_ID,
+        destination=WorldLedger.WORLD,
         description=f"Withdrawal to {event.data.recipientAddress}",
     )
 
@@ -223,7 +218,7 @@ async def handle_withdraw_failed(
         amount=0,
         reference=event.data.id,
         source=asset.ledger_balance_id,
-        destination=TREASURY_BALANCE_ID,
+        destination=WorldLedger.WORLD,
         description=f"Failed withdrawal to {event.data.recipientAddress}. Reason: {event.data.reason}",
     )
 
@@ -288,7 +283,7 @@ async def handle_withdraw_cancelled(
         amount=0,
         reference=event.data.id,
         source=asset.ledger_balance_id,
-        destination=TREASURY_BALANCE_ID,
+        destination=WorldLedger.WORLD,
         description=f"Cancelled withdrawal to {event.data.recipientAddress}. Reason: {event.data.reason}",
     )
 
