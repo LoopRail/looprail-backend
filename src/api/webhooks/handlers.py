@@ -6,13 +6,15 @@ from src.types.blnk.dtos import RecordTransactionRequest
 from src.types.blockrader.webhook_dtos import (
     WebhookDepositSuccess,
     WebhookEventType,
+    WebhookWithdrawCancelled,
+    WebhookWithdrawFailed,
     WebhookWithdrawSuccess,
 )
 from src.usecases import TransactionUsecase
 
 logger = get_logger(__name__)
 
-TREASURY_BALANCE_ID = "@world" # TODO  we need to change this 
+TREASURY_BALANCE_ID = "@world"  # TODO  we need to change this
 
 
 @register(event_type=WebhookEventType.DEPOSIT_SUCCESS)
@@ -27,6 +29,7 @@ async def handle_deposit_success(
     wallet, err = await wallet_repo.get_wallet_by_address(
         address=event.data.recipientAddress
     )
+    # TODO add checks here to make sure the user is still active or somthing
     if err:
         logger.error(
             "Wallet not found for address %s: %s",
@@ -113,4 +116,24 @@ async def handle_withdraw_success(
             event.data.id,
             err.message,
         )
+
+
+@register(event_type=WebhookEventType.WITHDRAW_FAILED)
+async def handle_withdraw_failed(
+    event: WebhookWithdrawFailed,
+    transaction_usecase: TransactionUsecase,
+    **kwargs,
+):
+    logger.info("Handling withdraw failed event: %s", event.data.id)
+    await transaction_usecase.update_status_from_event(event.data)
+
+
+@register(event_type=WebhookEventType.WITHDRAW_CANCELLED)
+async def handle_withdraw_cancelled(
+    event: WebhookWithdrawCancelled,
+    transaction_usecase: TransactionUsecase,
+    **kwargs,
+):
+    logger.info("Handling withdraw cancelled event: %s", event.data.id)
+    await transaction_usecase.update_status_from_event(event.data)
 

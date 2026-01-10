@@ -16,7 +16,7 @@ def get_blockrader_config(request: Request) -> BlockRaderConfig:
 
 
 def get_ledger_service(request: Request) -> LedgerService:
-    return request.app.state.ledger
+    return request.app.state.ledger_service
 
 
 def get_paycrest_service(request: Request) -> PaycrestService:
