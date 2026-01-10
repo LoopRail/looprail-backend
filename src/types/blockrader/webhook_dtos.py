@@ -133,6 +133,18 @@ class WebhookWithdrawFailed(WebhookEvent):
     data: WithdrawFailedData
 
 
+class WithdrawCancelledData(DepositSuccessData):
+    event: WebhookEventType = WebhookEventType.WITHDRAW_CANCELLED
+    status: TransactionStatus = TransactionStatus.CANCELLED
+    amlScreening: AML
+    reason: Optional[str] = None
+
+
+class WebhookWithdrawCancelled(WebhookEvent):
+    event: WebhookEventType = WebhookEventType.WITHDRAW_CANCELLED
+    data: WithdrawCancelledData
+
+
 class DepositSweptFailedData(DepositSweptSuccessData):
     event: WebhookEventType = WebhookEventType.DEPOSIT_SWEPT_FAILED
     assetSwept: bool = False
@@ -192,6 +204,7 @@ class GenericWebhookEvent(baseBlockRaderType):
             WebhookEventType.DEPOSIT_SWEPT_SUCCESS: WebhookDepositSweptSuccess,
             WebhookEventType.DEPOSIT_FAILED: WebhookDepositFailed,
             WebhookEventType.WITHDRAW_FAILED: WebhookWithdrawFailed,
+            WebhookEventType.WITHDRAW_CANCELLED: WebhookWithdrawCancelled,
             WebhookEventType.DEPOSIT_SWEPT_FAILED: WebhookDepositSweptFailed,
             WebhookEventType.GATEWAY_DEPOSIT_SUCCESS: WebhookGatewayDepositSuccess,
             WebhookEventType.GATEWAY_WITHDRAW_SUCCESS: WebhookGatewayWithdrawSuccess,
