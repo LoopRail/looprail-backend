@@ -1,14 +1,17 @@
 from enum import Enum
+from typing import List
 
 from pydantic import BaseModel
+
+from src.types.blockrader.types import AssetData
 
 
 class WalletConfig(BaseModel):
     chain: "Chain"
     wallet_id: str
     wallet_address: str
-    usdc_asset_id: str
     active: bool
+    assets: List[AssetData]
 
 
 class TransactionStatus(str, Enum):

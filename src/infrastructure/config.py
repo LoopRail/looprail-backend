@@ -18,14 +18,20 @@ from src.utils import return_base_dir
 logger = get_logger(__name__)
 
 
-def load_wallet_configs_into_config() -> List[WalletConfig] | None:
-    config_path = os.path.join(return_base_dir(), "config", "blockrader.json")
+def load_wallet_configs_into_config(environment: ENVIRONMENT) -> List[WalletConfig] | None:
+    config_filename = (
+        "blockrader.dev.json"
+        if environment == ENVIRONMENT.DEVELOPMENT
+        else "blockrader.json"
+    )
+    config_path = os.path.join(return_base_dir(), "config", config_filename)
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             raw_configs = json.load(f)
             return [WalletConfig(**c) for c in raw_configs]
     except (FileNotFoundError, json.JSONDecodeError):
-        return None
+        logger.warning("Could not load %s", config_path)
+        return []
 
 
 def load_countries() -> CountriesData:
@@ -84,7 +90,9 @@ class Config:
 
         self.disposable_email_domains: List[str] = load_disposable_email_domains()
         self.ledger.ledgers: LedgerConfig = load_ledger_settings_from_file()
-        self.block_rader.wallets: List[WalletConfig] = load_wallet_configs_into_config()
+        self.block_rader.wallets: List[WalletConfig] = load_wallet_configs_into_config(
+            self.app.environment
+        )
 
         if self.app.environment == ENVIRONMENT.PRODUCTION:
             self.resend.default_sender_domain = "looprail.xyz"
