@@ -29,7 +29,7 @@ from src.usecases import (
     WalletManagerUsecase,
     WalletService,
 )
-from src.usecases import TransactionUsecase
+from src.usecases.transaction_usecases import TransactionUsecase
 from src.types import Chain
 
 
@@ -116,7 +116,7 @@ async def get_wallet_manager_factory(
     return factory
 
 
-def get_create_transaction_usecase(
+def get_transaction_usecase(
     transaction_repo: TransactionRepository = Depends(get_transaction_repository),
 ) -> TransactionUsecase:
     return TransactionUsecase(transaction_repo)

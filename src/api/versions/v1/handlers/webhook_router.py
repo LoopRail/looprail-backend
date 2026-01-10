@@ -1,5 +1,5 @@
-from src.api.dependencies.usecases import get_create_transaction_usecase
-from src.usecases import TransactionUsecase
+from src.usecases.transaction_usecases import TransactionUsecase
+from src.api.dependencies.usecases import get_transaction_usecase
 from src.api.webhooks import handlers  # noqa: F401
 from fastapi import APIRouter, Depends, status, Request
 from src.api.dependencies.repositories import get_wallet_repository
@@ -24,7 +24,7 @@ async def handle_blockrader_webhook(
     ledger_service: LedgerService = Depends(get_ledger_service),
     wallet_repo: WalletRepository = Depends(get_wallet_repository),
     transaction_usecase: TransactionUsecase = Depends(
-        get_create_transaction_usecase
+        get_transaction_usecase
     ),
 ):
     logger.info("Received BlockRadar webhook event: %s", webhook_event.event)
