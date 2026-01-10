@@ -1,11 +1,17 @@
 from decimal import Decimal
+from typing import Union
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import TransactionRepository
 from src.models import Wallet
 from src.models.wallet_model import Transaction
-from src.types.blockrader.webhook_dtos import DepositSuccessData, WithdrawSuccessData
-from src.types.types import PaymentMethod, TransactionType
+from src.types import PaymentMethod, TransactionType
+from src.types.blockrader import (
+    DepositSuccessData,
+    WithdrawCancelledData,
+    WithdrawFailedData,
+    WithdrawSuccessData,
+)
 
 logger = get_logger(__name__)
 
@@ -18,12 +24,11 @@ class TransactionUsecase:
         self,
         event_data: DepositSuccessData,
         wallet: Wallet,
-        payment_method: PaymentMethod,
     ):
         transaction = Transaction(
             wallet_id=wallet.id,
             transaction_type=TransactionType.CREDIT,
-            method=payment_method,
+            method=PaymentMethod.WALLET_TRANSFER,  # Assuming, as PaymentMethod doesn't have crypto
             currency=event_data.currency,
             sender=event_data.senderAddress,
             receiver=event_data.recipientAddress,
@@ -59,12 +64,11 @@ class TransactionUsecase:
         self,
         event_data: WithdrawSuccessData,
         wallet: Wallet,
-        payment_method: PaymentMethod,
     ):
         transaction = Transaction(
             wallet_id=wallet.id,
             transaction_type=TransactionType.DEBIT,
-            method=payment_method,
+            method=PaymentMethod.WALLET_TRANSFER,  # Assuming, as PaymentMethod doesn't have crypto
             currency=event_data.currency,
             sender=event_data.senderAddress,
             receiver=event_data.recipientAddress,
@@ -92,6 +96,33 @@ class TransactionUsecase:
         if err:
             logger.error(
                 "Failed to create transaction record for event %s: %s",
+                event_data.id,
+                err.message,
+            )
+
+    async def update_status_from_event(
+        self, event_data: Union[WithdrawFailedData, WithdrawCancelledData]
+    ):
+        transaction, err = await self._transaction_repo.get_transaction_by_provider_id(
+            provider_id=event_data.id
+        )
+        if err:
+            logger.error(
+                "Transaction with provider_id %s not found: %s",
+                event_data.id,
+                err.message,
+            )
+            return
+
+        transaction.status = event_data.status.value
+        transaction.reason = event_data.reason
+
+        _, err = await self._transaction_repo.update_transaction(
+            transaction=transaction
+        )
+        if err:
+            logger.error(
+                "Failed to update transaction status for event %s: %s",
                 event_data.id,
                 err.message,
             )

@@ -54,3 +54,19 @@ class TransactionRepository:
         if not transaction:
             return None, error("Transaction not found")
         return transaction, None
+
+    async def get_transaction_by_provider_id(
+        self, *, provider_id: str
+    ) -> Tuple[Optional[Transaction], Error]:
+        transaction = await Transaction.find_one(self.session, provider_id=provider_id)
+        if not transaction:
+            return None, error("Transaction not found")
+        return transaction, None
+
+    async def update_transaction(
+        self, *, transaction: Transaction
+    ) -> Tuple[Optional[Transaction], Error]:
+        err = await transaction.save(self.session)
+        if err:
+            return None, err
+        return transaction, None
