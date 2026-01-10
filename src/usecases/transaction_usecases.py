@@ -4,10 +4,8 @@ from src.dtos import CreateTransactionParams
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import TransactionRepository
 from src.models.wallet_model import Transaction
-from src.types.blockrader import (
-    WithdrawCancelledData,
-    WithdrawFailedData,
-)
+from src.types import Error, error
+from src.types.blockrader import WithdrawCancelledData, WithdrawFailedData
 
 logger = get_logger(__name__)
 
@@ -16,7 +14,7 @@ class TransactionUsecase:
     def __init__(self, transaction_repo: TransactionRepository):
         self._transaction_repo = transaction_repo
 
-    async def create_transaction(self, params: CreateTransactionParams):
+    async def create_transaction(self, params: CreateTransactionParams) -> Error:
         transaction = Transaction(**params.model_dump())
         _, err = await self._transaction_repo.create_transaction(
             transaction=transaction
@@ -27,10 +25,12 @@ class TransactionUsecase:
                 params.reference,
                 err.message,
             )
+            return err
+        return None
 
     async def update_status_from_event(
         self, event_data: Union[WithdrawFailedData, WithdrawCancelledData]
-    ):
+    ) -> Error:
         transaction, err = await self._transaction_repo.get_transaction_by_provider_id(
             provider_id=event_data.id
         )
@@ -40,7 +40,7 @@ class TransactionUsecase:
                 event_data.id,
                 err.message,
             )
-            return
+            return err
 
         transaction.status = event_data.status.value
         transaction.reason = event_data.reason
@@ -54,3 +54,5 @@ class TransactionUsecase:
                 event_data.id,
                 err.message,
             )
+            return err
+        return None
