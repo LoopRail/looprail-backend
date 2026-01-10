@@ -2,14 +2,11 @@ from datetime import datetime
 from typing import Any, Optional, Tuple
 
 from src.types import Error, error
-from src.types.blockrader.base import (
-    TransactionStatus,
-    TransactionType,
-    WebhookEventType,
-    baseBlockRaderType,
-)
+from src.types.blockrader.base import (TransactionStatus, TransactionType,
+                                       WebhookEventType, baseBlockRaderType)
 from src.types.blockrader.dtos import WalletData
-from src.types.blockrader.types import AML, AddressData, AssetData, BlockchainData
+from src.types.blockrader.types import (AML, AddressData, AssetData,
+                                        BlockchainData)
 from src.types.common_types import Address
 
 
@@ -53,7 +50,7 @@ class DepositSuccessData(baseBlockRaderType):
     createdAt: datetime
     updatedAt: datetime
     asset: AssetData
-    address: AddressData
+    address: AddressData | None = None
     blockchain: BlockchainData
     wallet: WalletData
     beneficiary: Optional[Any] = None

@@ -3,6 +3,7 @@ from fastapi import Request
 from src.infrastructure import RedisClient
 from src.infrastructure.services import (
     AuthLockService,
+    LedgerService,
     PaycrestService,
     PaystackService,
     ResendService,
@@ -12,6 +13,10 @@ from src.infrastructure.settings import BlockRaderConfig
 
 def get_blockrader_config(request: Request) -> BlockRaderConfig:
     return request.app.state.blockrader_config
+
+
+def get_ledger_service(request: Request) -> LedgerService:
+    return request.app.state.ledger
 
 
 def get_paycrest_service(request: Request) -> PaycrestService:

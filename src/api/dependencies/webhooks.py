@@ -9,7 +9,6 @@ logger = get_logger(__name__)
 
 async def get_blockrader_webhook_event(request: Request) -> WebhookEvent:
     body = await request.json()
-
     try:
         generic_event = GenericWebhookEvent.model_validate(body)
     except Exception as e:
@@ -20,8 +19,8 @@ async def get_blockrader_webhook_event(request: Request) -> WebhookEvent:
             error_msg,
         ) from e
 
-    specific_event = generic_event.to_specific_event()
-    if specific_event is None:
+    specific_event, err = generic_event.to_specific_event()
+    if err:
         error_msg = f"Unknown webhook event type: {generic_event.event}"
         logger.error(error_msg)
         raise httpError(

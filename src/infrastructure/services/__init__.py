@@ -1,6 +1,7 @@
 from src.infrastructure.services.auth_lock_service import AuthLockService
 from src.infrastructure.services.blockrader_client import (AddressManager,
                                                            WalletManager)
+from src.infrastructure.services.ledger import LedgerService
 from src.infrastructure.services.paycrest.paycrest_service import \
     PaycrestService
 from src.infrastructure.services.paystack_client import PaystackService
@@ -13,4 +14,5 @@ __all__ = [
     "PaycrestService",
     "ResendService",
     "AuthLockService",
+    "LedgerService",
 ]
