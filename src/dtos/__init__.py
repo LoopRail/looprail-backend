@@ -8,6 +8,7 @@ from src.dtos.user_dtos import (
     UserCreate,
     UserPublic,
 )
+from src.dtos.transaction_dtos import CreateTransactionParams # My addition
 
 __all__ = [
     "OnboardUserUpdate",
@@ -22,4 +23,5 @@ __all__ = [
     "UserPublic",
     "OTPSuccessResponse",
     "VerifyAccountResponse",
+    "CreateTransactionParams", # My addition
 ]
