@@ -2,24 +2,33 @@ from typing import Callable, Optional
 
 from fastapi import Depends, Header, HTTPException, Request, status
 
+from src.api.dependencies.extra_deps import get_current_user
 from src.api.dependencies.repositories import (
+    get_asset_repository,
     get_refresh_token_repository,
     get_session_repository,
     get_transaction_repository,
     get_user_repository,
     get_wallet_repository,
 )
-from src.api.dependencies.services import get_blockrader_config, get_redis_service
+from src.api.dependencies.services import (get_blockrader_config,
+                                           get_ledger_service,
+                                           get_redis_service)
 from src.infrastructure import config
 from src.infrastructure.redis import RedisClient
 from src.infrastructure.repositories import (
+    AssetRepository,
     RefreshTokenRepository,
     SessionRepository,
     TransactionRepository,
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.settings import BlockRaderConfig
+from src.infrastructure.services import LedgerService
+from src.infrastructure.settings import BlockRaderConfig, LedgderServiceConfig
+from src.models import User, Wallet
+from src.types import Chain
+from src.types.error import error
 from src.usecases import (
     JWTUsecase,
     OtpUseCase,
@@ -30,7 +39,6 @@ from src.usecases import (
     WalletService,
 )
 from src.usecases.transaction_usecases import TransactionUsecase
-from src.types import Chain
 
 
 async def get_session_usecase(
@@ -85,35 +93,70 @@ async def get_blockrader_wallet_service(
     blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
     user_repository: UserRepository = Depends(get_user_repository),
     wallet_repository: WalletRepository = Depends(get_wallet_repository),
+    asset_repository: AssetRepository = Depends(get_asset_repository),
+    ledger_service_config: LedgderServiceConfig = config.ledger_service,
+    ledger_service: LedgerService = Depends(get_ledger_service),
 ):
-    # NOTE: This dependency seems to be missing `ledger_service_config` for WalletService
     return WalletService(
-        blockrader_config,
-        user_repository,
-        wallet_repository,
+        blockrader_config=blockrader_config,
+        user_repository=user_repository,
+        wallet_repository=wallet_repository,
+        asset_repository=asset_repository,
+        ledger_service_config=ledger_service_config,
+        ledger_service=ledger_service,
     )
 
 
-async def get_wallet_manager_factory(
+async def get_wallet_manager_usecase(
+    user: User = Depends(get_current_user),
     wallet_service: WalletService = Depends(get_blockrader_wallet_service),
-) -> Callable[[Chain], "WalletManagerUsecase"]:
-    def factory(wallet_id: str):
-        wallet_config = next(
-            (
-                w
-                for w in config.block_rader.wallets
-                if w.wallet_id == wallet_id and w.active
-            ),
-            None,
+    blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
+    wallet_repository: WalletRepository = Depends(get_wallet_repository),
+) -> WalletManagerUsecase:
+    # Get user's active wallet
+    wallets, err = await wallet_repository.get_wallets_by_user_id(user_id=user.id)
+    if err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": f"Failed to retrieve user wallets: {err.message}"},
         )
-        if not wallet_config:
-            return None
-
-        return wallet_service.new_wallet_manager(
-            wallet_config.wallet_id, wallet_config.chain
+    if not wallets:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "No active wallet found for the user."},
+        )
+    
+    # Assuming the first active wallet is the one to use
+    user_wallet = next((w for w in wallets if w.is_active), None)
+    if not user_wallet:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "No active wallet found for the user."},
         )
 
-    return factory
+    # Get ledger config
+    ledger_config = next(
+        (
+            ledger_entry
+            for ledger_entry in config.ledger_service.ledgers.ledgers
+            if ledger_entry.id == user_wallet.chain.value
+        ),
+        None,
+    )
+
+    if not ledger_config:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "Ledger configuration not found for wallet chain."},
+        )
+
+    wallet_manager, err = wallet_service.new_manager(user_wallet.id, ledger_config)
+    if err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": f"Failed to create wallet manager: {err.message}"},
+        )
+    return wallet_manager
 
 
 def get_transaction_usecase(

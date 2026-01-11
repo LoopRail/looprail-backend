@@ -15,7 +15,7 @@ from src.api.dependencies.usecases import (get_blockrader_wallet_service,
                                            get_secrets_usecase,
                                            get_session_usecase,
                                            get_user_usecases,
-                                           get_wallet_manager_factory)
+                                           get_wallet_manager_usecase)
 
 __all__ = [
     "BearerToken",
@@ -23,7 +23,7 @@ __all__ = [
     "VerifyWebhookRequest",
     "get_user_repository",
     "get_wallet_repository",
-    "get_wallet_manager_factory",
+    "get_wallet_manager_usecase",
     "get_blockrader_wallet_service",
     "get_blockrader_config",
     "get_paycrest_service",
