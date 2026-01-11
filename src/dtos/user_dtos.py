@@ -1,12 +1,11 @@
 from datetime import date
-from uuid import UUID
 
 from email_validator import EmailNotValidError, validate_email
 from pydantic import EmailStr, Field, field_validator
 
 from src.dtos.base import Base
 from src.infrastructure import config
-from src.types.common_types import PhoneNumber
+from src.types.common_types import PhoneNumber, UserId, UserProfileId
 from src.types.error import error
 from src.types.types import Gender, KYCStatus
 from src.utils import is_valid_country_code, validate_password_strength
@@ -56,7 +55,7 @@ class UserCreate(Base):
 
 
 class UserPublic(Base):
-    id: UUID
+    id: UserId
     email: EmailStr
     first_name: str | None = Field(default=None)
     last_name: str | None = Field(default=None)
@@ -73,7 +72,7 @@ class UserProfileCreate(Base):
 
 
 class UserProfilePublic(Base):
-    id: UUID
+    id: UserProfileId
     kyc_status: KYCStatus
     is_email_verified: bool
     street: str
@@ -83,7 +82,7 @@ class UserProfilePublic(Base):
     country: str
     phone_number: PhoneNumber
     date_of_birth: date
-    user_id: UUID
+    user_id: UserId
 
 
 class LoginRequest(Base):

@@ -1,14 +1,14 @@
 from decimal import Decimal
 from typing import Optional
-from uuid import UUID
 
 from pydantic import BaseModel
 
+from src.types.common_types import WalletId
 from src.types.types import PaymentMethod, TransactionType
 
 
 class CreateTransactionParams(BaseModel):
-    wallet_id: UUID
+    wallet_id: WalletId
     transaction_type: TransactionType
     method: PaymentMethod
     currency: str
