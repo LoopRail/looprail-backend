@@ -46,8 +46,7 @@ class Asset(Base, table=True):
     __tablename__ = "assets"
     __id_prefix__ = "ast_"
 
-    wallet_id: Optional[WalletId] = Field(
-        default=None,
+    wallet_id: WalletId = Field(
         foreign_key="wallets.id",
         index=True,
     )
@@ -73,10 +72,9 @@ class Asset(Base, table=True):
 
 class Transaction(Base, table=True):
     __tablename__ = "transactions"
-    __id_prefix__ = "trn_"
+    __id_prefix__ = "txn_"
 
-    wallet_id: Optional[WalletId] = Field(
-        default=None,
+    wallet_id: WalletId = Field(
         foreign_key="wallets.id",
         index=True,
     )
