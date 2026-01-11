@@ -8,8 +8,7 @@ from sqlmodel import Field, SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.infrastructure.logger import get_logger
-from src.types import (
-    DeletionFilter,
+from src.types.error import (
     Error,
     ItemDoesNotExistError,
     NotFoundError,
@@ -17,6 +16,7 @@ from src.types import (
     UpdatingProtectedFieldError,
     error,
 )
+from src.types.common_types import DeletionFilter
 
 logger = get_logger(__name__)
 __default_protected_fields__ = ["id", "created_at", "updated_at", "deleted_at"]
@@ -86,8 +86,8 @@ class DatabaseMixin:
         elif deletion == "deleted":
             statement = statement.where(cls.deleted_at.is_not(None))
 
-        result = session.exec(statement)
-        return result.all()
+        result = await session.exec(statement)
+        return await result.all()
 
     @classmethod
     async def find_one(

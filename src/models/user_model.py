@@ -8,8 +8,7 @@ from pydantic import EmailStr
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import KYCStatus
-
+from src.types.types import KYCStatus
 
 if TYPE_CHECKING:
     from src.models.payment_model import PaymentOrder
@@ -25,7 +24,7 @@ class User(Base, table=True):
     password_hash: str
     salt: str
     is_active: bool = Field(default=True)
-    ledger_identiy_id: str = Field(nullable=False)
+    ledger_identiy_id: str = Field(default=None, nullable=False, unique=True)
     is_email_verified: bool = Field(default=False)
     has_completed_onboarding: bool = Field(default=False)
     transaction_pin: Optional[str] = Field(default=None)

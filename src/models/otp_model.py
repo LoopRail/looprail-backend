@@ -3,7 +3,7 @@ import time
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from src.infrastructure.logger import get_logger
-from src.types import OtpStatus, OtpType
+from src.types.types import OtpStatus, OtpType
 from src.utils import kebab_case
 
 logger = get_logger(__name__)

@@ -7,8 +7,14 @@ from uuid import UUID
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types import (Address, AssetType, Chain, Currency, PaymentMethod,
-                       TokenStandard, TransactionType)
+from src.types.types import (
+    AssetType,
+    Currency,
+    PaymentMethod,
+    TokenStandard,
+    TransactionType,
+)
+from src.types.common_types import Address, Chain
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -49,7 +55,7 @@ class Asset(Base, table=True):
         foreign_key="wallets.id",
         index=True,
     )
-    ledger_balance_id: str = Field(nullable=False)
+    ledger_balance_id: str = Field(default=None, nullable=False, unique=True)
     name: str = Field(nullable=False)
     asset_id: AssetType = Field(unique=True, index=True, nullable=False)
     address: Address = Field(nullable=False)
