@@ -1,5 +1,4 @@
 from typing import Optional, Tuple
-from uuid import UUID
 
 from src.dtos.user_dtos import UserCreate
 from src.infrastructure.logger import get_logger
@@ -11,6 +10,7 @@ from src.infrastructure.security import Argon2Config
 from src.models import User, UserProfile, Wallet
 from src.types import Error, HashedPassword, InvalidCredentialsError
 from src.types.blockrader import CreateAddressRequest
+from src.types.common_types import UserId
 from src.utils import hash_password_argon2, verify_password_argon2
 
 logger = get_logger(__name__)
@@ -49,12 +49,12 @@ class UserUseCase:
         return await self.user_repository.save(user)
 
     async def update_user(
-        self, user_id: UUID, /, **kwargs
+        self, user_id: UserId, /, **kwargs
     ) -> Tuple[Optional[User], Error]:
         return await self.user_repository.update_user(user_id=user_id, **kwargs)
 
     async def update_user_profile(
-        self, user_id: UUID, /, **kwargs
+        self, user_id: UserId, /, **kwargs
     ) -> Tuple[Optional[UserProfile], Error]:
         return await self.user_repository.update_user_profile(user_id, **kwargs)
 
@@ -146,7 +146,7 @@ class UserUseCase:
         )
         return created_user, None
 
-    async def get_user_by_id(self, user_id: UUID) -> Tuple[Optional[User], Error]:
+    async def get_user_by_id(self, user_id: UserId) -> Tuple[Optional[User], Error]:
         return await self.user_repository.get_user_by_id(user_id=user_id)
 
     async def get_user_by_email(self, user_email: str) -> Tuple[Optional[User], Error]:
