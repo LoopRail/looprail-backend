@@ -41,7 +41,7 @@ class TransactionRepository:
                 .limit(limit)
             )
             result = await self.session.exec(statement)
-            return result.all(), None
+            return await result.all(), None
         except SQLAlchemyError as e:
             return [], error(str(e))
 

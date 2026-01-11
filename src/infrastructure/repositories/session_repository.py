@@ -59,7 +59,7 @@ class SessionRepository:
             Session.user_id == user_id, Session.revoked_at.is_(None)
         )
         result = await self.session.exec(statement)
-        return result.all()
+        return await result.all()
 
     async def revoke_all_user_sessions(self, user_id: UUID) -> Error:
         sessions = await self.get_user_sessions(user_id)
