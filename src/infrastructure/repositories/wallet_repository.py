@@ -1,11 +1,11 @@
 from typing import Optional, Tuple
-from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.models.wallet_model import Wallet
+from src.types.common_types import UserId, WalletId
 from src.types.error import Error, error
 
 
@@ -21,7 +21,7 @@ class WalletRepository:
         return await wallet.create(self.session)
 
     async def get_wallet_by_id(
-        self, *, wallet_id: UUID
+        self, *, wallet_id: WalletId
     ) -> Tuple[Optional[Wallet], Error]:
         wallet = await Wallet.get(self.session, wallet_id)
         if not wallet:
@@ -45,7 +45,7 @@ class WalletRepository:
         return wallet, None
 
     async def get_wallets_by_user_id(
-        self, *, user_id: UUID
+        self, *, user_id: UserId
     ) -> Tuple[list[Wallet], Error]:
         try:
             wallets = await Wallet.find_all(self.session, user_id=user_id)
