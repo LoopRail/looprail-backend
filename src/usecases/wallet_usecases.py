@@ -6,21 +6,24 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.services import LedgerService, WalletManager
+from src.infrastructure.services import (LedgerService, PaystackService,
+                                         WalletManager)
 from src.infrastructure.settings import BlockRaderConfig, LedgderServiceConfig
 from src.models import Asset, User, Wallet
 from src.types import AssetType, Error, IdentiyType, Provider, WalletConfig, error
-from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse
+from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse, RecordTransactionRequest
 from src.types.blockrader import CreateAddressRequest, WalletAddressResponse
 from src.types.ledger_types import Ledger
 from src.types.common_types import UserId
+from src.types.types import TransactionType, WithdrawalMethod, WorldLedger
+from src.dtos.wallet_dtos import BankTransferData, ExternalWalletTransferData, TransferType, WithdrawalRequest
+from src.dtos.transaction_dtos import CreateTransactionParams
+from src.usecases.transaction_usecases import TransactionUsecase
 
 logger = get_logger(__name__)
 
 
-class TransactionMixin:
-    async def transfer(self, amount: str, destination_address: str):
-        pass
+
 
 
 class WalletService:
@@ -31,6 +34,8 @@ class WalletService:
         user_repository: UserRepository,
         wallet_repository: WalletRepository,
         asset_repository: AssetRepository,
+        paystack_service: PaystackService,
+        transaction_usecase: TransactionUsecase,
         provider: Provider = Provider.BLOCKRADER,
     ):
         self.blockrader_config = blockrader_config
@@ -40,6 +45,8 @@ class WalletService:
         self.user_repository = user_repository
         self.wallet_repository = wallet_repository
         self.asset_repository = asset_repository
+        self.paystack_service = paystack_service
+        self.transaction_usecase = transaction_usecase
 
         self.ledger_service = LedgerService(ledger_service_config)
 
@@ -285,3 +292,133 @@ class WalletManagerUsecase(TransactionMixin):
         err = await self._create_ledger_balance(user, wallet)
         if err:
             return None, err
+
+    async def initiate_withdrawal(
+        self,
+        user: User,
+        withdrawal_request: WithdrawalRequest,
+        specific_withdrawal: TransferType,
+    ) -> Optional[Error]:
+        asset, err = await self.service.asset_repository.get_asset_by_wallet_id_and_asset_type(
+            wallet_id=user.id, asset_type=withdrawal_request.assetId
+        )
+        if err:
+            logger.error(
+                "Could not get asset for user %s, asset %s Error: %s",
+                user.id,
+                withdrawal_request.assetId,
+                err.message,
+            )
+            return error("Could not get asset")
+        
+        match specific_withdrawal.event:
+            case WithdrawalMethod.BANK_TRANSFER:
+                bank_transfer_data = BankTransferData.model_validate(
+                    specific_withdrawal.data
+                )
+                return await self._handle_bank_transfer(
+                    user, withdrawal_request, bank_transfer_data, asset
+                )
+            case WithdrawalMethod.EXTERNAL_WALLET:
+                external_wallet_transfer_data = ExternalWalletTransferData.model_validate(
+                    specific_withdrawal.data
+                )
+                return await self._handle_external_wallet_transfer(
+                    user, withdrawal_request, external_wallet_transfer_data, asset
+                )
+            case _:
+                return error("Unsupported withdrawal method")
+
+    async def _handle_bank_transfer(
+        self,
+        user: User,
+        withdrawal_request: WithdrawalRequest,
+        bank_transfer_data: BankTransferData,
+        asset: Asset,
+    ) -> Optional[Error]:
+        # Initiate Paystack transfer
+        transfer_code, err = await self.service.paystack_service.initiate_transfer(
+            amount=withdrawal_request.amount,
+            recipient_bank_code=bank_transfer_data.bank_code,
+            recipient_account_number=bank_transfer_data.account_number,
+            recipient_name=bank_transfer_data.account_name,
+            narration=withdrawal_request.narration,
+        )
+        if err:
+            logger.error(
+                "Paystack transfer initiation failed for user %s: %s",
+                user.id,
+                err.message,
+            )
+            return error("Bank transfer failed")
+        
+        # Record transaction in local DB
+        create_transaction_params = CreateTransactionParams(
+            wallet_id=asset.wallet_id,
+            transaction_type=TransactionType.DEBIT,
+            method=WithdrawalMethod.BANK_TRANSFER,
+            currency=asset.symbol,
+            sender=user.id, # This could be the user's wallet address or similar
+            receiver=bank_transfer_data.account_number,
+            amount=withdrawal_request.amount,
+            status="pending", # Initial status
+            transaction_hash=transfer_code, # Paystack transfer code as hash
+            provider_id=transfer_code, # Paystack transfer code as provider ID
+            network="N/A", # Not applicable for bank transfer
+            confirmations=0, # Not applicable
+            confirmed=False, # Not confirmed initially
+            reference=withdrawal_request.narration,
+            note=f"Bank transfer to {bank_transfer_data.account_name}",
+        )
+        _, err = await self.service.transaction_usecase.create_transaction(create_transaction_params)
+        if err:
+            logger.error("Failed to record local transaction for user %s: %s", user.id, err.message)
+            return error("Failed to record transaction")
+
+        # Record transaction in ledger
+        transaction_request = RecordTransactionRequest(
+            amount=int(withdrawal_request.amount * 100), # Convert to minor units
+            reference=transfer_code,
+            source=asset.ledger_balance_id,
+            destination=WorldLedger.WORLD, # To external world
+            description=withdrawal_request.narration,
+        )
+        _, err = await self.service.ledger_service.transactions.record_transaction(transaction_request)
+        if err:
+            logger.error("Failed to record ledger transaction for user %s: %s", user.id, err.message)
+            return error("Failed to record ledger transaction")
+
+        return None
+
+    async def _handle_external_wallet_transfer(
+        self,
+        user: User,
+        withdrawal_request: WithdrawalRequest,
+        external_wallet_transfer_data: ExternalWalletTransferData,
+        asset: Asset,
+    ) -> Optional[Error]:
+        # Initiate external wallet transfer using self.manager
+        # This part requires more details about blockrader's transfer API
+        # For now, it's a placeholder
+        logger.info(
+            "Initiating external wallet transfer for user %s to %s with asset %s amount %s",
+            user.id,
+            external_wallet_transfer_data.address,
+            withdrawal_request.assetId,
+            withdrawal_request.amount,
+        )
+        # Placeholder for actual transfer logic
+        # For example:
+        # transfer_response, err = await self.manager.transfer_asset(
+        #     source_asset_id=asset.asset_id,
+        #     destination_address=external_wallet_transfer_data.address,
+        #     amount=withdrawal_request.amount,
+        #     chain=external_wallet_transfer_data.chain,
+        # )
+        # if err:
+        #     logger.error("External wallet transfer failed for user %s: %s", user.id, err.message)
+        #     return error("External wallet transfer failed")
+
+        # Record transaction in local DB and ledger (similar to bank transfer)
+        # Placeholder
+        return error("External wallet transfer not fully implemented")
