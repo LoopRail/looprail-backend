@@ -1,13 +1,13 @@
 import hashlib
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-from uuid import UUID
 
 from sqlmodel import select, update
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.models import RefreshToken
 from src.types import Error, error
+from src.types.common_types import SessionId, UserId
 
 
 class RefreshTokenRepository:
@@ -16,7 +16,7 @@ class RefreshTokenRepository:
 
     async def create_refresh_token(
         self,
-        session_id: UUID,
+        session_id: SessionId,
         new_refresh_token_string: str,
         expires_in_days: int = 30,
     ) -> Tuple[Optional[RefreshToken], Error]:
@@ -58,7 +58,7 @@ class RefreshTokenRepository:
         await self.session.commit()
         return None
 
-    async def revoke_refresh_tokens_for_session(self, session_id: UUID) -> Error:
+    async def revoke_refresh_tokens_for_session(self, session_id: SessionId) -> Error:
         statement = (
             update(RefreshToken)
             .where(RefreshToken.session_id == session_id)
@@ -68,7 +68,7 @@ class RefreshTokenRepository:
         await self.session.commit()
         return None
 
-    async def revoke_all_refresh_tokens_for_user(self, user_id: UUID) -> Error:
+    async def revoke_all_refresh_tokens_for_user(self, user_id: UserId) -> Error:
         # This requires joining with the Session table to find all sessions for a user
         # and then revoking their refresh tokens.
         # This will be handled in SessionRepository or SessionUseCase
