@@ -1,11 +1,11 @@
 from typing import Optional, Tuple
-from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.models.wallet_model import Transaction
+from src.types.common_types import TransactionId, WalletId
 from src.types.error import Error, error
 
 
@@ -23,7 +23,7 @@ class TransactionRepository:
         return await transaction.create(self.session)
 
     async def get_transaction_by_id(
-        self, *, transaction_id: UUID
+        self, *, transaction_id: TransactionId
     ) -> Tuple[Optional[Transaction], Error]:
         transaction = await Transaction.get(self.session, transaction_id)
         if not transaction:
@@ -31,7 +31,7 @@ class TransactionRepository:
         return transaction, None
 
     async def get_transactions_by_wallet_id(
-        self, *, wallet_id: UUID, limit: int = 20, offset: int = 0
+        self, *, wallet_id: WalletId, limit: int = 20, offset: int = 0
     ) -> Tuple[list[Transaction], Error]:
         try:
             statement = (
