@@ -1,10 +1,10 @@
 from decimal import Decimal
 from typing import Optional, Union
 
-from src.dtos import CreateTransactionParams
+from src.dtos.transaction_dtos import CreateTransactionParams
 from src.models import Wallet
-from src.types import PaymentMethod, TransactionType
 from src.types.blockrader import DepositSuccessData, WithdrawSuccessData
+from src.types.types import PaymentMethod, TransactionType
 
 
 def create_transaction_params_from_event(
@@ -37,5 +37,7 @@ def create_transaction_params_from_event(
         note=event_data.note,
         chain_id=event_data.chainId,
         reason=reason if reason is not None else event_data.reason,
-        fee=fee if fee is not None else (Decimal(event_data.fee) if event_data.fee else None),
+        fee=fee
+        if fee is not None
+        else (Decimal(event_data.fee) if event_data.fee else None),
     )

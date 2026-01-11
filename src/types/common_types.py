@@ -46,3 +46,10 @@ class WorldLedger(str, Enum):
 
 class IdentiyType(str, Enum):
     INDIVIDUAL = "individual"
+
+
+class Chain(str, Enum):
+    POLYGON = "polygon"
+    BASE = "base"
+    ETHEREUM = "ethereum"
+    BITCOIN = "btc"

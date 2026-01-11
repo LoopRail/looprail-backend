@@ -4,10 +4,11 @@ from typing import List
 from pydantic import BaseModel
 
 from src.types.blockrader.types import AssetData
+from src.types.common_types import Chain
 
 
 class WalletConfig(BaseModel):
-    chain: "Chain"
+    chain: Chain
     wallet_id: str
     wallet_address: str
     active: bool
@@ -57,13 +58,6 @@ class PaymentMethod(str, Enum):
     BANK_TRANSFER = "bank-transfer"
     MOBILE_MONEY = "mobile-money"
     WALLET_TRANSFER = "wallet-transfer"
-
-
-class Chain(str, Enum):
-    POLYGON = "polygon"
-    BASE = "base"
-    ETHEREUM = "ethereum"
-    BITCOIN = "btc"
 
 
 class KYCStatus(str, Enum):
