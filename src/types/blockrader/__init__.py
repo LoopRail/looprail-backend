@@ -1,3 +1,4 @@
+from src.types.blockrader.base import WebhookEventType
 from src.types.blockrader.dtos import (AMLCheckRequest, AMLCheckResponse,
                                        CreateAddressRequest, Data,
                                        NetworkFeeData, NetworkFeeRequest,
@@ -43,6 +44,7 @@ __all__ = [
     "CreateAddressRequest",
     "Data",
     "NetworkFeeData",
+    "WebhookEventType",
     "NetworkFeeRequest",
     "NetworkFeeResponse",
     "TransactionData",

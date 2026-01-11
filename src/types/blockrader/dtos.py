@@ -4,12 +4,20 @@ from typing import Any, List, Optional
 from pydantic import Field
 
 from src.types.blockrader.base import baseBlockRaderType, baseResponse
-from src.types.blockrader.types import (AML, AddressData, AMLCheckData,
-                                        Analytics, Asset, AssetData,
-                                        BlockchainData, Configurations, Meta,
-                                        TransactionAsset, WalletInfo)
-from src.types.common_types import Address
-from src.types.types import Chain
+from src.types.blockrader.types import (
+    AML,
+    AddressData,
+    AMLCheckData,
+    Analytics,
+    Asset,
+    AssetData,
+    BlockchainData,
+    Configurations,
+    Meta,
+    TransactionAsset,
+    WalletInfo,
+)
+from src.types.common_types import Address, Chain
 
 
 class WalletData(baseBlockRaderType):  # Renamed

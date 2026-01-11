@@ -25,7 +25,7 @@ class AssetData(baseBlockRaderType):
     asset_id: str = Field(alias="id")
     address: Address
     blockNetwork: BlockchainData | None = None
-    createdAt: datetime
+    createdAt: datetime | None = None
     decimals: int
     isActive: bool
     logoUrl: str
@@ -33,7 +33,7 @@ class AssetData(baseBlockRaderType):
     network: str
     standard: Optional[str]
     symbol: str
-    updatedAt: datetime
+    updatedAt: datetime | None = None
 
 
 class Asset(baseBlockRaderType):
