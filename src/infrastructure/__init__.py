@@ -7,6 +7,7 @@ from src.infrastructure.constants import (
     REFRESH_TOKEN_EXP_DAYS,
     USDC_ABI,
     USDC_ADDRESS,
+    CUSTOMER_WALLET_LEDGER,
 )
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RedisClient
@@ -22,4 +23,5 @@ __all__ = [
     "USDC_ABI",
     "ACCESS_TOKEN_EXP_MINS",
     "REFRESH_TOKEN_EXP_DAYS",
+    "CUSTOMER_WALLET_LEDGER",
 ]

@@ -1,8 +1,8 @@
-from typing import List
+from typing import List, Optional, Tuple
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.types.error import error
+from src.types.error import Error, error
 
 
 class LedgerMetaData(BaseModel):
@@ -25,3 +25,9 @@ class Ledger(BaseModel):
 
 class LedgerConfig(BaseModel):
     ledgers: List[Ledger] = Field(default_factory=list)
+
+    def get_ledger(self, ledger_name: str) -> Tuple[Optional[Ledger], Error]:
+        for ledger in self.ledgers:
+            if ledger.name == ledger_name:
+                return ledger, None
+        return None, error(f"Ledger with name {ledger_name} not found")

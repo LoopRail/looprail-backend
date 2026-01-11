@@ -1,5 +1,6 @@
 import json
 import os
+from functools import lru_cache
 from typing import List
 
 import toml
@@ -18,11 +19,13 @@ from src.utils import return_base_dir
 logger = get_logger(__name__)
 
 
-def load_wallet_configs_into_config(environment: ENVIRONMENT) -> List[WalletConfig] | None:
+def load_wallet_configs_into_config(
+    environment: ENVIRONMENT,
+) -> List[WalletConfig] | None:
     config_filename = (
-        "blockrader.dev.json"
+        "blockrader.json"
         if environment == ENVIRONMENT.DEVELOPMENT
-        else "blockrader.json"
+        else "blockrader.prod.json"
     )
     config_path = os.path.join(return_base_dir(), "config", config_filename)
     try:
@@ -61,15 +64,20 @@ def load_disposable_email_domains() -> List[str]:
         return []
 
 
-def load_ledger_settings_from_file() -> LedgerConfig:
-    config_path = os.path.join(return_base_dir(), "config", "ledger_config.toml")
+def load_ledger_settings_from_file(environment: ENVIRONMENT) -> LedgerConfig:
+    config_filename = (
+        "ledger_config.toml"
+        if environment == ENVIRONMENT.DEVELOPMENT
+        else "ledger_config.{environment.value}.toml"
+    )
+    config_path = os.path.join(return_base_dir(), "config", config_filename)
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             raw_configs = toml.load(f)
         logger.debug("Loaded %s", config_path)
         return LedgerConfig(**raw_configs)
     except (FileNotFoundError, toml.TomlDecodeError):
-        logger.debug("Could not load %s", config_path)
+        logger.warning("Could not load %s", config_path)
         return LedgerConfig(ledgers=[])
 
 
@@ -89,7 +97,9 @@ class Config:
         self.countries: CountriesData = load_countries()
 
         self.disposable_email_domains: List[str] = load_disposable_email_domains()
-        self.ledger.ledgers: LedgerConfig = load_ledger_settings_from_file()
+        self.ledger.ledgers: LedgerConfig = load_ledger_settings_from_file(
+            self.app.environment
+        )
         self.block_rader.wallets: List[WalletConfig] = load_wallet_configs_into_config(
             self.app.environment
         )
@@ -102,6 +112,7 @@ class Config:
             self.resend.default_sender_domain = None
 
 
+@lru_cache
 def load_config() -> Config:
     return Config()
 
