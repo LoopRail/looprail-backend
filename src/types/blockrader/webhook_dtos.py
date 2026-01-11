@@ -1,13 +1,13 @@
 from datetime import datetime
 from typing import Any, Optional, Tuple
 
-from src.types import Error, error
 from src.types.blockrader.base import (TransactionStatus, TransactionType,
                                        WebhookEventType, baseBlockRaderType)
 from src.types.blockrader.dtos import WalletData
 from src.types.blockrader.types import (AML, AddressData, AssetData,
                                         BlockchainData)
 from src.types.common_types import Address
+from src.types.error import Error, error
 
 
 class WebhookEvent(baseBlockRaderType):

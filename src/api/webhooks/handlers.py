@@ -4,10 +4,13 @@ from src.infrastructure.repositories import AssetRepository, WalletRepository
 from src.infrastructure.services import LedgerService
 from src.types import TransactionType, WorldLedger
 from src.types.blnk import RecordTransactionRequest
-from src.types.blockrader import (WebhookDepositSuccess, WebhookEventType,
-                                  WebhookWithdrawCancelled,
-                                  WebhookWithdrawFailed,
-                                  WebhookWithdrawSuccess)
+from src.types.blockrader import (
+    WebhookDepositSuccess,
+    WebhookEventType,
+    WebhookWithdrawCancelled,
+    WebhookWithdrawFailed,
+    WebhookWithdrawSuccess,
+)
 from src.usecases import TransactionUsecase
 from src.utils import create_transaction_params_from_event
 
