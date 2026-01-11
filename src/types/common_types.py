@@ -8,6 +8,8 @@ from pydantic import BeforeValidator
 from pydantic_extra_types.phone_numbers import PhoneNumberValidator
 from solders.pubkey import Pubkey
 
+from src.types.error import error
+
 # from src.infrastructure import config
 # from src.utils.country_utils import get_all_country_codes
 
@@ -58,23 +60,39 @@ class Chain(str, Enum):
 
 # New prefixed ID types
 
+
 def _validate_id_with_prefix(v: str, expected_prefix: str) -> str:
     if not isinstance(v, str):
         raise TypeError("string required")
     if not v.startswith(expected_prefix):
         raise ValueError(f"ID must start with '{expected_prefix}'")
     try:
-        PyUUID(v[len(expected_prefix):])  # Validate the UUID part
-    except ValueError:
-        raise ValueError(f"Invalid UUID format after prefix for ID with prefix '{expected_prefix}'")
+        PyUUID(v[len(expected_prefix) :])  # Validate the UUID part
+    except ValueError as e:
+        raise error(
+            f"Invalid UUID format after prefix for ID with prefix '{expected_prefix}'"
+        ) from e
     return v
 
+
 UserId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "usr_"))]
-WalletId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "wlt_"))]
+WalletId = Annotated[
+    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "wlt_"))
+]
 AssetId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "ast_"))]
-PaymentOrderId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "pmt_"))]
-SessionId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "ses_"))]
-RefreshTokenId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "rft_"))]
-TransactionId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "trn_"))]
-UserProfileId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "usp_"))]
+PaymentOrderId = Annotated[
+    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "pmt_"))
+]
+SessionId = Annotated[
+    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "ses_"))
+]
+RefreshTokenId = Annotated[
+    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "rft_"))
+]
+TransactionId = Annotated[
+    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "trn_"))
+]
+UserProfileId = Annotated[
+    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "usp_"))
+]
 OtpId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "otp_"))]
