@@ -1,11 +1,11 @@
 from typing import Optional, Tuple
-from uuid import UUID
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.models.wallet_model import Asset
 from src.types import AssetType
+from src.types.common_types import WalletId
 from src.types.error import Error, error
 
 
@@ -18,7 +18,7 @@ class AssetRepository:
         self.session = session
 
     async def get_asset_by_wallet_id_and_asset_type(
-        self, *, wallet_id: UUID, asset_type: UUID 
+        self, *, wallet_id: WalletId, asset_type: AssetType 
     ) -> Tuple[Optional[Asset], Error]:
         asset = await self.session.exec(
             select(Asset)
