@@ -1,11 +1,11 @@
 import hashlib
 from typing import List, Optional, Tuple
-from uuid import UUID, uuid4
 
 from src.infrastructure import config
 from src.infrastructure.repositories import RefreshTokenRepository, SessionRepository
 from src.models import RefreshToken, Session
 from src.types import Error
+from src.types.common_types import SessionId, UserId
 
 
 class SessionUseCase:
@@ -19,7 +19,7 @@ class SessionUseCase:
 
     async def create_session(
         self,
-        user_id: UUID,
+        user_id: UserId,
         platform: str,
         device_id: str,
         ip_address: str,
@@ -46,10 +46,10 @@ class SessionUseCase:
 
         return session, refresh_token_string, None
 
-    async def get_session(self, session_id: UUID) -> Tuple[Optional[Session], Error]:
+    async def get_session(self, session_id: SessionId) -> Tuple[Optional[Session], Error]:
         return await self.session_repository.get_session(session_id)
 
-    async def revoke_session(self, session_id: UUID) -> Error:
+    async def revoke_session(self, session_id: SessionId) -> Error:
         err = await self.session_repository.revoke_session(session_id)
         if err:
             return err
@@ -86,10 +86,10 @@ class SessionUseCase:
 
         return new_refresh_token, None
 
-    async def get_user_sessions(self, user_id: UUID) -> List[Session]:
+    async def get_user_sessions(self, user_id: UserId) -> List[Session]:
         return await self.session_repository.get_user_sessions(user_id)
 
-    async def revoke_all_user_sessions(self, user_id: UUID) -> Error:
+    async def revoke_all_user_sessions(self, user_id: UserId) -> Error:
         sessions = await self.session_repository.get_user_sessions(user_id)
         if not sessions:
             return None  # No sessions to revoke
