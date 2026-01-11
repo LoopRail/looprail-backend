@@ -2,15 +2,14 @@ from datetime import date
 from uuid import UUID
 
 from email_validator import EmailNotValidError, validate_email
-from pydantic import EmailStr, Field, field_validator 
+from pydantic import EmailStr, Field, field_validator
 
 from src.dtos.base import Base
 from src.infrastructure import config
-from src.types import Gender, KYCStatus, error, PhoneNumber
-from src.utils import (
-    is_valid_country_code,
-    validate_password_strength,
-)
+from src.types.common_types import PhoneNumber
+from src.types.error import error
+from src.types.types import Gender, KYCStatus
+from src.utils import is_valid_country_code, validate_password_strength
 
 
 class OnboardUserUpdate(Base):

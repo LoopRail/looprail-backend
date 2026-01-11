@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from src.dtos.base import Base
-from src.types import PaymentType, Currency, TransactionStatus
+from src.types.types import PaymentType, Currency, TransactionStatus
 
 
 class paymentDetails(BaseModel):

@@ -3,7 +3,8 @@ from pydantic import EmailStr, field_validator
 
 from src.dtos.base import Base
 from src.infrastructure import config
-from src.types import OtpType, error
+from src.types.error import error
+from src.types.types import OtpType
 
 
 class OtpCreate(Base):

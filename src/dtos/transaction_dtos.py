@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from src.types import PaymentMethod, TransactionType
+from src.types.types import PaymentMethod, TransactionType
 
 
 class CreateTransactionParams(BaseModel):
