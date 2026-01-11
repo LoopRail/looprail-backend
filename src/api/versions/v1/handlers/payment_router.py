@@ -5,7 +5,7 @@ from fastapi import APIRouter
 
 from src.dtos import PaymentStatusResponse, paymentDetails
 from src.infrastructure.logger import get_logger
-from src.types import PaymentType, Currency, TransactionStatus
+from src.types import Currency, PaymentType, TransactionStatus
 
 logger = get_logger(__name__)
 
