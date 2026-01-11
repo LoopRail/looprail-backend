@@ -1,10 +1,9 @@
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException
 
 from src.api.dependencies import get_user_usecases
 from src.dtos.user_dtos import UserPublic
 from src.usecases import UserUseCase
+from src.types.common_types import UserId
 
 # Create a new router for user-related endpoints
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -13,7 +12,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 
 async def get_user(
-    user_id: UUID, user_usecases: UserUseCase = Depends(get_user_usecases)
+    user_id: UserId, user_usecases: UserUseCase = Depends(get_user_usecases)
 ) -> UserPublic:
     """API endpoint to retrieve a user by their ID."""
     user, err = await user_usecases.get_user_by_id(user_id)

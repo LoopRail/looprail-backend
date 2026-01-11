@@ -2,10 +2,11 @@ import hashlib
 import os
 from datetime import datetime, timedelta
 from typing import Optional
-from uuid import UUID
 
-from src.models import RefreshTokenData
 from src.infrastructure.config import settings
+from src.models import RefreshTokenData
+from src.types.common_types import SessionId, UserId
+
 
 class RefreshTokenUseCase:
     def __init__(self):
@@ -14,7 +15,7 @@ class RefreshTokenUseCase:
 
     async def create_refresh_token(
         self,
-        session_id: UUID,
+        session_id: SessionId,
         expires_in_days: int = settings.REFRESH_TOKEN_EXP_DAYS,
     ) -> tuple[str, RefreshTokenData]:
         raw_token = self._generate_random_token()
@@ -50,7 +51,7 @@ class RefreshTokenUseCase:
         # Placeholder for revoking a token
         pass
 
-    async def revoke_all_user_refresh_tokens(self, user_id: UUID) -> None:
+    async def revoke_all_user_refresh_tokens(self, user_id: UserId) -> None:
         # Placeholder for revoking all tokens for a user
         pass
 
@@ -59,4 +60,3 @@ class RefreshTokenUseCase:
 
     def _hash_token(self, token: str) -> str:
         return hashlib.sha256(token.encode("utf-8")).hexdigest()
-

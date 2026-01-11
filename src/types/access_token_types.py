@@ -1,7 +1,6 @@
-from uuid import UUID
-
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
+from src.types.common_types import SessionId, UserId
 from src.types.types import TokenType
 from src.utils.app_utils import kebab_case
 
@@ -15,9 +14,7 @@ class Token(BaseModel):
         populate_by_name=True,
     )
     sub: str
-    token_type: TokenType = Field(
-        default=TokenType.ONBOARDING_TOKEN, alias="token"
-    )
+    token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
 
     @field_serializer("sub")
     def serialize_sub_prefix(self, value: str) -> str:
@@ -29,11 +26,11 @@ class Token(BaseModel):
 
 class OnBoardingToken(Token):
     __sub_prefix__ = "onboarding"
-    user_id: UUID
+    user_id: UserId
 
 
 class AccessToken(Token):
     __sub_prefix__ = "access"
-    sub: UUID
-    session_id: UUID
+    sub: UserId
+    session_id: SessionId
     platform: str
