@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from uuid import UUID
 
 from sqlmodel import Field, Relationship
 
@@ -8,7 +7,8 @@ from src.models.base import Base
 
 class Session(Base, table=True):
     __tablename__ = "sessions"
-    user_id: UUID = Field(index=True)
+    __id_prefix__ = "ses_"
+    user_id: str = Field(index=True)
     platform: str
     device_id: str
     ip_address: str
@@ -20,7 +20,8 @@ class Session(Base, table=True):
 
 class RefreshToken(Base, table=True):
     __tablename__ = "refresh_tokens"
-    session_id: UUID = Field(foreign_key="sessions.id", index=True)
+    __id_prefix__ = "rft_"
+    session_id: str = Field(foreign_key="sessions.id", index=True)
     token_hash: str = Field(index=True)
     replaced_by_hash: Optional[str] = Field(default=None, index=True)
     revoked_at: Optional[datetime] = Field(default=None, index=True)

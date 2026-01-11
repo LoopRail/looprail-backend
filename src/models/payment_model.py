@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from decimal import Decimal
 from typing import TYPE_CHECKING
-from uuid import UUID
 
 from sqlalchemy import Numeric, String
 from sqlmodel import Field, Relationship
@@ -16,8 +15,9 @@ if TYPE_CHECKING:
 class PaymentOrder(Base, table=True):
     __tablename__ = "payment_orders"
     __protected_fields__ = "all"
+    __id_prefix__ = "pmt_"
 
-    user_id: UUID = Field(foreign_key="users.id", index=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
     amount: Decimal = Field(Numeric(18, 2), nullable=False)
     order_id: str = Field(String, nullable=False)
     user: User = Relationship(back_populates="payment_orders")

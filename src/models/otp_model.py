@@ -14,6 +14,7 @@ class Otp(BaseModel):
     Represents a one-time password (OTP) instance for verification purposes.
     """
 
+    __id_prefix__ = "otp_"
     model_config = ConfigDict(alias_generator=kebab_case, populate_by_name=True)
 
     user_email: EmailStr

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import date
 from typing import TYPE_CHECKING, Optional
-from uuid import UUID
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship
@@ -17,6 +16,7 @@ if TYPE_CHECKING:
 
 class User(Base, table=True):
     __tablename__ = "users"
+    __id_prefix__ = "usr_"
 
     first_name: str | None = None
     last_name: str | None = None
@@ -44,6 +44,7 @@ class User(Base, table=True):
 
 class UserProfile(Base, table=True):
     __tablename__ = "user_profiles"
+    __id_prefix__ = "usp_"
 
     kyc_status: KYCStatus = Field(KYCStatus.NOT_STARTED)
     street: str
@@ -55,7 +56,7 @@ class UserProfile(Base, table=True):
     date_of_birth: date
     # links: Optional[List[HttpUrl]] = Field(default_factory=list)
 
-    user_id: UUID = Field(foreign_key="users.id")
+    user_id: str = Field(foreign_key="users.id")
     user: "User" = Relationship(back_populates="profile")
 
 

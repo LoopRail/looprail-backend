@@ -2,19 +2,13 @@ from __future__ import annotations
 
 from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional
-from uuid import UUID
 
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types.types import (
-    AssetType,
-    Currency,
-    PaymentMethod,
-    TokenStandard,
-    TransactionType,
-)
 from src.types.common_types import Address, Chain
+from src.types.types import (AssetType, Currency, PaymentMethod, TokenStandard,
+                             TransactionType)
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -24,8 +18,9 @@ if TYPE_CHECKING:
 
 class Wallet(Base, table=True):
     __tablename__ = "wallets"
+    __id_prefix__ = "wlt_"
 
-    user_id: UUID = Field(foreign_key="users.id", index=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
     address: Address = Field(unique=True, index=True, nullable=False)
     chain: Chain = Field(nullable=False)
     provider: str = Field(index=True, nullable=False)
@@ -49,9 +44,9 @@ class Wallet(Base, table=True):
 
 class Asset(Base, table=True):
     __tablename__ = "assets"
+    __id_prefix__ = "ast_"
 
-    wallet_id: Optional[UUID] = Field(
-        default=None,
+    wallet_id: str = Field(
         foreign_key="wallets.id",
         index=True,
     )
@@ -71,12 +66,15 @@ class Asset(Base, table=True):
         sa_relationship_kwargs={"passive_deletes": True},
     )
 
+    def get_id_prefix(self) -> str:
+        return f"{self.__id_prefix__}{self.asset_id.value}_"
+
 
 class Transaction(Base, table=True):
     __tablename__ = "transactions"
+    __id_prefix__ = "txn_"
 
-    wallet_id: Optional[UUID] = Field(
-        default=None,
+    wallet_id: str = Field(
         foreign_key="wallets.id",
         index=True,
     )

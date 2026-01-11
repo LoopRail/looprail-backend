@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import List, Optional, Self, Tuple
-from uuid import UUID, uuid4
+from typing import ClassVar, List, Optional, Self, Tuple
+from uuid import  uuid4
 
 from pydantic import ConfigDict
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -8,6 +8,7 @@ from sqlmodel import Field, SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.infrastructure.logger import get_logger
+from src.types.common_types import DeletionFilter
 from src.types.error import (
     Error,
     ItemDoesNotExistError,
@@ -16,7 +17,6 @@ from src.types.error import (
     UpdatingProtectedFieldError,
     error,
 )
-from src.types.common_types import DeletionFilter
 
 logger = get_logger(__name__)
 __default_protected_fields__ = ["id", "created_at", "updated_at", "deleted_at"]
@@ -100,7 +100,7 @@ class DatabaseMixin:
 
     @classmethod
     async def get(
-        cls, session: AsyncSession, _id: UUID, deletion: DeletionFilter = "active"
+        cls, session: AsyncSession, _id: str, deletion: DeletionFilter = "active"
     ) -> Tuple[Optional["Self"], Error]:
         filter_ = {"id": _id}
         result, err = await cls.find_one(session, deletion, **filter_)
@@ -110,16 +110,20 @@ class DatabaseMixin:
 
 
 class Base(SQLModel, DatabaseMixin):
+    __id_prefix__: ClassVar[Optional[str]] = None
+    __protected_fields__: ClassVar[Optional[str | List[str]]] = None
     model_config = ConfigDict(
         use_enum_values=True, validate_assignment=True, populate_by_name=True
     )
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    id: str = Field(
+        default_factory=lambda: Base._generate_prefixed_id(), primary_key=True
+    )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     deleted_at: datetime | None = Field(default=None)
 
     def _get_protected_fields(self) -> str | list["str"]:
-        return getattr(self, "__protected_fields__", None)
+        return self.__protected_fields__
 
     def _is_protected(self) -> bool:
         protected_fields = self._get_protected_fields()
@@ -127,3 +131,12 @@ class Base(SQLModel, DatabaseMixin):
 
     def on_delete(self):
         return None
+
+    @classmethod
+    def get_id_prefix(cls) -> str:
+        return cls.__id_prefix__ if cls.__id_prefix__ else ""
+
+    @classmethod
+    def _generate_prefixed_id(cls) -> str:
+        prefix = cls.get_id_prefix()
+        return f"{prefix}{uuid4()}"
