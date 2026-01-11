@@ -1,5 +1,6 @@
-from src.api.dependencies.extra_deps import (BearerToken, VerifyWebhookRequest,
-                                             verify_otp_dep)
+from src.api.dependencies.extra_deps import (BearerToken, get_current_user,
+                                             get_current_user_token,
+                                             verify_otp_dep, VerifyWebhookRequest)
 from src.api.dependencies.repositories import (get_user_repository,
                                                get_wallet_repository)
 from src.api.dependencies.services import (get_auth_lock_service,
@@ -36,4 +37,6 @@ __all__ = [
     "get_otp_token",
     "get_jwt_usecase",
     "get_secrets_usecase",
+    "get_current_user_token",
+    "get_current_user",
 ]

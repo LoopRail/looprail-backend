@@ -4,14 +4,14 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.api.dependencies.usecases import (get_jwt_usecase, get_otp_token,
-                                           get_otp_usecase)
+                                           get_otp_usecase, get_user_usecases)
 from src.api.excpetions import AuthError, OTPError
 from src.dtos import VerifyOtpRequest
 from src.infrastructure import get_logger
-from src.models import Otp
+from src.models import Otp, User
 from src.types import Error, OtpStatus
-from src.types.access_token_types import Token
-from src.usecases import JWTUsecase, OtpUseCase
+from src.types.access_token_types import AccessToken, Token
+from src.usecases import JWTUsecase, OtpUseCase, UserUseCase
 from src.types import httpError
 from src.usecases.secrets_usecases import SecretsUsecase, WebhookProvider
 from src.utils import verify_signature
@@ -27,7 +27,7 @@ class BearerToken[T]:
         self,
         credentials: HTTPAuthorizationCredentials = Depends(security),
         jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
-    ) -> str:
+    ) -> T:
         """
         FastAPI dependency to validate a Bearer token.
         Raises 401 if missing, invalid, or wrong type.
@@ -56,6 +56,22 @@ class BearerToken[T]:
             raise AuthError(status_code=401, detail={"error": "Invalid token"})
 
         return response_token
+
+
+async def get_current_user_token(
+    token: AccessToken = Depends(BearerToken[AccessToken]),
+) -> AccessToken:
+    return token
+
+
+async def get_current_user(
+    access_token: AccessToken = Depends(get_current_user_token),
+    user_usecase: UserUseCase = Depends(get_user_usecases),
+) -> User:
+    user, err = await user_usecase.get_user_by_id(access_token.sub)
+    if err:
+        raise AuthError(status_code=401, detail={"error": "User not found"})
+    return user
 
 
 async def verify_otp_dep(
@@ -146,3 +162,4 @@ class VerifyWebhookRequest:
         if provider == WebhookProvider.BLOCKRADER:
             return verify_signature(body, signature, secret)
         return False
+
