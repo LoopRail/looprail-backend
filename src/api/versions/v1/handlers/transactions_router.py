@@ -10,11 +10,11 @@ from src.types.paycrest import CreateOrderRequest
 logger = get_logger(__name__)
 
 
-router = APIRouter(prefix="/offramp", tags=["Offramp"])
+router = APIRouter(prefix="/transactions", tags=["Offramp"])
 
 
-@router.post("/create-order")
-async def create_payment_order(
+@router.post("/withdraw")
+async def withdraw_funds(
     request: CreateOrderRequest,
     paycrest_service: PaycrestService = Depends(get_paycrest_service),
 ):
@@ -33,6 +33,11 @@ async def create_payment_order(
             detail="Could not create payment order",
         )
     return order.model_dump()
+
+
+@router.post("/external-wallet")
+async def withdraw_to_external_wallet():
+    pass
 
 
 @router.post("/process-order")

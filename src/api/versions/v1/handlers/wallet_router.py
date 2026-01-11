@@ -9,7 +9,7 @@ from src.types import Currency, PaymentType, TransactionStatus
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/payments", tags=["Payment"])
+router = APIRouter(prefix="/wallets", tags=["Payment"])
 
 
 @router.get("/{payment_id}/status")
