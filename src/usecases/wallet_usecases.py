@@ -1,29 +1,26 @@
 from typing import Optional, Self, Tuple
 
+from src.dtos.transaction_dtos import CreateTransactionParams
+from src.dtos.wallet_dtos import (BankTransferData, ExternalWalletTransferData,
+                                  TransferType, WithdrawalRequest)
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import (
-    AssetRepository,
-    UserRepository,
-    WalletRepository,
-)
+from src.infrastructure.repositories import (AssetRepository, UserRepository,
+                                             WalletRepository)
 from src.infrastructure.services import (LedgerService, PaystackService,
                                          WalletManager)
 from src.infrastructure.settings import BlockRaderConfig, LedgderServiceConfig
 from src.models import Asset, User, Wallet
-from src.types import AssetType, Error, IdentiyType, Provider, WalletConfig, error
-from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse, RecordTransactionRequest
+from src.types import (AssetType, Error, IdentiyType, Provider, WalletConfig,
+                       error)
+from src.types.blnk import (CreateBalanceRequest, CreateIdentityRequest,
+                            IdentityResponse, RecordTransactionRequest)
 from src.types.blockrader import CreateAddressRequest, WalletAddressResponse
+from src.types.common_types import UserId, WorldLedger
 from src.types.ledger_types import Ledger
-from src.types.common_types import UserId
-from src.types.types import TransactionType, WithdrawalMethod, WorldLedger
-from src.dtos.wallet_dtos import BankTransferData, ExternalWalletTransferData, TransferType, WithdrawalRequest
-from src.dtos.transaction_dtos import CreateTransactionParams
+from src.types.types import TransactionType, WithdrawalMethod
 from src.usecases.transaction_usecases import TransactionUsecase
 
 logger = get_logger(__name__)
-
-
-
 
 
 class WalletService:
@@ -84,7 +81,7 @@ class WalletService:
         return manager_usecase, None
 
 
-class WalletManagerUsecase(TransactionMixin):
+class WalletManagerUsecase():
     def __init__(
         self,
         service: WalletService,
@@ -299,7 +296,10 @@ class WalletManagerUsecase(TransactionMixin):
         withdrawal_request: WithdrawalRequest,
         specific_withdrawal: TransferType,
     ) -> Optional[Error]:
-        asset, err = await self.service.asset_repository.get_asset_by_wallet_id_and_asset_type(
+        (
+            asset,
+            err,
+        ) = await self.service.asset_repository.get_asset_by_wallet_id_and_asset_type(
             wallet_id=user.id, asset_type=withdrawal_request.assetId
         )
         if err:
@@ -310,7 +310,7 @@ class WalletManagerUsecase(TransactionMixin):
                 err.message,
             )
             return error("Could not get asset")
-        
+
         match specific_withdrawal.event:
             case WithdrawalMethod.BANK_TRANSFER:
                 bank_transfer_data = BankTransferData.model_validate(
@@ -320,8 +320,8 @@ class WalletManagerUsecase(TransactionMixin):
                     user, withdrawal_request, bank_transfer_data, asset
                 )
             case WithdrawalMethod.EXTERNAL_WALLET:
-                external_wallet_transfer_data = ExternalWalletTransferData.model_validate(
-                    specific_withdrawal.data
+                external_wallet_transfer_data = (
+                    ExternalWalletTransferData.model_validate(specific_withdrawal.data)
                 )
                 return await self._handle_external_wallet_transfer(
                     user, withdrawal_request, external_wallet_transfer_data, asset
@@ -351,41 +351,53 @@ class WalletManagerUsecase(TransactionMixin):
                 err.message,
             )
             return error("Bank transfer failed")
-        
+
         # Record transaction in local DB
         create_transaction_params = CreateTransactionParams(
             wallet_id=asset.wallet_id,
             transaction_type=TransactionType.DEBIT,
             method=WithdrawalMethod.BANK_TRANSFER,
             currency=asset.symbol,
-            sender=user.id, # This could be the user's wallet address or similar
+            sender=user.id,  # This could be the user's wallet address or similar
             receiver=bank_transfer_data.account_number,
             amount=withdrawal_request.amount,
-            status="pending", # Initial status
-            transaction_hash=transfer_code, # Paystack transfer code as hash
-            provider_id=transfer_code, # Paystack transfer code as provider ID
-            network="N/A", # Not applicable for bank transfer
-            confirmations=0, # Not applicable
-            confirmed=False, # Not confirmed initially
+            status="pending",  # Initial status
+            transaction_hash=transfer_code,  # Paystack transfer code as hash
+            provider_id=transfer_code,  # Paystack transfer code as provider ID
+            network="N/A",  # Not applicable for bank transfer
+            confirmations=0,  # Not applicable
+            confirmed=False,  # Not confirmed initially
             reference=withdrawal_request.narration,
             note=f"Bank transfer to {bank_transfer_data.account_name}",
         )
-        _, err = await self.service.transaction_usecase.create_transaction(create_transaction_params)
+        _, err = await self.service.transaction_usecase.create_transaction(
+            create_transaction_params
+        )
         if err:
-            logger.error("Failed to record local transaction for user %s: %s", user.id, err.message)
+            logger.error(
+                "Failed to record local transaction for user %s: %s",
+                user.id,
+                err.message,
+            )
             return error("Failed to record transaction")
 
         # Record transaction in ledger
         transaction_request = RecordTransactionRequest(
-            amount=int(withdrawal_request.amount * 100), # Convert to minor units
+            amount=int(withdrawal_request.amount * 100),  # Convert to minor units
             reference=transfer_code,
             source=asset.ledger_balance_id,
-            destination=WorldLedger.WORLD, # To external world
+            destination=WorldLedger.WORLD,  # To external world
             description=withdrawal_request.narration,
         )
-        _, err = await self.service.ledger_service.transactions.record_transaction(transaction_request)
+        _, err = await self.service.ledger_service.transactions.record_transaction(
+            transaction_request
+        )
         if err:
-            logger.error("Failed to record ledger transaction for user %s: %s", user.id, err.message)
+            logger.error(
+                "Failed to record ledger transaction for user %s: %s",
+                user.id,
+                err.message,
+            )
             return error("Failed to record ledger transaction")
 
         return None

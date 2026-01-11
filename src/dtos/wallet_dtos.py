@@ -4,14 +4,19 @@ from typing import Any, Dict, Optional, Tuple, Type
 from pydantic import field_validator
 
 from src.dtos.base import Base
-from src.types.common_types import AssetId
+from src.types.common_types import Address, AssetId, Chain
 from src.types.error import Error, error
 from src.types.types import WithdrawalMethod
 
 
 class TransferType(Base):
-    transfer_type: WithdrawalMethod
+    event: WithdrawalMethod
     data: Dict[str, Any]
+
+
+class ExternalWalletTransferData(Base):
+    address: Address
+    chain: Chain
 
 
 class BankTransferData(Base):
@@ -34,18 +39,26 @@ class BankTransferData(Base):
 
 
 class BankTransferRequest(Base):
-    transfer_type: WithdrawalMethod = WithdrawalMethod.BANK_TRANSFER
+    event: WithdrawalMethod = WithdrawalMethod.BANK_TRANSFER
     data: BankTransferData
 
 
+class ExtranalWalletTransferRequest(Base):
+    event: WithdrawalMethod = WithdrawalMethod.EXTERNAL_WALLET
+    data: ExternalWalletTransferData
+
+
 class GenericWithdrawalRequest(Base):
-    transfer_type: WithdrawalMethod
+    event: WithdrawalMethod
     data: Dict[str, Any]
 
     def to_specific_event(self) -> Tuple[Optional[TransferType], Error]:
-        WITHDRAWAL_REQUEST_MAP: dict[str, Type[TransferType]] = {}
+        WITHDRAWAL_REQUEST_MAP: dict[str, Type[TransferType]] = {
+            "withdraw:bank-transfer": BankTransferRequest,
+            "withdraw:external-wallet": ExtranalWalletTransferRequest,
+        }
 
-        event_class = WITHDRAWAL_REQUEST_MAP.get(self.event)
+        event_class = WITHDRAWAL_REQUEST_MAP.get(self.transfer_type)
         if event_class is None:
             return None, ValueError(f"{self.event} is not a supported event")
         return event_class(event=self.event, data=self.data), None

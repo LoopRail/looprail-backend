@@ -13,6 +13,7 @@ from src.api.dependencies.repositories import (
 )
 from src.api.dependencies.services import (get_blockrader_config,
                                            get_ledger_service,
+                                           get_paystack_service,
                                            get_redis_service)
 from src.infrastructure import config
 from src.infrastructure.redis import RedisClient
@@ -24,7 +25,7 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.services import LedgerService
+from src.infrastructure.services import LedgerService, PaystackService
 from src.infrastructure.settings import BlockRaderConfig, LedgderServiceConfig
 from src.models import User, Wallet
 from src.types import Chain
@@ -38,7 +39,7 @@ from src.usecases import (
     WalletManagerUsecase,
     WalletService,
 )
-from src.usecases.transaction_usecases import TransactionUsecase
+from src.usecases.transaction_usecases import TransactionUsecase, get_transaction_usecase
 
 
 async def get_session_usecase(
@@ -96,6 +97,8 @@ async def get_blockrader_wallet_service(
     asset_repository: AssetRepository = Depends(get_asset_repository),
     ledger_service_config: LedgderServiceConfig = config.ledger_service,
     ledger_service: LedgerService = Depends(get_ledger_service),
+    paystack_service: PaystackService = Depends(get_paystack_service),
+    transaction_usecase: TransactionUsecase = Depends(get_transaction_usecase),
 ):
     return WalletService(
         blockrader_config=blockrader_config,
@@ -104,6 +107,8 @@ async def get_blockrader_wallet_service(
         asset_repository=asset_repository,
         ledger_service_config=ledger_service_config,
         ledger_service=ledger_service,
+        paystack_service=paystack_service,
+        transaction_usecase=transaction_usecase,
     )
 
 
