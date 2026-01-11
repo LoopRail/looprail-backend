@@ -7,6 +7,7 @@ from sqlalchemy import Numeric, String
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
+from src.types.common_types import UserId
 
 if TYPE_CHECKING:
     from src.models.user_model import User
@@ -17,7 +18,7 @@ class PaymentOrder(Base, table=True):
     __protected_fields__ = "all"
     __id_prefix__ = "pmt_"
 
-    user_id: str = Field(foreign_key="users.id", index=True)
+    user_id: UserId = Field(foreign_key="users.id", index=True)
     amount: Decimal = Field(Numeric(18, 2), nullable=False)
     order_id: str = Field(String, nullable=False)
     user: User = Relationship(back_populates="payment_orders")

@@ -8,6 +8,7 @@ from sqlmodel import Field, Relationship
 
 from src.models.base import Base
 from src.types.types import KYCStatus
+from src.types.common_types import UserId
 
 if TYPE_CHECKING:
     from src.models.payment_model import PaymentOrder
@@ -56,7 +57,7 @@ class UserProfile(Base, table=True):
     date_of_birth: date
     # links: Optional[List[HttpUrl]] = Field(default_factory=list)
 
-    user_id: str = Field(foreign_key="users.id")
+    user_id: UserId = Field(foreign_key="users.id")
     user: "User" = Relationship(back_populates="profile")
 
 

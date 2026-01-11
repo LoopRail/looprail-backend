@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, List, Optional
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types.common_types import Address, Chain
+from src.types.common_types import Address, Chain, UserId, WalletId
 from src.types.types import (AssetType, Currency, PaymentMethod, TokenStandard,
                              TransactionType)
 
@@ -20,7 +20,7 @@ class Wallet(Base, table=True):
     __tablename__ = "wallets"
     __id_prefix__ = "wlt_"
 
-    user_id: str = Field(foreign_key="users.id", index=True)
+    user_id: UserId = Field(foreign_key="users.id", index=True)
     address: Address = Field(unique=True, index=True, nullable=False)
     chain: Chain = Field(nullable=False)
     provider: str = Field(index=True, nullable=False)
@@ -46,7 +46,8 @@ class Asset(Base, table=True):
     __tablename__ = "assets"
     __id_prefix__ = "ast_"
 
-    wallet_id: str = Field(
+    wallet_id: Optional[WalletId] = Field(
+        default=None,
         foreign_key="wallets.id",
         index=True,
     )
@@ -72,9 +73,10 @@ class Asset(Base, table=True):
 
 class Transaction(Base, table=True):
     __tablename__ = "transactions"
-    __id_prefix__ = "txn_"
+    __id_prefix__ = "trn_"
 
-    wallet_id: str = Field(
+    wallet_id: Optional[WalletId] = Field(
+        default=None,
         foreign_key="wallets.id",
         index=True,
     )
