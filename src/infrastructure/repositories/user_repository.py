@@ -1,5 +1,4 @@
 from typing import Optional, Tuple
-from uuid import UUID
 
 from pydantic import EmailStr
 from sqlalchemy.exc import SQLAlchemyError
@@ -7,6 +6,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.models.user_model import User, UserProfile
+from src.types.common_types import UserId
 from src.types.error import Error, error
 
 
@@ -24,7 +24,7 @@ class UserRepository:
     async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]:
         return await user.create(self.session)
 
-    async def get_user_by_id(self, *, user_id: UUID) -> Tuple[Optional[User], Error]:
+    async def get_user_by_id(self, *, user_id: UserId) -> Tuple[Optional[User], Error]:
         return await User.get(self.session, user_id)
 
     async def get_user_by_email(
@@ -43,14 +43,14 @@ class UserRepository:
             return [], error(str(e))
 
     async def update_user(
-        self, *, user_id: UUID, **kwargs
+        self, *, user_id: UserId, **kwargs
     ) -> Tuple[Optional[User], Error]:
         user, err = await self.get_user_by_id(user_id=user_id)
         if err:
             return None, err
         return await user.update(self.session, **kwargs)
 
-    async def delete_user(self, *, user_id: UUID) -> Error:
+    async def delete_user(self, *, user_id: UserId) -> Error:
         user, err = await self.get_user_by_id(user_id=user_id)
         if err:
             return err
@@ -62,7 +62,7 @@ class UserRepository:
         return await user_profile.create(self.session)
 
     async def get_user_profile_by_user_id(
-        self, *, user_id: UUID
+        self, *, user_id: UserId
     ) -> Tuple[Optional[UserProfile], Error]:
         user, err = await self.get_user_by_id(user_id=user_id)
         if err:
@@ -70,7 +70,7 @@ class UserRepository:
         return await UserProfile.get(self.session, _id=user.profile.id)
 
     async def update_user_profile(
-        self, *, user_id: UUID, **kwargs
+        self, *, user_id: UserId, **kwargs
     ) -> Tuple[Optional[UserProfile], Error]:
         user_profile, err = await self.get_user_profile_by_user_id(user_id=user_id)
         if err:
