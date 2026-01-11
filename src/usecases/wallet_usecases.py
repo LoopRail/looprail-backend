@@ -1,5 +1,4 @@
 from typing import Optional, Self, Tuple
-from uuid import UUID
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import (
@@ -14,6 +13,7 @@ from src.types import AssetType, Error, IdentiyType, Provider, WalletConfig, err
 from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse
 from src.types.blockrader import CreateAddressRequest, WalletAddressResponse
 from src.types.ledger_types import Ledger
+from src.types.common_types import UserId
 
 logger = get_logger(__name__)
 
@@ -90,7 +90,7 @@ class WalletManagerUsecase(TransactionMixin):
         self.wallet_config = wallet_config
         self.ledger_config = ledger_config
 
-    async def _get_user_data(self, user_id: UUID) -> Tuple[Optional[User], Error]:
+    async def _get_user_data(self, user_id: UserId) -> Tuple[Optional[User], Error]:
         user, err = await self.service.user_repository.get_user_by_id(user_id)
         if err:
             logger.error("Could not get user %s Error: %s", user_id, err.message)
@@ -137,7 +137,7 @@ class WalletManagerUsecase(TransactionMixin):
         return None
 
     async def _generate_provider_wallet(
-        self, user_id: UUID
+        self, user_id: UserId
     ) -> Tuple[Optional[WalletAddressResponse], Error]:
         wallet_request = CreateAddressRequest(
             name=f"wallet:customer:{user_id}",
@@ -261,7 +261,7 @@ class WalletManagerUsecase(TransactionMixin):
 
         return None
 
-    async def create_user_wallet(self, user_id: UUID) -> Tuple[Optional[Self], Error]:
+    async def create_user_wallet(self, user_id: UserId) -> Tuple[Optional[Self], Error]:
         user, err = await self._get_user_data(user_id)
         if err:
             return None, err
