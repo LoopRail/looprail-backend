@@ -102,6 +102,6 @@ class Gender(str, Enum):
     FEMALE = "female"
 
 
-class WithdrawMethod(str, Enum):
-    BANK = "withdraw:bank"
+class WithdrawalMethod(str, Enum):
+    BANK_TRANSFER = "withdraw:bank-transfer"
     EXTERNAL_WALLET = "withdraw:external-wallet"
