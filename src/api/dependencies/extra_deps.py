@@ -9,10 +9,9 @@ from src.api.excpetions import AuthError, OTPError
 from src.dtos import VerifyOtpRequest
 from src.infrastructure import get_logger
 from src.models import Otp, User
-from src.types import Error, OtpStatus
-from src.types.access_token_types import AccessToken, Token
+from src.types import (AccessToken, Error, OtpStatus, Token, TokenType,
+                       httpError)
 from src.usecases import JWTUsecase, OtpUseCase, UserUseCase
-from src.types import httpError
 from src.usecases.secrets_usecases import SecretsUsecase, WebhookProvider
 from src.utils import verify_signature
 
@@ -61,6 +60,8 @@ class BearerToken[T]:
 async def get_current_user_token(
     token: AccessToken = Depends(BearerToken[AccessToken]),
 ) -> AccessToken:
+    if token.token_type != TokenType.ACCESS_TOKEN:
+        raise AuthError(status_code=401, detail={"error": "User not found"})
     return token
 
 
@@ -162,4 +163,3 @@ class VerifyWebhookRequest:
         if provider == WebhookProvider.BLOCKRADER:
             return verify_signature(body, signature, secret)
         return False
-
