@@ -17,6 +17,7 @@ from src.utils import create_transaction_params_from_event
 logger = get_logger(__name__)
 
 
+# TODO  catch alredy proccessed transactions
 @register(event_type=WebhookEventType.DEPOSIT_SUCCESS)
 async def handle_deposit_success(
     event: WebhookDepositSuccess,

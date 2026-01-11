@@ -100,3 +100,8 @@ class InstitutionCountry(str, Enum):
 class Gender(str, Enum):
     MALE = "male"
     FEMALE = "female"
+
+
+class WithdrawMethod(str, Enum):
+    BANK = "withdraw:bank"
+    EXTERNAL_WALLET = "withdraw:external-wallet"
