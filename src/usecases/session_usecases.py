@@ -1,5 +1,6 @@
 import hashlib
 from typing import List, Optional, Tuple
+from uuid import uuid4
 
 from src.infrastructure import config
 from src.infrastructure.repositories import RefreshTokenRepository, SessionRepository
