@@ -3,14 +3,17 @@ from typing import Optional, Tuple
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.api.dependencies.usecases import (get_jwt_usecase, get_otp_token,
-                                           get_otp_usecase, get_user_usecases)
-from src.api.excpetions import AuthError, OTPError
+from src.api.dependencies.usecases import (
+    get_jwt_usecase,
+    get_otp_token,
+    get_otp_usecase,
+    get_user_usecases,
+)
+from src.api.exceptions import AuthError, OTPError
 from src.dtos import VerifyOtpRequest
 from src.infrastructure import get_logger
 from src.models import Otp, User
-from src.types import (AccessToken, Error, OtpStatus, Token, TokenType,
-                       httpError)
+from src.types import AccessToken, Error, OtpStatus, Token, TokenType, httpError
 from src.usecases import JWTUsecase, OtpUseCase, UserUseCase
 from src.usecases.secrets_usecases import SecretsUsecase, WebhookProvider
 from src.utils import verify_signature
@@ -139,7 +142,7 @@ class VerifyWebhookRequest:
             error_msg = f"Webhook not allowed for provider {provider.value}"
             logger.error(error_msg)
             raise httpError(
-                status_code=status.HTTP_403_FORBIDDEN,
+                code=status.HTTP_403_FORBIDDEN,
                 message=error_msg,
             )
 

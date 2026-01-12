@@ -5,12 +5,18 @@ from httpx import Response
 from src.infrastructure.services.base_client import BaseClient, T
 from src.infrastructure.settings import BlockRaderConfig
 from src.types import Error, error
-from src.types.blockrader import (AMLCheckRequest, AMLCheckResponse,
-                                  CreateAddressRequest, NetworkFeeRequest,
-                                  NetworkFeeResponse, TransactionResponse,
-                                  WalletAddressDetailResponse,
-                                  WalletBalanceResponse, WithdrawalRequest,
-                                  WithdrawalResponse)
+from src.types.blockrader import (
+    AMLCheckRequest,
+    AMLCheckResponse,
+    CreateAddressRequest,
+    NetworkFeeRequest,
+    NetworkFeeResponse,
+    TransactionResponse,
+    WalletAddressDetailResponse,
+    WalletBalanceResponse,
+    WithdrawalRequest,
+    WithdrawalResponse,
+)
 
 BLOCKRADER_API_VERSION = "v1"
 BASE_URL = f"https://api.blockradar.co/{BLOCKRADER_API_VERSION}"
