@@ -2,16 +2,20 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import get_paycrest_service
-from src.api.versions.v1.handlers import (accounts_router, auth_router,
-                                          transactions_router, verify_router,
-                                          wallet_router, webhook_router)
-from src.infrastructure.services.paycrest.paycrest_service import \
-    PaycrestService
+from src.api.versions.v1.handlers import (
+    accounts_router,
+    auth_router,
+    transactions_router,
+    verify_router,
+    wallet_router,
+    webhook_router,
+)
+from src.infrastructure.services.paycrest.paycrest_service import PaycrestService
 
 v1_router = APIRouter(prefix="/v1")
 
 
-@v1_router.get("/rates")
+@v1_router.get("/rates", tags=["Miscellaneous"])
 async def get_rates(
     amount: float = Query(..., description="Amount of token"),
     currency: str = Query(..., description="Target currency (e.g., USD)"),
