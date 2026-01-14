@@ -1,27 +1,26 @@
 import hashlib
-from typing import Callable
 
-from fastapi import (APIRouter, BackgroundTasks, Depends, Header, Request,
-                     Response, status)
+from fastapi import (APIRouter, BackgroundTasks, Body, Depends, Header,
+                     Request, Response, status)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import get_resend_service  # Added get_resend_service
-from src.api.dependencies import (BearerToken, get_jwt_usecase,
-                                  get_otp_usecase, get_session_usecase,
+from src.api.dependencies import (BearerToken, get_app_environment, get_config,
+                                  get_jwt_usecase, get_otp_usecase,
+                                  get_resend_service, get_session_usecase,
                                   get_user_usecases,
-                                  get_wallet_manager_factory)
-from src.api.internals import send_otp_internal
+                                  get_wallet_manager_usecase)
+from src.api.internals import send_otp_internal, set_user_create_config
 from src.api.rate_limiter import limiter
-from src.dtos import (LoginRequest, OnboardUserUpdate, OtpCreate,
-                      RefreshTokenRequest, UserCreate, UserPublic)
-from src.dtos.auth_dtos import (AuthTokensResponse,
-                                AuthWithTokensAndUserResponse,
-                                CreateUserResponse, MessageResponse)
-from src.infrastructure import config
+from src.dtos import (AuthTokensResponse, AuthWithTokensAndUserResponse,
+                      CreateUserResponse, LoginRequest, MessageResponse,
+                      OnboardUserUpdate, OtpCreate, RefreshTokenRequest,
+                      UserCreate, UserPublic)
+from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
-from src.infrastructure.services import \
-    ResendService  # Added ResendService import
-from src.types import AccessToken, Chain, OnBoardingToken, Platform, TokenType
+from src.infrastructure.services import ResendService
+from src.infrastructure.settings import ENVIRONMENT
+from src.types import (AccessToken, OnBoardingToken, Platform, TokenType,
+                       UserAlreadyExistsError)
 from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
                           WalletManagerUsecase)
 from src.utils import validate_password_strength
@@ -35,31 +34,40 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 @limiter.limit("2/minute")
 async def create_user(
     request: Request,
-    user_data: UserCreate,
+    _config_set: None = Depends(set_user_create_config),
+    user_data: UserCreate = Body(...),
+    environment: ENVIRONMENT = Depends(get_app_environment),
     user_usecases: UserUseCase = Depends(get_user_usecases),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
-    resend_service: ResendService = Depends(get_resend_service),  # Added resend_service
+    resend_service: ResendService = Depends(get_resend_service),
 ) -> dict:
     validation_error = validate_password_strength(user_data.password)
     if validation_error:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            content={"error": validation_error.message},
+            content={"message": validation_error.message},
         )
     created_user, err = await user_usecases.create_user(user_create=user_data)
+    if type(err) is type(UserAlreadyExistsError()):
+        logger.error("Failed to create user: %s", err.message)
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"message": err.message},
+        )
     if err:
         logger.error("Failed to create user: %s", err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": "Could not create user"},
+            content={"message": "Could not create user"},
         )
     token = await send_otp_internal(
+        environment,
         email=created_user.email,
         otp_usecases=otp_usecases,
-        resend_service=resend_service,  # Passed resend_service
+        resend_service=resend_service,
     )
 
-    logger.info("User %s registered successfully.", created_user.username)
+    logger.info("User %s registered successfully.", created_user.email)
 
     return {
         "user": UserPublic.model_validate(created_user.model_dump()).model_dump(
@@ -81,13 +89,12 @@ async def complete_onboarding(
     background_tasks: BackgroundTasks,
     token: OnBoardingToken = Depends(BearerToken[OnBoardingToken]),
     user_usecases: UserUseCase = Depends(get_user_usecases),
-    wallet_manager_factory: Callable[[Chain], WalletManagerUsecase] = Depends(
-        get_wallet_manager_factory
-    ),
+    wallet_manager: WalletManagerUsecase = Depends(get_wallet_manager_usecase),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
     device_id: str = Header(..., alias="X-Device-ID"),
     platform: Platform = Header(..., alias="X-Platform"),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
+    config: Config = Depends(get_config),
 ):
     if token.token_type != TokenType.ONBOARDING_TOKEN:
         logger.error(
@@ -98,21 +105,21 @@ async def complete_onboarding(
         )
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"error": "Invalid token"},
+            content={"message": "Invalid token"},
         )
 
     current_user, err = await user_usecases.get_user_by_id(user_id=token.user_id)
     if err:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content={"error": "User not found"},
+            content={"message": "User not found"},
         )
     _, err = await user_usecases.update_user_profile(current_user.id, **user_data)
     if err:
         logger.error("Could not update user: %s", err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": "Internal server error"},
+            content={"message": "Internal server error"},
         )
     _, err = await user_usecases.update_user(
         current_user.id, has_completed_onboarding=True
@@ -121,27 +128,17 @@ async def complete_onboarding(
         logger.error("Could not update user: %s", err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": "Internal server error"},
+            content={"message": "Internal server error"},
         )
 
     async def create_wallets_in_background(user_id):
-        active_wallets = [w for w in config.block_rader.wallets if w.active]
-        for wallet_config in active_wallets:
-            wallet_manager = wallet_manager_factory(wallet_config.chain)
-            if not wallet_manager:
-                logger.warning(
-                    "No wallet manager for chain %s, skipping.", wallet_config.chain
-                )
-                continue
-
-            _, err = await wallet_manager.create_user_wallet(user_id)
-            if err:
-                logger.error(
-                    "Failed to create user wallet for chain %s: %s",
-                    wallet_config.chain,
-                    err.message,
-                )
-                continue
+        _, err = await wallet_manager.create_user_wallet(user_id)
+        if err:
+            logger.error(
+                "Failed to create user wallet for user %s: %s",
+                user_id,
+                err.message,
+            )
 
     background_tasks.add_task(create_wallets_in_background, current_user.id)
 
@@ -157,7 +154,7 @@ async def complete_onboarding(
         )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": "Internal server error"},
+            content={"message": "Internal server error"},
         )
     access_token_data = AccessToken(
         sub=current_user.id,
@@ -188,6 +185,7 @@ async def login(
     device_id: str = Header(..., alias="X-Device-ID"),
     platform: str = Header(..., alias="X-Platform"),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
+    config: Config = Depends(get_config),
 ):
     user, err = await user_usecases.authenticate_user(
         email=login_request.email, password=login_request.password
@@ -198,7 +196,7 @@ async def login(
         )
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"error": "Invalid credentials"},
+            content={"message": "Invalid credentials"},
         )
 
     session, raw_refresh_token = await session_usecase.create_session(
@@ -211,7 +209,7 @@ async def login(
         logger.error("Could not create session for user %s: %s", user.id, err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": "Internal server error"},
+            content={"message": "Internal server error"},
         )
 
     access_token_data = AccessToken(
@@ -246,6 +244,7 @@ async def refresh_token(
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     device_id: str = Header(..., alias="X-Device-ID"),
     platform: Platform = Header(..., alias="X-Platform"),
+    config: Config = Depends(get_config),
 ):
     incoming_refresh_token_hash = hashlib.sha256(
         refresh_token_request.refresh_token.encode()
@@ -260,7 +259,7 @@ async def refresh_token(
         )
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"error": "Invalid or expired refresh token"},
+            content={"message": "Invalid or expired refresh token"},
         )
 
     if refresh_token_db.replaced_by_hash is not None:
@@ -270,7 +269,7 @@ async def refresh_token(
         await session_usecase.revoke_session(refresh_token_db.session_id)
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"error": "Refresh token reused. Please log in again."},
+            content={"message": "Refresh token reused. Please log in again."},
         )
 
     # Get the session details
@@ -279,7 +278,7 @@ async def refresh_token(
         logger.error("Session not found for refresh token %s", refresh_token_db.id)
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"error": "Session not found."},
+            content={"message": "Session not found."},
         )
 
     # Rotate the refresh token
@@ -294,7 +293,7 @@ async def refresh_token(
         )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": "Internal server error during token rotation"},
+            content={"message": "Internal server error during token rotation"},
         )
 
     # Issue a new access token
@@ -334,7 +333,7 @@ async def logout(
         )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": "Failed to logout"},
+            content={"message": "Failed to logout"},
         )
     return {"message": "Logged out successfully"}
 
@@ -357,7 +356,7 @@ async def logout_all(
         )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"error": "Failed to logout from all sessions"},
+            content={"message": "Failed to logout from all sessions"},
         )
     return {"message": "Logged out from all sessions successfully"}
 
@@ -368,10 +367,12 @@ async def send_otp(
     request: Request,
     response: Response,
     otp_data: OtpCreate,
+    environment: ENVIRONMENT = Depends(get_app_environment),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
     resend_service: ResendService = Depends(get_resend_service),
 ):
     token = await send_otp_internal(
+        environment,
         email=otp_data.email,
         otp_usecases=otp_usecases,
         resend_service=resend_service,
