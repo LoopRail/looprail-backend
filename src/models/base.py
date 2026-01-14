@@ -3,7 +3,7 @@ from typing import ClassVar, List, Optional, Self, Tuple
 from uuid import UUID, uuid4
 
 from asyncpg.exceptions import UniqueViolationError
-from pydantic import ConfigDict
+from pydantic import ConfigDict, field_serializer
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.sql import Select
 from sqlmodel import Field, SQLModel, select
@@ -165,3 +165,7 @@ class Base(SQLModel, DatabaseMixin):
     def get_prefixed_id(self) -> str:
         prefix = self.get_id_prefix()
         return f"{prefix}{self.id}"
+
+    @field_serializer("id")
+    def serialize_id(self, v: UUID) -> str:
+        return self.get_prefixed_id()

@@ -7,9 +7,13 @@ class error(Exception):
         return self.message
 
     def __eq__(self, value: object, /) -> bool:
+        if hasattr(value, "message"):
+            return self.message == value.message
         return self.message == value
 
     def __ne__(self, value: object, /) -> bool:
+        if hasattr(value, "message"):
+            return self.message != value.message
         return self.message != value
 
 
@@ -27,7 +31,6 @@ class UpdatingProtectedFieldError(error):
         super().__init__(f"updating protected field: {field}")
 
 
-
 class FailedAttemptError(error):
     def __init__(self, message: str = "Failed attempt"):
         super().__init__(message)
@@ -38,7 +41,14 @@ class InvalidCredentialsError(error):
         super().__init__(message)
 
 
+class UserAlreadyExistsError(error):
+    def __init__(self, message: str = "User already exists"):
+        super().__init__(message)
+
+
 NotFoundError = error("not found")
 ProtectedModelError = error("protected model can't update")
 ItemDoesNotExistError = error("item does not exist")
+InternaleServerError = httpError(500, "Internal server error")
+
 type Error = error | httpError | None
