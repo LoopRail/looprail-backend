@@ -22,7 +22,7 @@ def create_transaction_params_from_event(
         sender=event_data.senderAddress,
         receiver=event_data.recipientAddress,
         amount=Decimal(event_data.amount),
-        status=event_data.status.value,
+        status=event_data.status,
         transaction_hash=event_data.hash,
         provider_id=event_data.id,
         network=event_data.network,

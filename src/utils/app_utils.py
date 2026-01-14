@@ -1,6 +1,7 @@
 import os
 from typing import Optional, Tuple
 
+from email_validator import EmailNotValidError, validate_email
 from jinja2 import Environment, FileSystemLoader
 
 from src.types.error import Error, error
@@ -43,3 +44,19 @@ def load_html_template(name: str, **kwargs) -> Tuple[Optional[str], Error]:
     template = env.get_template(f"{name}.html")
 
     return template.render(**kwargs), None
+
+
+def is_valid_email(
+    email: str,
+    disposable_domains: set[str],
+) -> bool:
+    try:
+        email_info = validate_email(email, check_deliverability=True)
+
+        if email_info.domain in disposable_domains:
+            return False
+
+        return True
+
+    except EmailNotValidError:
+        return False

@@ -1,6 +1,6 @@
-import re
-import hmac
 import hashlib
+import hmac
+import re
 import secrets
 from typing import Optional
 
@@ -65,7 +65,7 @@ def validate_password_strength(password: str) -> Optional[Error]:
     - At least one digit.
     - At least one special character from the set [@, #, $, %, ^, &, +, = or !].
     """
-    if 8 <= len(password) <= 64:
+    if not 8 <= len(password) <= 64:
         return error("Password must be between 8 and 64 characters long.")
     if not re.search(r"[a-z]", password):
         return error("Password must contain at least one lowercase letter.")
@@ -78,7 +78,6 @@ def validate_password_strength(password: str) -> Optional[Error]:
             "Password must contain at least one special character (@, #, $, %, ^, &, +, = or !)."
         )
     return None
-
 
 
 def verify_signature(
@@ -96,4 +95,3 @@ def verify_signature(
     ).hexdigest()
 
     return hmac.compare_digest(computed_signature, received_signature)
-

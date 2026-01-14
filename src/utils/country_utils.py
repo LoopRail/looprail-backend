@@ -1,5 +1,4 @@
 from typing import List
-
 from src.types.country_types import CountriesData, CountryInfo
 
 
@@ -18,6 +17,4 @@ def get_all_country_codes(countries: CountriesData) -> List[str]:
     """
     Returns a list of all enabled country codes.
     """
-    return [
-        code for code, info in countries.countries.items() if info.enabled
-    ]
+    return [code for code, info in countries.countries.items() if info.enabled]
