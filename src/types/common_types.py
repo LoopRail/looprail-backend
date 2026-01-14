@@ -1,5 +1,5 @@
 import re
-from enum import Enum
+from enum import  StrEnum
 from typing import Annotated, Literal, Union
 from uuid import UUID as PyUUID
 
@@ -40,18 +40,18 @@ PhoneNumber = Annotated[
 Address = Annotated[str, BeforeValidator(validate_address)]
 
 
-class WorldLedger(str, Enum):
+class WorldLedger(StrEnum):
     WORLD = "@world"
     PAYCREST_FEES = "@paycrest_fees"
     PLATFORM_FEES = "@platform_fees"
     BLOCKCHAIN_FEES = "@blockchain_fees"
 
 
-class IdentiyType(str, Enum):
+class IdentiyType(StrEnum):
     INDIVIDUAL = "individual"
 
 
-class Chain(str, Enum):
+class Chain(StrEnum):
     POLYGON = "polygon"
     BASE = "base"
     ETHEREUM = "ethereum"
@@ -90,7 +90,7 @@ RefreshTokenId = Annotated[
     str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "rft_"))
 ]
 TransactionId = Annotated[
-    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "trn_"))
+    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "txn_"))
 ]
 UserProfileId = Annotated[
     str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "usp_"))

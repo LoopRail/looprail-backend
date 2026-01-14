@@ -1,18 +1,30 @@
 from enum import Enum
-from typing import List
+from typing import List, Optional, Tuple
 
 from pydantic import BaseModel
 
 from src.types.blockrader.types import AssetData
 from src.types.common_types import Chain
+from src.types.error import Error, error
 
 
-class WalletConfig(BaseModel):
+class Wallet(BaseModel):
     chain: Chain
     wallet_id: str
+    wallet_name: str
     wallet_address: str
     active: bool
     assets: List[AssetData]
+
+
+class WalletConfig(BaseModel):
+    wallets: List[Wallet]
+
+    def get_wallet(self, wallet_name: str) -> Tuple[Optional[Wallet], Error]:
+        for wallet in self.wallets:
+            if wallet.wallet_name == wallet_name:
+                return wallet, None
+        return None, error(f"Wallet with name {wallet_name} not found")
 
 
 class TransactionStatus(str, Enum):

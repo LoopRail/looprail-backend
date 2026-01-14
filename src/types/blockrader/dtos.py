@@ -46,7 +46,7 @@ class Data(baseBlockRaderType):
     data_id: str = Field(alias="id")
     data_type: str = Field(alias="type")
     address: Address
-    blockNetwork: BlockchainData
+    blockNetwork: Optional[BlockchainData] = None
     configurations: Configurations
     createdAt: datetime
     derivationPath: Optional[str]

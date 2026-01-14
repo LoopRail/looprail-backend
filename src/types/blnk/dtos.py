@@ -1,13 +1,13 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from src.types.common_types import IdentiyType
 
 
 class BlnkBase(BaseModel):
-    pass
+    model_config = ConfigDict(populate_by_name=True, use_enum_values=True)
 
 
 # =========== Ledger DTOs ===========
