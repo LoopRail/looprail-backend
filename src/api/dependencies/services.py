@@ -15,6 +15,10 @@ def get_blockrader_config(request: Request) -> BlockRaderConfig:
     return request.app.state.blockrader_config
 
 
+def get_ledger_config(request: Request) -> BlockRaderConfig:
+    return request.app.state.ledger_config
+
+
 def get_ledger_service(request: Request) -> LedgerService:
     return request.app.state.ledger_service
 

@@ -2,44 +2,32 @@ from typing import Optional
 
 from fastapi import Depends, Header, HTTPException, Request, status
 
-from src.api.dependencies.repositories import (
-    get_asset_repository,
-    get_refresh_token_repository,
-    get_session_repository,
-    get_transaction_repository,
-    get_user_repository,
-    get_wallet_repository,
-)
-from src.api.dependencies.services import (
-    get_blockrader_config,
-    get_ledger_config,
-    get_ledger_service,
-    get_paycrest_service,
-    get_redis_service,
-)
-from src.infrastructure import CUSTOMER_WALLET_LEDGER, MASTER_BASE_WALLET, config
+from src.api.dependencies.extra_deps import get_config
+from src.api.dependencies.repositories import (get_asset_repository,
+                                               get_refresh_token_repository,
+                                               get_session_repository,
+                                               get_transaction_repository,
+                                               get_user_repository,
+                                               get_wallet_repository)
+from src.api.dependencies.services import (get_blockrader_config,
+                                           get_ledger_config,
+                                           get_ledger_service,
+                                           get_paycrest_service,
+                                           get_redis_service)
+from src.infrastructure import CUSTOMER_WALLET_LEDGER, MASTER_BASE_WALLET
+from src.infrastructure.config_settings import Config
 from src.infrastructure.redis import RedisClient
-from src.infrastructure.repositories import (
-    AssetRepository,
-    RefreshTokenRepository,
-    SessionRepository,
-    TransactionRepository,
-    UserRepository,
-    WalletRepository,
-)
+from src.infrastructure.repositories import (AssetRepository,
+                                             RefreshTokenRepository,
+                                             SessionRepository,
+                                             TransactionRepository,
+                                             UserRepository, WalletRepository)
 from src.infrastructure.services import LedgerService, PaycrestService
 from src.infrastructure.settings import BlockRaderConfig
 from src.types import LedgerConfig
-from src.usecases import (
-    JWTUsecase,
-    OtpUseCase,
-    SecretsUsecase,
-    SessionUseCase,
-    TransactionUsecase,
-    UserUseCase,
-    WalletManagerUsecase,
-    WalletService,
-)
+from src.usecases import (JWTUsecase, OtpUseCase, SecretsUsecase,
+                          SessionUseCase, TransactionUsecase, UserUseCase,
+                          WalletManagerUsecase, WalletService)
 
 
 async def get_session_usecase(
@@ -51,19 +39,8 @@ async def get_session_usecase(
     yield SessionUseCase(session_repository, refresh_token_repository)
 
 
-async def get_user_usecases(
-    request: Request,
-    user_repository: UserRepository = Depends(get_user_repository),
-    wallet_repository: WalletRepository = Depends(get_wallet_repository),
-    blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
-) -> UserUseCase:
-    argon2_config = request.app.state.argon2_config
-    yield UserUseCase(
-        user_repository, wallet_repository, blockrader_config, argon2_config
-    )
-
-
 async def get_otp_usecase(
+    config: Config = Depends(get_config),
     redis_client: RedisClient = Depends(get_redis_service),
 ) -> OtpUseCase:
     yield OtpUseCase(redis_client, config.otp)
@@ -86,7 +63,7 @@ async def get_otp_token(
     return x_otp_token
 
 
-async def get_jwt_usecase():
+async def get_jwt_usecase(config: Config = Depends(get_config)):
     yield JWTUsecase(config.jwt)
 
 
@@ -120,7 +97,7 @@ async def get_wallet_manager_usecase(
     ledger_config: LedgerConfig = Depends(get_ledger_config),
     wallet_service: WalletService = Depends(get_blockrader_wallet_service),
 ) -> WalletManagerUsecase:
-    ledger = ledger_config.get_ledger(CUSTOMER_WALLET_LEDGER)
+    ledger = ledger_config.ledgers.get_ledger(CUSTOMER_WALLET_LEDGER)
     base_master_wallet, err = wallet_service.blockrader_config.wallets.get_wallet(
         MASTER_BASE_WALLET
     )
@@ -138,3 +115,22 @@ async def get_wallet_manager_usecase(
             detail={"error": f"Failed to create wallet manager: {err.message}"},
         )
     return wallet_manager
+
+
+async def get_user_usecases(
+    request: Request,
+    user_repository: UserRepository = Depends(get_user_repository),
+    wallet_repository: WalletRepository = Depends(get_wallet_repository),
+    blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
+    wallet_manager_usecase: WalletManagerUsecase = Depends(get_wallet_manager_usecase),
+    wallet_service: WalletService = Depends(get_blockrader_wallet_service),
+) -> UserUseCase:
+    argon2_config = request.app.state.argon2_config
+    yield UserUseCase(
+        user_repository,
+        wallet_repository,
+        blockrader_config,
+        argon2_config,
+        wallet_manager_usecase,
+        wallet_service,  # Added this line
+    )
