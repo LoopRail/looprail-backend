@@ -1,13 +1,16 @@
-from src.infrastructure.config import config
+from src.infrastructure.config_settings import load_config
 from src.infrastructure.constants import (
-    ACCOUNT_LOCKOUT_DURATION_MINUTES,
     ACCESS_TOKEN_EXP_MINS,
+    ACCOUNT_LOCKOUT_DURATION_MINUTES,
+    CUSTOMER_WALLET_LEDGER,
+    MASTER_BASE_WALLET,
     MAX_FAILED_OTP_ATTEMPTS,
     ONBOARDING_TOKEN_EXP_MINS,
+    PRODUCTION_DOMAIN,
     REFRESH_TOKEN_EXP_DAYS,
+    STAGING_DOMAIN,
     USDC_ABI,
     USDC_ADDRESS,
-    CUSTOMER_WALLET_LEDGER,
 )
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RedisClient
@@ -15,7 +18,7 @@ from src.infrastructure.redis import RedisClient
 __all__ = [
     "get_logger",
     "RedisClient",
-    "config",
+    "load_config",
     "USDC_ADDRESS",
     "ONBOARDING_TOKEN_EXP_MINS",
     "MAX_FAILED_OTP_ATTEMPTS",
@@ -24,4 +27,7 @@ __all__ = [
     "ACCESS_TOKEN_EXP_MINS",
     "REFRESH_TOKEN_EXP_DAYS",
     "CUSTOMER_WALLET_LEDGER",
+    "MASTER_BASE_WALLET",
+    "PRODUCTION_DOMAIN",
+    "STAGING_DOMAIN",
 ]

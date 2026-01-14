@@ -74,7 +74,7 @@ class ResendConfig(ServerConfig):
 
 class BlockRaderConfig(ServerConfig):
     blockrader_api_key: str
-    wallets: List[WalletConfig] | None = None
+    wallets: WalletConfig | None = None
 
 
 class PayCrestConfig(ServerConfig):

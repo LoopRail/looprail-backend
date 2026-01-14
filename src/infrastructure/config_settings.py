@@ -7,12 +7,19 @@ import toml
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.security import Argon2Config
-from src.infrastructure.settings import (ENVIRONMENT, AppSettings,
-                                         BlockRaderConfig, DatabaseConfig,
-                                         JWTConfig, LedgderServiceConfig,
-                                         OTPConfig, PayCrestConfig,
-                                         PaystackConfig, RedisConfig,
-                                         ResendConfig)
+from src.infrastructure.settings import (
+    ENVIRONMENT,
+    AppSettings,
+    BlockRaderConfig,
+    DatabaseConfig,
+    JWTConfig,
+    LedgderServiceConfig,
+    OTPConfig,
+    PayCrestConfig,
+    PaystackConfig,
+    RedisConfig,
+    ResendConfig,
+)
 from src.types import CountriesData, LedgerConfig, WalletConfig
 from src.utils import return_base_dir
 
@@ -21,20 +28,26 @@ logger = get_logger(__name__)
 
 def load_wallet_configs_into_config(
     environment: ENVIRONMENT,
-) -> List[WalletConfig] | None:
+) -> WalletConfig | None:
     config_filename = (
         "blockrader.json"
         if environment == ENVIRONMENT.DEVELOPMENT
         else "blockrader.prod.json"
     )
+
     config_path = os.path.join(return_base_dir(), "config", config_filename)
+
     try:
         with open(config_path, "r", encoding="utf-8") as f:
-            raw_configs = json.load(f)
-            return [WalletConfig(**c) for c in raw_configs]
-    except (FileNotFoundError, json.JSONDecodeError):
-        logger.warning("Could not load %s", config_path)
-        return []
+            raw_config = json.load(f)
+
+        return WalletConfig(**raw_config)
+
+    except FileNotFoundError:
+        logger.warning("Config file not found: %s", config_path)
+    except json.JSONDecodeError:
+        logger.warning("Invalid JSON in config file: %s", config_path)
+    return None
 
 
 def load_countries() -> CountriesData:
@@ -115,6 +128,3 @@ class Config:
 @lru_cache
 def load_config() -> Config:
     return Config()
-
-
-config = load_config()

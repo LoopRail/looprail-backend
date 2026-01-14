@@ -24,4 +24,14 @@ ARGON2_PARALLELISM = 4
 ARGON2_HASH_LEN = 32
 ARGON2_SALT_LEN = 16
 
+# Blnk ledgers
 CUSTOMER_WALLET_LEDGER = "customer_wallet_ledger"
+
+# Blockrader wallets
+MASTER_BASE_WALLET = "master_base_wallet"
+
+
+# DOAMINS
+
+STAGING_DOMAIN = "staging.looprail.xyz"
+PRODUCTION_DOMAIN = "looprail.xyz"
