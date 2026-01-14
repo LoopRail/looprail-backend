@@ -1,16 +1,18 @@
+import uuid
 from typing import Optional, Tuple
 
 from src.dtos.user_dtos import UserCreate
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import UserRepository, WalletRepository
-from src.infrastructure.services.blockrader_client import (AddressManager,
-                                                           WalletManager)
-from src.infrastructure.settings import BlockRaderConfig
 from src.infrastructure.security import Argon2Config
+from src.infrastructure.services.blockrader_client import AddressManager, WalletManager
+from src.infrastructure.settings import BlockRaderConfig
 from src.models import User, UserProfile, Wallet
 from src.types import Error, HashedPassword, InvalidCredentialsError
 from src.types.blockrader import CreateAddressRequest
 from src.types.common_types import UserId
+from src.usecases.wallet_usecases import WalletManagerUsecase  # Added
+from src.usecases.wallet_usecases import WalletService
 from src.utils import hash_password_argon2, verify_password_argon2
 
 logger = get_logger(__name__)
@@ -23,11 +25,15 @@ class UserUseCase:
         wallet_repository: WalletRepository,
         blockrader_config: BlockRaderConfig,
         argon2_config: Argon2Config,
+        wallet_manager_usecase: WalletManagerUsecase,  # Added this line
+        wallet_service: WalletService,  # Added this line
     ):
         self.user_repository = user_repository
         self.wallet_repository = wallet_repository
         self.blockrader_config = blockrader_config
         self.argon2_config = argon2_config
+        self.wallet_manager_usecase = wallet_manager_usecase  # Added this line
+        self.wallet_service = wallet_service  # Added this line
 
     async def authenticate_user(
         self, email: str, password: str
@@ -41,7 +47,9 @@ class UserUseCase:
         hashed_password_obj = HashedPassword(
             password_hash=user.password_hash, salt=user.salt
         )
-        if not verify_password_argon2(password, hashed_password_obj, self.argon2_config):
+        if not verify_password_argon2(
+            password, hashed_password_obj, self.argon2_config
+        ):
             return None, InvalidCredentialsError
         return user, None
 
@@ -61,12 +69,22 @@ class UserUseCase:
     async def create_user(
         self, user_create: UserCreate
     ) -> Tuple[Optional[User], Error]:
-        hashed_password_obj = hash_password_argon2(user_create.password, self.argon2_config)
+        temp_ledger_identity_id = f"temp_idty_{uuid.uuid4()}"
+
+        hashed_password_obj = hash_password_argon2(
+            user_create.password, self.argon2_config
+        )
         user = User(
             email=user_create.email,
             password_hash=hashed_password_obj.password_hash,
             salt=hashed_password_obj.salt,
+            first_name=user_create.first_name,
+            last_name=user_create.last_name,
+            gender=user_create.gender,
+            ledger_identiy_id=temp_ledger_identity_id,
+            username=user_create.username,
         )
+
         created_user, err = await self.user_repository.create_user(user=user)
         if err:
             logger.error(
@@ -74,62 +92,38 @@ class UserUseCase:
             )
             return None, err
         logger.info(
-            "User %s created successfully in repository.", created_user.username
+            "User %s created successfully in repository with temporary ledger ID.",
+            created_user.username,
         )
 
-        wallet_manager = WalletManager(
-            self.blockrader_config, self.blockrader_config.evm_master_wallet
+        ledger_identity, err = await self.wallet_service.create_ledger_identity(
+            user_create
         )
-        create_address_req = CreateAddressRequest(
-            name=f"{created_user.username}'s address",
-            metadata={
-                "user_id": str(created_user.id),
-                "user_email": created_user.email,
-            },
-        )
-        address_details, err = await wallet_manager.generate_address(create_address_req)
-        address_manager = AddressManager(
-            self.blockrader_config,
-            self.blockrader_config.base_wallet_id,
-            address_details.data.id,
-        )
-
         if err:
             logger.error(
-                "Failed to generate address for user %s: %s",
+                "Failed to create ledger identity for user %s: %s",
                 created_user.username,
                 err.message,
                 exc_info=True,
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
-        logger.info("Address generated for user %s.", created_user.username)
+        logger.info("Ledger identity created for user %s.", created_user.username)
 
-        address_balance_details, err = await address_manager.get_balance(
-            self.blockrader_config.base_usdc_asset_id
+        created_user, err = await self.user_repository.update_user(
+            user_id=created_user.id, ledger_identiy_id=ledger_identity.identity_id
         )
-
         if err:
             logger.error(
-                "Failed to get address balance for user %s: %s",
+                "Failed to update user with real ledger ID for user %s: %s",
                 created_user.username,
                 err.message,
                 exc_info=True,
             )
             await self.user_repository.delete_user(user_id=created_user.id)
             return None, err
-        logger.info("Address balance retrieved for user %s.", created_user.username)
 
-        wallet = Wallet(
-            user_id=created_user.id,
-            address=address_details.data.address,
-            provider_id=address_details.data.id,
-            network=address_details.data.network,
-            balance=address_balance_details.data.balance,
-            usdc_asset_id=self.blockrader_config.base_usdc_asset_id,  # Added missing usdc_asset_id
-        )
-
-        _, err = await self.wallet_repository.create_wallet(wallet=wallet)
+        _, err = await self.wallet_manager_usecase.create_user_wallet(created_user.id)
         if err:
             logger.error(
                 "Failed to create wallet for user %s: %s",
