@@ -1,11 +1,15 @@
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import get_jwt_usecase, get_user_usecases, verify_otp_dep
-
-# from src.api.rate_limiter import limiter
+from src.api.dependencies import (
+    get_config,
+    get_jwt_usecase,
+    get_user_usecases,
+    verify_otp_dep,
+)
+from src.api.rate_limiter import limiter
 from src.dtos import OTPSuccessResponse
-from src.infrastructure import config
+from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.models import Otp
 from src.types import NotFoundError, OnBoardingToken, OtpType
@@ -17,12 +21,13 @@ router = APIRouter(prefix="/verify", tags=["Auth", "Verify"])
 
 
 @router.post("/onbaording-otp")
-# @limiter.limit("1/minute")
+@limiter.limit("1/minute")
 async def verify_onboarding_otp(
     request: Request,
+    otp: Otp = Depends(verify_otp_dep),
+    config: Config = Depends(get_config),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     user_usecase: UserUseCase = Depends(get_user_usecases),
-    otp: Otp = Depends(verify_otp_dep),
 ):
     if otp.otp_type != OtpType.ONBOARDING_EMAIL_VERIFICATION:
         logger.error("Invalid OTP type for onboarding verification")
