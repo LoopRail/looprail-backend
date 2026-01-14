@@ -1,26 +1,22 @@
-from __future__ import annotations
-
-from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional
+from uuid import UUID
 
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
-from src.types.common_types import Address, Chain, UserId, WalletId
-from src.types.types import (AssetType, Currency, PaymentMethod, TokenStandard,
-                             TransactionType)
+from src.models.user_model import User
+from src.types.common_types import Address, Chain
+from src.types.types import AssetType, TokenStandard
 
 if TYPE_CHECKING:
-    from src.models.user_model import User
-
-# TODO we need to creat tairs and then add limits to tht rairs and stuff
+    from src.models.tranaction_model import Transaction
 
 
 class Wallet(Base, table=True):
     __tablename__ = "wallets"
     __id_prefix__ = "wlt_"
 
-    user_id: UserId = Field(foreign_key="users.id", index=True)
+    user_id: UUID = Field(foreign_key="users.id", index=True)
     address: Address = Field(unique=True, index=True, nullable=False)
     chain: Chain = Field(nullable=False)
     provider: str = Field(index=True, nullable=False)
@@ -29,7 +25,7 @@ class Wallet(Base, table=True):
 
     name: Optional[str] = Field(default=None)
     derivation_path: Optional[str] = Field(default=None)
-    user: "User" = Relationship(back_populates="wallet")
+    user: User = Relationship(back_populates="wallet")
 
     transactions: List["Transaction"] = Relationship(
         back_populates="wallet",
@@ -46,13 +42,14 @@ class Asset(Base, table=True):
     __tablename__ = "assets"
     __id_prefix__ = "ast_"
 
-    wallet_id: WalletId = Field(
+    wallet_id: UUID = Field(
         foreign_key="wallets.id",
         index=True,
     )
     ledger_balance_id: str = Field(default=None, nullable=False, unique=True)
     name: str = Field(nullable=False)
-    asset_id: AssetType = Field(unique=True, index=True, nullable=False)
+    blockrader_asset_id: UUID = Field(index=True, nullable=False)
+    asset_type: AssetType = Field(nullable=False)
     address: Address = Field(nullable=False)
     symbol: str = Field(nullable=False)
     decimals: int = Field(nullable=False)
@@ -61,45 +58,15 @@ class Asset(Base, table=True):
     standard: Optional[TokenStandard] = Field(default=None)
     is_active: bool = Field(default=True, nullable=False)
 
-    wallet: Optional["Wallet"] = Relationship(
+    wallet: Wallet = Relationship(
         back_populates="assets",
         sa_relationship_kwargs={"passive_deletes": True},
     )
 
-    def get_id_prefix(self) -> str:
-        return f"{self.__id_prefix__}{self.asset_id.value}_"
-
-
-class Transaction(Base, table=True):
-    __tablename__ = "transactions"
-    __id_prefix__ = "txn_"
-
-    wallet_id: WalletId = Field(
-        foreign_key="wallets.id",
-        index=True,
+    transactions: List["Transaction"] = Relationship(
+        back_populates="asset",
+        sa_relationship_kwargs={"passive_deletes": True},
     )
-    transaction_type: TransactionType = Field(nullable=False)
-    method: PaymentMethod = Field(nullable=False)
-    currency: Currency = Field(nullable=False)
-    sender: str = Field(nullable=False)
-    receiver: str = Field(nullable=False)
-    amount: Decimal = Field(nullable=False)
-    status: str = Field(nullable=False)
-    transaction_hash: str = Field(unique=True, index=True, nullable=False)
-    provider_id: str = Field(unique=True, index=True, nullable=False)
-    network: str = Field(nullable=False)
-    confirmations: int = Field(nullable=False)
-    confirmed: bool = Field(nullable=False)
-    reference: str = Field(nullable=False)
 
-    block_hash: Optional[str] = Field(default=None)
-    block_number: Optional[int] = Field(default=None)
-    gas_price: Optional[str] = Field(default=None)
-    gas_fee: Optional[str] = Field(default=None)
-    gas_used: Optional[str] = Field(default=None)
-    note: Optional[str] = Field(default=None)
-    chain_id: Optional[int] = Field(default=None)
-    reason: Optional[str] = Field(default=None)
-    fee: Optional[Decimal] = Field(default=None)
-
-    wallet: Optional["Wallet"] = Relationship(back_populates="transactions")
+    def get_id_prefix(self) -> str:
+        return f"{self.__id_prefix__}{self.asset_type.value}_"

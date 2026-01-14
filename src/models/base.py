@@ -1,25 +1,40 @@
 from datetime import datetime
 from typing import ClassVar, List, Optional, Self, Tuple
-from uuid import  uuid4
+from uuid import UUID, uuid4
 
+from asyncpg.exceptions import UniqueViolationError
 from pydantic import ConfigDict
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.sql import Select
 from sqlmodel import Field, SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.infrastructure.logger import get_logger
 from src.types.common_types import DeletionFilter
-from src.types.error import (
-    Error,
-    ItemDoesNotExistError,
-    NotFoundError,
-    ProtectedModelError,
-    UpdatingProtectedFieldError,
-    error,
-)
+from src.types.error import (Error, ItemDoesNotExistError, NotFoundError,
+                             ProtectedModelError, UpdatingProtectedFieldError,
+                             error)
 
 logger = get_logger(__name__)
 __default_protected_fields__ = ["id", "created_at", "updated_at", "deleted_at"]
+
+
+async def exec_stmt[T](
+    session: AsyncSession,
+    stmt: Select,
+    *,
+    one: bool = False,
+) -> Optional[T] | List[T]:
+    """
+    Execute a SQLAlchemy statement and return ORM results.
+    """
+    result = await session.execute(stmt)
+    scalars = result.scalars()
+
+    if one:
+        return scalars.first()
+
+    return scalars.all()
 
 
 class DatabaseMixin:
@@ -35,11 +50,11 @@ class DatabaseMixin:
             await session.flush()
             await session.refresh(self)
             return None
-        except IntegrityError as e:
+        except UniqueViolationError as e:
             await session.rollback()
             logger.error(e, stack_info=True)
             return error(e)
-        except SQLAlchemyError as e:
+        except (IntegrityError, SQLAlchemyError) as e:
             await session.rollback()
             logger.error(e, stack_info=True)
             return error(e)
@@ -77,49 +92,60 @@ class DatabaseMixin:
 
     @classmethod
     async def find_all(
-        cls, session: AsyncSession, deletion: DeletionFilter = "active", **kwargs
+        cls,
+        session: AsyncSession,
+        deletion: Optional[DeletionFilter] = None,
+        **kwargs,
     ) -> List["Self"]:
-        statement = select(cls).filter_by(**kwargs)
+        stmt = select(cls).filter_by(**kwargs)
 
         if deletion == "active":
-            statement = statement.where(cls.deleted_at.is_(None))
+            stmt = stmt.where(cls.deleted_at.is_(None))
         elif deletion == "deleted":
-            statement = statement.where(cls.deleted_at.is_not(None))
+            stmt = stmt.where(cls.deleted_at.is_not(None))
 
-        result = await session.exec(statement)
-        return await result.all()
+        return await exec_stmt(session, stmt)
 
     @classmethod
     async def find_one(
-        cls, session: AsyncSession, deletion: DeletionFilter = "active", **kwargs
-    ) -> Tuple[Optional["Self"], Error]:
-        results = await cls.find_all(session, deletion, **kwargs)
-        if len(results) < 1:
+        cls,
+        session: AsyncSession,
+        deletion: Optional[DeletionFilter] = None,
+        **kwargs,
+    ) -> tuple[Optional["Self"], Optional[Error]]:
+        stmt = select(cls).filter_by(**kwargs)
+
+        if deletion == "active":
+            stmt = stmt.where(cls.deleted_at.is_(None))
+        elif deletion == "deleted":
+            stmt = stmt.where(cls.deleted_at.is_not(None))
+
+        obj = await exec_stmt(session, stmt, one=True)
+
+        if obj is None:
             return None, NotFoundError
-        return results[0], None
+
+        return obj, None
 
     @classmethod
     async def get(
-        cls, session: AsyncSession, _id: str, deletion: DeletionFilter = "active"
-    ) -> Tuple[Optional["Self"], Error]:
-        filter_ = {"id": _id}
-        result, err = await cls.find_one(session, deletion, **filter_)
-        if err:
-            return None, NotFoundError
-        return result, None
+        cls,
+        session: AsyncSession,
+        _id: str,
+        deletion: DeletionFilter = "active",
+    ) -> tuple[Optional["Self"], Optional[Error]]:
+        return await cls.find_one(session, deletion, id=_id)
 
 
 class Base(SQLModel, DatabaseMixin):
-    __id_prefix__: ClassVar[Optional[str]] = None
-    __protected_fields__: ClassVar[Optional[str | List[str]]] = None
+    __id_prefix__: ClassVar[str] = None
+    __protected_fields__: ClassVar[str | List[str]] = None
     model_config = ConfigDict(
         use_enum_values=True, validate_assignment=True, populate_by_name=True
     )
-    id: str = Field(
-        default_factory=lambda: Base._generate_prefixed_id(), primary_key=True
-    )
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime | None = Field(default=None)
     deleted_at: datetime | None = Field(default=None)
 
     def _get_protected_fields(self) -> str | list["str"]:
@@ -136,7 +162,6 @@ class Base(SQLModel, DatabaseMixin):
     def get_id_prefix(cls) -> str:
         return cls.__id_prefix__ if cls.__id_prefix__ else ""
 
-    @classmethod
-    def _generate_prefixed_id(cls) -> str:
-        prefix = cls.get_id_prefix()
-        return f"{prefix}{uuid4()}"
+    def get_prefixed_id(self) -> str:
+        prefix = self.get_id_prefix()
+        return f"{prefix}{self.id}"
