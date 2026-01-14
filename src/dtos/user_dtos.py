@@ -1,14 +1,18 @@
+import re
 from datetime import date
+from typing import Any, ClassVar, List
 
-from email_validator import EmailNotValidError, validate_email
 from pydantic import EmailStr, Field, field_validator
 
 from src.dtos.base import Base
-from src.infrastructure import config
 from src.types.common_types import PhoneNumber, UserId, UserProfileId
+from src.types.country_types import CountriesData
 from src.types.error import error
 from src.types.types import Gender, KYCStatus
-from src.utils import is_valid_country_code, validate_password_strength
+from src.utils import (is_valid_country_code, is_valid_email,
+                       validate_password_strength)
+
+USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]{4,16}$")
 
 
 class OnboardUserUpdate(Base):
@@ -18,13 +22,24 @@ class OnboardUserUpdate(Base):
 
 
 class UserCreate(Base):
+    dto_config: ClassVar[Any] = None
     email: EmailStr
     password: str
     first_name: str
     last_name: str
+    username: str = Field(min_length=4, max_length=16)
     country_code: str
     gender: Gender
     phone_number: PhoneNumber
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, v: str) -> str:
+        if not USERNAME_REGEX.fullmatch(v):
+            raise ValueError(
+                "Username must be 4–16 characters and contain only letters, numbers, '_' or '-'"
+            )
+        return v
 
     @field_validator("password")
     @classmethod
@@ -36,22 +51,23 @@ class UserCreate(Base):
 
     @field_validator("country_code")
     @classmethod
-    def validate_country_code(cls, v: str) -> str:
-        if not is_valid_country_code(config.countries, v):
+    def _validate_country_code(cls, v: str) -> str:
+        config: CountriesData = cls.dto_config.get("allowed_countries", None)
+        if config is None:
+            raise error("Config not set")
+        if not is_valid_country_code(config, v):
             raise error(f"Country code '{v.upper()}' is not supported")
         return v.upper()
 
     @field_validator("email")
     @classmethod
-    def validate_email(cls, val: any):
-        try:
-            email_info = validate_email(val, check_deliverability=True)
-            if email_info.domain in config.disposable_email_domains:
-                raise error("Disposable email addresses are not allowed")
-            return email_info.email
-
-        except EmailNotValidError as e:
-            raise error("Invalid email address") from e
+    def _validate_email(cls, v: str) -> str:
+        config: List[str] = cls.dto_config.get("disposable_email_domains", None)
+        if config is None:
+            raise error("Config not set")
+        if not is_valid_email(v, config):
+            raise error("Invalid email address")
+        return v
 
 
 class UserPublic(Base):

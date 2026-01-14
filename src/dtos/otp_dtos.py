@@ -1,10 +1,12 @@
-from email_validator import EmailNotValidError, validate_email
+from typing import List
+
 from pydantic import EmailStr, field_validator
+from pydantic_core.core_schema import FieldValidationInfo
 
 from src.dtos.base import Base
-from src.infrastructure import config
 from src.types.error import error
 from src.types.types import OtpType
+from src.utils import is_valid_email
 
 
 class OtpCreate(Base):
@@ -12,15 +14,11 @@ class OtpCreate(Base):
 
     @field_validator("email")
     @classmethod
-    def validate_email(cls, val: any):
-        try:
-            email_info = validate_email(val, check_deliverability=True)
-            if email_info.domain in config.disposable_email_domains:
-                raise error("Disposable email addresses are not allowed")
-            return email_info.email
-
-        except EmailNotValidError as e:
-            raise error("Invalid email address") from e
+    def _validate_email(cls, v: str, info: FieldValidationInfo) -> str:
+        config: List[str] = info.context["disposable_email_domains"]
+        if not is_valid_email(config, v):
+            raise error("Invalid email address")
+        return v
 
 
 class VerifyOtpRequest(Base):

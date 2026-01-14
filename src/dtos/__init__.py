@@ -1,9 +1,12 @@
 from src.dtos.account_dtos import VerifyAccountRequest, VerifyAccountResponse
+from src.dtos.auth_dtos import (AuthTokensResponse,
+                                AuthWithTokensAndUserResponse,
+                                CreateUserResponse, MessageResponse)
 from src.dtos.otp_dtos import OtpCreate, OTPSuccessResponse, VerifyOtpRequest
 from src.dtos.transaction_dtos import CreateTransactionParams
 from src.dtos.user_dtos import (LoginRequest, OnboardUserUpdate,
                                 RefreshTokenRequest, UserCreate, UserPublic)
-from src.dtos.wallet_dtos import WithdrawalRequest, BankTransferRequest
+from src.dtos.wallet_dtos import BankTransferRequest, WithdrawalRequest
 
 __all__ = [
     "OnboardUserUpdate",
@@ -19,5 +22,9 @@ __all__ = [
     "VerifyAccountResponse",
     "CreateTransactionParams",
     "WithdrawalRequest",
-    "BankTransferRequest"
+    "BankTransferRequest",
+    "AuthTokensResponse",
+    "AuthWithTokensAndUserResponse",
+    "CreateUserResponse",
+    "MessageResponse",
 ]
