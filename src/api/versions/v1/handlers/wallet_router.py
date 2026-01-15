@@ -2,8 +2,11 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import get_current_user, get_wallet_manager_usecase
-from src.dtos import WithdrawalRequest
+from src.api.dependencies.extra_deps import get_rq_manager
+from src.dtos.wallet_dtos import ProcessWithdrawalRequest, WithdrawalRequest
 from src.infrastructure.logger import get_logger
+from src.infrastructure.redis import RQManager
+from src.infrastructure.tasks.withdrawal_tasks import process_withdrawal_task
 from src.models import User
 from src.usecases import WalletManagerUsecase
 
@@ -42,5 +45,19 @@ async def initiate_withdraw(
 
 
 @router.post("/process-withdraw", status_code=status.HTTP_200_OK)
-async def process_withraw_request():
-    pass
+async def process_withraw_request(
+    req: ProcessWithdrawalRequest,
+    user: User = Depends(get_current_user),
+    rq_manager: RQManager = Depends(get_rq_manager),
+):
+    rq_manager.get_queue().enqueue(
+        process_withdrawal_task,
+        user_id=user.id,
+        pin=req.pin,
+        transaction_id=req.transaction_id,
+    )
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": "Withdrawal processing initiated successfully."},
+    )
