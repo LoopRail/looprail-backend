@@ -1,10 +1,14 @@
+import json
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Tuple, Type
 
 from httpx import AsyncClient, ConnectError, Response, TimeoutException
 from pydantic import BaseModel
 
+from src.infrastructure import get_logger
 from src.types import Error, HTTPMethod, httpError
+
+logger = get_logger(__name__)
 
 type T = BaseModel
 
@@ -63,6 +67,7 @@ class BaseClient(ABC):
         headers = self._get_headers()
         async with AsyncClient() as client:
             try:
+                logger.debug("Sending %s request to %s", method, url)
                 res = await client.request(
                     method,
                     url,
@@ -72,10 +77,14 @@ class BaseClient(ABC):
                     timeout=30,
                 )
                 return res, None
-            except (TimeoutException, ConnectError):
-                return None, httpError(
-                    code=504, message=f"Request to {url} failed"
-                )
+            except (
+                TimeoutException,
+                ConnectError,
+                json.JSONDecodeError,
+                TypeError,
+            ) as e:
+                logger.error("Request to %s failed: %s", url, e, exc_info=True)
+                return None, httpError(code=504, message=f"Request to {url} failed")
 
     def _process_response(
         self, res: Response, response_model: Type[T]
@@ -90,11 +99,22 @@ class BaseClient(ABC):
             A tuple containing the response data and an error, if any.
         """
         if res.status_code >= 500:
+            logger.error(
+                "Service not available (status code: %s) for request to %s",
+                res.status_code,
+                res.url,
+            )
             return None, httpError(
                 code=res.status_code, message=f"Service not available {res.status_code}"
             )
 
         if not res.is_success:
+            logger.error(
+                "Request failed (status code: %s): %s for request to %s",
+                res.status_code,
+                res.text,
+                res.url,
+            )
             return None, httpError(
                 code=res.status_code,
                 message=f"Request failed {res.status_code}: {res.text}",

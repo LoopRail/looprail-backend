@@ -1,6 +1,6 @@
+import os
 from contextlib import asynccontextmanager
 
-import os
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,19 +8,21 @@ from fastapi.responses import JSONResponse
 
 from src.api import add_rate_limiter, v1_router
 from src.api.middlewares import RequestLoggerMiddleware
-from src.infrastructure import RedisClient, config
-from src.infrastructure.services import (
-    AuthLockService,
-    PaycrestService,
-    PaystackService,
-    ResendService,
-    LedgerService
-)
-from src.types import Error, error
+from src.infrastructure import RedisClient, get_logger, load_config
+from src.infrastructure.services import (AuthLockService, LedgerService,
+                                         PaycrestService, PaystackService,
+                                         ResendService)
+from src.types import Error, InternaleServerError, error
+
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app_: FastAPI):
+    config = load_config()
+    app_.state.config = config
+    app_.state.environment = config.app.environment
+
     app_.state.redis = RedisClient(config.redis)
 
     app_.state.paycrest = PaycrestService(config.paycrest)
@@ -31,10 +33,11 @@ async def lifespan(app_: FastAPI):
     app_.state.auth_lock = AuthLockService(redis_client=app.state.redis)
 
     app_.state.blockrader_config = config.block_rader
+    app_.state.ledger_config = config.ledger
     app_.state.argon2_config = config.argon2
 
     yield
-    
+
     # --- SHUTDOWN ---
     # await app_.state.redis.close()  # if async
 
@@ -44,6 +47,8 @@ app = FastAPI(
     description="LoopRail's backend service",
     version="0.1.0",
     lifespan=lifespan,
+    # docs_url=None,
+    # redoc_url=None,
 )
 
 add_rate_limiter(app)
@@ -62,17 +67,21 @@ app.include_router(v1_router, prefix="/api")
 
 @app.exception_handler(error)
 async def custom_error_handler(request: Request, exc: Error):
+    code = status.HTTP_400_BAD_REQUEST
+    if hasattr(exc, "code"):
+        code = exc.code
     return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
+        status_code=code,
         content={"message": exc.message},
     )
 
 
 @app.exception_handler(HTTPException)
 async def custom_http_error_handler(request: Request, exc: HTTPException):
+    logger.error(exc)
     return JSONResponse(
         status_code=exc.status_code,
-        content=exc.detail,
+        content={"message": InternaleServerError.message},
     )
 
 
