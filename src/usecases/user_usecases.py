@@ -106,7 +106,7 @@ class UserUseCase:
                 err.message,
                 exc_info=True,
             )
-            await self.user_repository.delete_user(user_id=created_user.id)
+
             return None, err
         logger.info("Ledger identity created for user %s.", created_user.username)
 
@@ -120,7 +120,7 @@ class UserUseCase:
                 err.message,
                 exc_info=True,
             )
-            await self.user_repository.delete_user(user_id=created_user.id)
+
             return None, err
 
         _, err = await self.wallet_manager_usecase.create_user_wallet(created_user.id)
@@ -131,7 +131,7 @@ class UserUseCase:
                 err.message,
                 exc_info=True,
             )
-            await self.user_repository.delete_user(user_id=created_user.id)
+
             return None, err
         logger.info("Wallet created for user %s.", created_user.username)
 
