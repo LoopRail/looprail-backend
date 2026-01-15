@@ -7,7 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.models.user_model import User, UserProfile
 from src.types.common_types import UserId
-from src.types.error import Error, error
+from src.types.error import Error, NotFoundError, UserAlreadyExistsError, error
 
 
 class UserRepository:
@@ -22,7 +22,27 @@ class UserRepository:
         return await user.save(self.session)
 
     async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]:
-        return await user.create(self.session)
+        async with self.session.begin_nested():
+            existing_user_by_email, err = await self.get_user_by_email(email=user.email)
+            if err != NotFoundError and err:
+                return None, err
+            if existing_user_by_email is not None:
+                return None, UserAlreadyExistsError(
+                    "User with this email already exists"
+                )
+
+            existing_user_by_username, err = await self.get_user_by_username(
+                username=user.username
+            )
+
+            if err != NotFoundError and err:
+                return None, err
+            if existing_user_by_username is not None:
+                return None, UserAlreadyExistsError(
+                    "User with this username already exists"
+                )
+
+            return await user.create(self.session)
 
     async def get_user_by_id(self, *, user_id: UserId) -> Tuple[Optional[User], Error]:
         return await User.get(self.session, user_id)
@@ -32,13 +52,18 @@ class UserRepository:
     ) -> Tuple[Optional[User], Error]:
         return await User.find_one(self.session, email=email)
 
+    async def get_user_by_username(
+        self, *, username: str
+    ) -> Tuple[Optional[User], Error]:
+        return await User.find_one(self.session, username=username)
+
     async def list_users(
         self, *, limit: int = 50, offset: int = 0
     ) -> Tuple[list[User], Error]:
         try:
             statement = select(User).offset(offset).limit(limit)
-            result = await self.session.exec(statement)
-            return await result.all(), None
+            result = await self.session.execute(statement)
+            return result.scalars().all(), None
         except SQLAlchemyError as e:
             return [], error(str(e))
 

@@ -34,11 +34,13 @@ class SessionRepository:
             return None, err
         return session, None
 
-    async def get_session(self, session_id: SessionId) -> Tuple[Optional[Session], Error]:
+    async def get_session(
+        self, session_id: SessionId
+    ) -> Tuple[Optional[Session], Error]:
         statement = select(Session).where(
             Session.id == session_id, Session.revoked_at.is_(None)
         )
-        result = await self.session.exec(statement)
+        result = await self.session.execute(statement)
         session = result.first()
         if not session:
             return None, error("Session not found or already revoked.")
@@ -58,8 +60,8 @@ class SessionRepository:
         statement = select(Session).where(
             Session.user_id == user_id, Session.revoked_at.is_(None)
         )
-        result = await self.session.exec(statement)
-        return await result.all()
+        result = await self.session.execute(statement)
+        return result.scalars().all()
 
     async def revoke_all_user_sessions(self, user_id: UserId) -> Error:
         sessions = await self.get_user_sessions(user_id)

@@ -44,7 +44,7 @@ class RefreshTokenRepository:
             RefreshToken.expires_at > datetime.utcnow(),
             RefreshToken.replaced_by_hash.is_(None),
         )
-        result = await self.session.exec(statement)
+        result = await self.session.execute(statement)
         refresh_token = result.first()
         if not refresh_token:
             return None, error("Invalid or expired refresh token")
@@ -55,7 +55,6 @@ class RefreshTokenRepository:
     ) -> Error:
         old_refresh_token.replaced_by_hash = new_refresh_token_hash
         self.session.add(old_refresh_token)
-        await self.session.commit()
         return None
 
     async def revoke_refresh_tokens_for_session(self, session_id: SessionId) -> Error:
@@ -64,8 +63,7 @@ class RefreshTokenRepository:
             .where(RefreshToken.session_id == session_id)
             .values(revoked_at=datetime.utcnow())
         )
-        await self.session.exec(statement)
-        await self.session.commit()
+        await self.session.execute(statement)
         return None
 
     async def revoke_all_refresh_tokens_for_user(self, user_id: UserId) -> Error:

@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from src.models.wallet_model import Transaction
+from src.models import Transaction
 from src.types.common_types import TransactionId, WalletId
 from src.types.error import Error, error
 
@@ -40,8 +40,8 @@ class TransactionRepository:
                 .offset(offset)
                 .limit(limit)
             )
-            result = await self.session.exec(statement)
-            return await result.all(), None
+            result = await self.session.execute(statement)
+            return result.scalars().all(), None
         except SQLAlchemyError as e:
             return [], error(str(e))
 
