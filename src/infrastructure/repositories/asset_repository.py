@@ -20,7 +20,7 @@ class AssetRepository:
     async def get_asset_by_wallet_id_and_asset_type(
         self, *, wallet_id: WalletId, asset_type: AssetType 
     ) -> Tuple[Optional[Asset], Error]:
-        asset = await self.session.exec(
+        asset = await self.session.execute(
             select(Asset)
             .where(Asset.wallet_id == wallet_id)
             .where(Asset.asset_id == asset_type)
