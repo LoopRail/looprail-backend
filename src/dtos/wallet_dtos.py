@@ -69,3 +69,8 @@ class WithdrawalRequest(Base):
     amount: Decimal
     narration: str
     destination: GenericWithdrawalRequest
+
+
+class ProcessWithdrawalRequest(Base):
+    transaction_id: str
+    pin: str
