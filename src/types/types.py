@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import List, Optional, Tuple
 
 from pydantic import BaseModel
@@ -27,43 +27,43 @@ class WalletConfig(BaseModel):
         return None, error(f"Wallet with name {wallet_name} not found")
 
 
-class TransactionStatus(str, Enum):
+class TransactionStatus(StrEnum):
     COMPLETED = "completed"
     PENDING = "pending"
     FAILED = "failed"
 
 
-class Currency(str, Enum):
+class Currency(StrEnum):
     NAIRA = "ngn"
 
 
-class AssetType(str, Enum):
+class AssetType(StrEnum):
     USDC = "usdc"
     USDT = "usdt"
     cNGN = "cngn"
 
 
-class TokenStandard(str, Enum):
+class TokenStandard(StrEnum):
     ERC20 = "erc20"
     BEP20 = "bep20"
     TRC20 = "trc20"
 
 
-class Provider(str, Enum):
+class Provider(StrEnum):
     BLOCKRADER = "blockrader"
 
 
-class TransactionType(str, Enum):
+class TransactionType(StrEnum):
     DEBIT = "debit"
     CREDIT = "credit"
 
 
-class PaymentType(str, Enum):
+class PaymentType(StrEnum):
     FIAT = "fiat"
     CRYPTO = "crypto"
 
 
-class PaymentMethod(str, Enum):
+class PaymentMethod(StrEnum):
     CARD = "card"
     APPLE_PAY = "apple-pay"
     GOOGLE_PAY = "google_pay"
@@ -72,7 +72,7 @@ class PaymentMethod(str, Enum):
     WALLET_TRANSFER = "wallet-transfer"
 
 
-class KYCStatus(str, Enum):
+class KYCStatus(StrEnum):
     """Represents the KYC status of a user."""
 
     NOT_STARTED = "not_started"
@@ -81,39 +81,38 @@ class KYCStatus(str, Enum):
     FAILED = "failed"
 
 
-class OtpType(str, Enum):
+class OtpType(StrEnum):
     ONBOARDING_EMAIL_VERIFICATION = "onboarding_email_verification"
 
 
-class OtpStatus(str, Enum):
+class OtpStatus(StrEnum):
     ACTIVE = "active"
     USED = "used"
     EXPIRED = "expired"
     ATTEMPT_EXCEEDED = "attempt_exceeded"
 
 
-class TokenType(str, Enum):
+class TokenType(StrEnum):
     ONBOARDING_TOKEN = "onboarding-token"
     ACCESS_TOKEN = "access-token"
     REFRESH_TOKEN = "refresh-token"
 
 
-class Platform(str, Enum):
-    WEB = "web"
+class Platform(StrEnum):
     ANDROID = "android"
     IOS = "ios"
 
 
-class InstitutionCountry(str, Enum):
+class InstitutionCountry(StrEnum):
     NG = "NG"
     KY = "KY"
 
 
-class Gender(str, Enum):
+class Gender(StrEnum):
     MALE = "male"
     FEMALE = "female"
 
 
-class WithdrawalMethod(str, Enum):
+class WithdrawalMethod(StrEnum):
     BANK_TRANSFER = "withdraw:bank-transfer"
     EXTERNAL_WALLET = "withdraw:external-wallet"

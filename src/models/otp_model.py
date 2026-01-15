@@ -15,7 +15,9 @@ class Otp(BaseModel):
     """
 
     __id_prefix__ = "otp_"
-    model_config = ConfigDict(alias_generator=kebab_case, populate_by_name=True)
+    model_config = ConfigDict(
+        alias_generator=kebab_case, populate_by_name=True, use_enum_values=True
+    )
 
     user_email: EmailStr
     created_at: int = Field(default_factory=lambda: int(time.time()))

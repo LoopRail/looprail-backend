@@ -86,7 +86,7 @@ async def verify_otp_dep(
 
     otp, err = await otp_usecases.get_otp(otp_token, req.otp_type)
     if err:
-        logger.error("Error getting otp Error: %s", err.detail)
+        logger.error("Error getting otp Error: %s", err)
         raise OTPError(status_code=400, detail={"error": "Invalid OTP token"})
 
     if otp.is_expired():
@@ -103,7 +103,7 @@ async def verify_otp_dep(
 
     err = await otp_usecases.update_otp(otp_token, otp)
     if err:
-        logger.error("Error updating otp Error: %s", err.detail)
+        logger.error("Error updating otp Error: %s", err)
         raise OTPError(status_code=500, detail={"error": "Internal Server Error"})
 
     is_valid = await otp_usecases.verify_code(req.code, otp.code_hash)
@@ -113,7 +113,7 @@ async def verify_otp_dep(
     otp.status = OtpStatus.USED
     err = await otp_usecases.delete_otp(otp.user_email)
     if err:
-        logger.error("Error deleting otp Error: %s", err.detail)
+        logger.error("Error deleting otp Error: %s", err)
         raise OTPError(status_code=500, detail={"error": "Internal Server Error"})
     return otp
 

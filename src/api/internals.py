@@ -1,9 +1,7 @@
-from typing import Callable
-
-from fastapi import Body, Depends, HTTPException, Request
+from fastapi import Body, Depends, HTTPException
 
 from src.api.dependencies import get_config
-from src.dtos import UserCreate
+from src.dtos import OtpCreate, UserCreate
 from src.infrastructure import PRODUCTION_DOMAIN, STAGING_DOMAIN, get_logger
 from src.infrastructure.config_settings import Config
 from src.infrastructure.services import ResendService
@@ -48,6 +46,7 @@ async def send_otp_internal(
             raise HTTPException(status_code=500, detail="Failed to send OTP.")
     return token
 
+# TODO move to main
 
 async def set_user_create_config(config: Config = Depends(get_config)):
     config = {
@@ -55,3 +54,10 @@ async def set_user_create_config(config: Config = Depends(get_config)):
         "allowed_countries": config.countries,
     }
     UserCreate.dto_config = config
+
+
+async def set_send_otp_config(config: Config = Depends(get_config)):
+    config = {
+        "disposable_email_domains": config.disposable_email_domains,
+    }
+    OtpCreate.dto_config = config

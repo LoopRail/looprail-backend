@@ -1,28 +1,64 @@
 import hashlib
 
-from fastapi import (APIRouter, BackgroundTasks, Body, Depends, Header,
-                     Request, Response, status)
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    Header,
+    Request,
+    Response,
+    status,
+)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (BearerToken, get_app_environment, get_config,
-                                  get_jwt_usecase, get_otp_usecase,
-                                  get_resend_service, get_session_usecase,
-                                  get_user_usecases,
-                                  get_wallet_manager_usecase)
-from src.api.internals import send_otp_internal, set_user_create_config
+from src.api.dependencies import (
+    BearerToken,
+    get_app_environment,
+    get_config,
+    get_jwt_usecase,
+    get_otp_usecase,
+    get_resend_service,
+    get_session_usecase,
+    get_user_usecases,
+    get_wallet_manager_usecase,
+)
+from src.api.internals import (
+    send_otp_internal,
+    set_send_otp_config,
+    set_user_create_config,
+)
 from src.api.rate_limiter import limiter
-from src.dtos import (AuthTokensResponse, AuthWithTokensAndUserResponse,
-                      CreateUserResponse, LoginRequest, MessageResponse,
-                      OnboardUserUpdate, OtpCreate, RefreshTokenRequest,
-                      UserCreate, UserPublic)
+from src.dtos import (
+    AuthTokensResponse,
+    AuthWithTokensAndUserResponse,
+    CreateUserResponse,
+    LoginRequest,
+    MessageResponse,
+    OnboardUserUpdate,
+    OtpCreate,
+    RefreshTokenRequest,
+    UserCreate,
+    UserPublic,
+)
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
-from src.types import (AccessToken, OnBoardingToken, Platform, TokenType,
-                       UserAlreadyExistsError)
-from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
-                          WalletManagerUsecase)
+from src.types import (
+    AccessToken,
+    OnBoardingToken,
+    Platform,
+    TokenType,
+    UserAlreadyExistsError,
+)
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    SessionUseCase,
+    UserUseCase,
+    WalletManagerUsecase,
+)
 from src.utils import validate_password_strength
 
 logger = get_logger(__name__)
@@ -87,7 +123,7 @@ async def complete_onboarding(
     request: Request,
     user_data: OnboardUserUpdate,
     background_tasks: BackgroundTasks,
-    token: OnBoardingToken = Depends(BearerToken[OnBoardingToken]),
+    token: OnBoardingToken = Depends(BearerToken[OnBoardingToken]()),
     user_usecases: UserUseCase = Depends(get_user_usecases),
     wallet_manager: WalletManagerUsecase = Depends(get_wallet_manager_usecase),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
@@ -367,10 +403,12 @@ async def send_otp(
     request: Request,
     response: Response,
     otp_data: OtpCreate,
+    _config_set: None = Depends(set_send_otp_config),
     environment: ENVIRONMENT = Depends(get_app_environment),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
     resend_service: ResendService = Depends(get_resend_service),
 ):
+
     token = await send_otp_internal(
         environment,
         email=otp_data.email,
