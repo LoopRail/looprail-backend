@@ -10,12 +10,14 @@ from src.types.common_types import (
 )
 from src.types.country_types import CountriesData
 from src.types.error import (
+    AuthError,
     Error,
     FailedAttemptError,
     InternaleServerError,
     InvalidCredentialsError,
     ItemDoesNotExistError,
     NotFoundError,
+    OTPError,
     ProtectedModelError,
     UpdatingProtectedFieldError,
     UserAlreadyExistsError,
@@ -62,6 +64,8 @@ __all__ = [
     "UpdatingProtectedFieldError",
     "error",
     "httpError",
+    "AuthError",
+    "OTPError",
     "HTTPMethod",
     "LedgerConfig",
     "AssetType",
@@ -86,5 +90,5 @@ __all__ = [
     "IdentiyType",
     "WorldLedger",
     "InternaleServerError",
-    "UserAlreadyExistsError"
+    "UserAlreadyExistsError",
 ]

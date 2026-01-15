@@ -46,6 +46,16 @@ class UserAlreadyExistsError(error):
         super().__init__(message)
 
 
+class AuthError(httpError):
+    def __init__(self, code: int = 400, message: str = "Auth Error"):
+        super().__init__(code, message)
+
+
+class OTPError(error):
+    def __init__(self, message: str = "Otp error"):
+        super().__init__(message)
+
+
 NotFoundError = error("not found")
 ProtectedModelError = error("protected model can't update")
 ItemDoesNotExistError = error("item does not exist")
