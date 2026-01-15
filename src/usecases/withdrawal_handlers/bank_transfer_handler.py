@@ -1,16 +1,20 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional
 
 from src.dtos.transaction_dtos import CreateTransactionParams
 from src.dtos.wallet_dtos import BankTransferData, WithdrawalRequest
 from src.infrastructure.logger import get_logger
 from src.models import Asset, User
 from src.types.blnk import RecordTransactionRequest
+from src.types.common_types import WorldLedger
 from src.types.error import Error, error
-from src.types.types import TransactionType, WithdrawalMethod, WorldLedger
-from src.usecases.wallet_usecases import \
-    WalletManagerUsecase  
-from src.usecases.withdrawal_handlers.registry import \
-    register_withdrawal_handler
+from src.types.types import TransactionType, WithdrawalMethod
+from src.usecases.withdrawal_handlers.registry import register_withdrawal_handler
+
+if TYPE_CHECKING:
+    from src.usecases.wallet_usecases import WalletManagerUsecase
+
 
 logger = get_logger(__name__)
 
@@ -41,21 +45,20 @@ async def handle_bank_transfer(
         )
         return error("Bank transfer failed")
 
-    # Record transaction in local DB
     create_transaction_params = CreateTransactionParams(
         wallet_id=asset.wallet_id,
         transaction_type=TransactionType.DEBIT,
         method=WithdrawalMethod.BANK_TRANSFER,
         currency=asset.symbol,
-        sender=user.id,  # This could be the user's wallet address or similar
+        sender=user.id,
         receiver=bank_transfer_data.account_number,
         amount=withdrawal_request.amount,
-        status="pending",  # Initial status
-        transaction_hash=transfer_code,  # Paystack transfer code as hash
-        provider_id=transfer_code,  # Paystack transfer code as provider ID
-        network="N/A",  # Not applicable for bank transfer
-        confirmations=0,  # Not applicable
-        confirmed=False,  # Not confirmed initially
+        status="pending",
+        transaction_hash=transfer_code,
+        provider_id=transfer_code,
+        network="N/A",
+        confirmations=0,
+        confirmed=False,
         reference=withdrawal_request.narration,
         note=f"Bank transfer to {bank_transfer_data.account_name}",
     )

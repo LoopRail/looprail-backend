@@ -1,14 +1,19 @@
-from typing import Optional
+from __future__ import annotations
 
+from typing import TYPE_CHECKING, Optional
+
+from src.dtos.transaction_dtos import CreateTransactionParams
+from src.dtos.wallet_dtos import ExternalWalletTransferData, WithdrawalRequest
 from src.infrastructure.logger import get_logger
 from src.models import Asset, User
 from src.types.blnk import RecordTransactionRequest
+from src.types.common_types import WorldLedger
 from src.types.error import Error, error
-from src.types.types import TransactionType, WithdrawalMethod, WorldLedger
-from src.dtos.transaction_dtos import CreateTransactionParams
-from src.dtos.wallet_dtos import ExternalWalletTransferData, WithdrawalRequest
+from src.types.types import TransactionType, WithdrawalMethod
 from src.usecases.withdrawal_handlers.registry import register_withdrawal_handler
-from src.usecases.wallet_usecases import WalletManagerUsecase # Need access to WalletManagerUsecase's manager and service
+
+if TYPE_CHECKING:
+    from src.usecases.wallet_usecases import WalletManagerUsecase
 
 logger = get_logger(__name__)
 

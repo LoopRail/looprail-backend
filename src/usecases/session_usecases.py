@@ -2,7 +2,6 @@ import hashlib
 from typing import List, Optional, Tuple
 from uuid import uuid4
 
-from src.infrastructure import config
 from src.infrastructure.repositories import RefreshTokenRepository, SessionRepository
 from src.models import RefreshToken, Session
 from src.types import Error
@@ -12,11 +11,13 @@ from src.types.common_types import SessionId, UserId
 class SessionUseCase:
     def __init__(
         self,
+        refresh_token_expires_in_days: int,
         session_repository: SessionRepository,
         refresh_token_repository: RefreshTokenRepository,
     ):
         self.session_repository = session_repository
         self.refresh_token_repository = refresh_token_repository
+        self.refresh_token_expires_in_days = refresh_token_expires_in_days
 
     async def create_session(
         self,
@@ -37,17 +38,19 @@ class SessionUseCase:
             return None, "", err
 
         refresh_token_string = str(uuid4())
-        refresh_token, err = await self.refresh_token_repository.create_refresh_token(
+        _, err = await self.refresh_token_repository.create_refresh_token(
             session_id=session.id,
             new_refresh_token_string=refresh_token_string,
-            expires_in_days=config.jwt.refresh_token_expires_in_days,
+            expires_in_days=self.refresh_token_expires_in_days,
         )
         if err:
             return None, "", err
 
         return session, refresh_token_string, None
 
-    async def get_session(self, session_id: SessionId) -> Tuple[Optional[Session], Error]:
+    async def get_session(
+        self, session_id: SessionId
+    ) -> Tuple[Optional[Session], Error]:
         return await self.session_repository.get_session(session_id)
 
     async def revoke_session(self, session_id: SessionId) -> Error:
@@ -80,7 +83,7 @@ class SessionUseCase:
         ) = await self.refresh_token_repository.create_refresh_token(
             session_id=old_refresh_token.session_id,
             new_refresh_token_string=new_refresh_token_string,
-            expires_in_days=config.jwt.refresh_token_expires_in_days,
+            expires_in_days=self.refresh_token_expires_in_days,
         )
         if err:
             return None, err
@@ -113,3 +116,4 @@ class SessionUseCase:
         return await self.refresh_token_repository.get_valid_refresh_token_by_hash(
             refresh_token_hash
         )
+

@@ -2,21 +2,18 @@ from typing import Any, Dict, Optional, Self, Tuple
 
 from src.dtos.wallet_dtos import TransferType, WithdrawalRequest
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import (
-    AssetRepository,
-    UserRepository,
-    WalletRepository,
-)
-from src.infrastructure.services import LedgerService, PaycrestService, WalletManager
+from src.infrastructure.repositories import (AssetRepository, UserRepository,
+                                             WalletRepository)
+from src.infrastructure.services import (LedgerService, PaycrestService,
+                                         WalletManager)
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, User, Wallet
-from src.types import AssetType, Error, IdentiyType, Provider, WalletConfig, error
-from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse
-from src.types.blockrader import (
-    CreateAddressRequest,
-    NetworkFeeRequest,
-    WalletAddressResponse,
-)
+from src.types import (AssetType, Error, IdentiyType, Provider, WalletConfig,
+                       error)
+from src.types.blnk import (CreateBalanceRequest, CreateIdentityRequest,
+                            IdentityResponse)
+from src.types.blockrader import (CreateAddressRequest, NetworkFeeRequest,
+                                  WalletAddressResponse)
 from src.types.common_types import UserId
 from src.types.ledger_types import Ledger
 from src.usecases.transaction_usecases import TransactionUsecase
@@ -62,7 +59,11 @@ class WalletService:
         self, wallet_id: str, ledger: Ledger
     ) -> Tuple[Optional["WalletManagerUsecase"], Error]:
         wallet_config = next(
-            (w for w in self.blockrader_config.wallets if w.wallet_id == wallet_id),
+            (
+                w
+                for w in self.blockrader_config.wallets.wallets
+                if w.wallet_id == wallet_id
+            ),
             None,
         )
         if not wallet_config:
@@ -79,6 +80,28 @@ class WalletService:
         )
         return manager_usecase, None
 
+    async def create_ledger_identity(
+        self, user: User
+    ) -> Tuple[Optional[IdentityResponse], Error]:
+        identity_request = CreateIdentityRequest(
+            identity_type=IdentiyType.INDIVIDUAL,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            email_address=user.email,
+            phone_number=user.phone_number,
+        )
+        (
+            ledger_identity,
+            err,
+        ) = await self.ledger_service.identities.create_identity(identity_request)
+        if err:
+            logger.error(
+                "Could not create ledger identity for user Error: %s",
+                err.message,
+            )
+            return None, error("Could not create ledger identity")
+        return ledger_identity, None
+
 
 class WalletManagerUsecase:
     def __init__(
@@ -94,58 +117,18 @@ class WalletManagerUsecase:
         self.ledger_config = ledger_config
 
     async def _get_user_data(self, user_id: UserId) -> Tuple[Optional[User], Error]:
-        user, err = await self.service.user_repository.get_user_by_id(user_id)
+        user, err = await self.service.user_repository.get_user_by_id(user_id=user_id)
         if err:
             logger.error("Could not get user %s Error: %s", user_id, err.message)
             return None, error("Could not get user")
         return user, None
-
-    async def _create_ledger_identity(
-        self, user: User
-    ) -> Tuple[Optional[IdentityResponse], Error]:
-        identity_request = CreateIdentityRequest(
-            identity_type=IdentiyType.INDIVIDUAL,
-            first_name=user.first_name,
-            last_name=user.last_name,
-            email_address=user.email,
-            phone_number=user.phone_number,
-        )
-        (
-            ledger_identity,
-            err,
-        ) = await self.service.ledger_service.identities.create_identity(
-            identity_request
-        )
-        if err:
-            logger.error(
-                "Could not create ledger identity for user %s Error: %s",
-                user.id,
-                err.message,
-            )
-            return None, error("Could not create ledger identity")
-        return ledger_identity, None
-
-    async def _update_user_ledger_identity(
-        self, user: User, ledger_identity_id: str
-    ) -> Optional[Error]:
-        user.ledger_identiy_id = ledger_identity_id
-        _, err = await self.service.user_repository.update_user(user)
-        if err:
-            logger.error(
-                "Could not update user with ledger identity ID %s Error: %s",
-                user.id,
-                err.message,
-            )
-            return error("Could not update user with ledger identity ID")
-        return None
 
     async def _generate_provider_wallet(
         self, user_id: UserId
     ) -> Tuple[Optional[WalletAddressResponse], Error]:
         wallet_request = CreateAddressRequest(
             name=f"wallet:customer:{user_id}",
-            disableAutoSweep=True,
-            metadata={"user_id": user_id},
+            metadata={"user_id": str(user_id)},
         )
         provider_wallet, err = await self.manager.generate_address(wallet_request)
         if err:
@@ -156,26 +139,19 @@ class WalletManagerUsecase:
     async def _create_local_wallet(
         self, user: User, provider_wallet: WalletAddressResponse
     ) -> Tuple[Optional[Wallet], Error]:
-        provider, err = await self.service.wallet_provider_repository.get_by_name(
-            self.service.provider, is_active=True
-        )
-        if err:
-            logger.error(
-                "Could not get wallet provider %s Error: %s",
-                self.service.provider,
-                err.message,
-            )
-            return None, err("Could not get wallet Provider")
         new_wallet = Wallet(
             user_id=user.id,
             address=provider_wallet.data.address,
             chain=self.wallet_config.chain,
-            provider_id=provider.id,
+            provider=self.service.provider,
+            ledger_id=self.ledger_config.ledger_id,
             name=f"wallet:customer:{user.id}",
             derivation_path=provider_wallet.data.derivationPath,
         )
 
-        wallet, err = await self.service.wallet_repository.create_wallet(new_wallet)
+        wallet, err = await self.service.wallet_repository.create_wallet(
+            wallet=new_wallet
+        )
         if err:
             logger.error(
                 "Could not save wallet %s on provider %s to db Error: %s",
@@ -183,18 +159,12 @@ class WalletManagerUsecase:
                 self.service.provider.name,
                 err.message,
             )
-            return None, err("Could not get wallet Provider")
+            return None, err
         return wallet, None
 
     async def _create_ledger_balance(
         self, user: User, local_wallet: Wallet
     ) -> Optional[Error]:
-        if (
-            not self.service.ledger_service.config.ledgers
-            or not self.service.ledger_service.config.ledgers.ledgers
-        ):
-            return error("Ledger configuration not found")
-
         # Use stored wallet_config
         wallet_config = self.wallet_config
 
@@ -269,15 +239,9 @@ class WalletManagerUsecase:
         if err:
             return None, err
 
-        ledger_identity, err = await self._create_ledger_identity(user)
-        if err:
-            return None, err
-
-        err = await self._update_user_ledger_identity(user, ledger_identity.identity_id)
-        if err:
-            return None, err
-
-        provider_wallet, err = await self._generate_provider_wallet(user.id)
+        provider_wallet, err = await self._generate_provider_wallet(
+            user.get_prefixed_id()
+        )
         if err:
             return None, err
 
@@ -288,6 +252,7 @@ class WalletManagerUsecase:
         err = await self._create_ledger_balance(user, wallet)
         if err:
             return None, err
+        return self, None
 
     async def initiate_withdrawal(
         self,
