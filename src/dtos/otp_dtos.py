@@ -1,7 +1,6 @@
 from typing import List
 
 from pydantic import EmailStr, field_validator
-from pydantic_core.core_schema import FieldValidationInfo
 
 from src.dtos.base import Base
 from src.types.error import error
@@ -14,8 +13,11 @@ class OtpCreate(Base):
 
     @field_validator("email")
     @classmethod
-    def _validate_email(cls, v: str, info: FieldValidationInfo) -> str:
-        config: List[str] = info.context["disposable_email_domains"]
+    def _validate_email(cls, v: str) -> str:
+        print(v)
+        config: List[str] = cls.dto_config.get("disposable_email_domains", None)
+        if config is None:
+            raise error("Config not set")
         if not is_valid_email(config, v):
             raise error("Invalid email address")
         return v

@@ -1,6 +1,6 @@
 import re
 from datetime import date
-from typing import Any, ClassVar, List
+from typing import List
 
 from pydantic import EmailStr, Field, field_validator
 
@@ -9,20 +9,18 @@ from src.types.common_types import PhoneNumber, UserId, UserProfileId
 from src.types.country_types import CountriesData
 from src.types.error import error
 from src.types.types import Gender, KYCStatus
-from src.utils import (is_valid_country_code, is_valid_email,
-                       validate_password_strength)
+from src.utils import is_valid_country_code, is_valid_email, validate_password_strength
 
 USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]{4,16}$")
 
 
 class OnboardUserUpdate(Base):
-    transaction_pin: list[int]
+    transaction_pin: list[int] = Field(max_length=4, min_length=4)
     allow_notificatiosn: bool
     questioner: list[str]
 
 
 class UserCreate(Base):
-    dto_config: ClassVar[Any] = None
     email: EmailStr
     password: str
     first_name: str
