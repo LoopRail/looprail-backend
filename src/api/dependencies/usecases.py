@@ -35,8 +35,13 @@ async def get_session_usecase(
     refresh_token_repository: RefreshTokenRepository = Depends(
         get_refresh_token_repository
     ),
+    config: Config = Depends(get_config),
 ) -> SessionUseCase:
-    yield SessionUseCase(session_repository, refresh_token_repository)
+    yield SessionUseCase(
+        config.jwt.refresh_token_expires_in_days,
+        session_repository,
+        refresh_token_repository,
+    )
 
 
 async def get_otp_usecase(
