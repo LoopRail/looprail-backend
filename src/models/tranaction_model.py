@@ -42,7 +42,9 @@ class Transaction(Base, table=True):
     gas_price: Optional[str] = Field(default=None)
     gas_fee: Optional[str] = Field(default=None)
     gas_used: Optional[str] = Field(default=None)
-    note: Optional[str] = Field(default=None)
+    note: Optional[str] = Field(
+        default=None
+    )  # TODO we need only one resona or not as narration
     chain_id: Optional[int] = Field(default=None)
     reason: Optional[str] = Field(default=None)
     fee: Optional[Decimal] = Field(default=None)

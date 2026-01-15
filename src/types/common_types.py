@@ -1,5 +1,5 @@
 import re
-from enum import  StrEnum
+from enum import StrEnum
 from typing import Annotated, Literal, Union
 from uuid import UUID as PyUUID
 
@@ -67,8 +67,9 @@ def _validate_id_with_prefix(v: str, expected_prefix: str) -> str:
     if not v.startswith(expected_prefix):
         raise ValueError(f"ID must start with '{expected_prefix}'")
     try:
-        PyUUID(v[len(expected_prefix) :])  # Validate the UUID part
+        PyUUID(v[len(expected_prefix) :])
     except ValueError as e:
+        print(v[len(expected_prefix) :])
         raise error(
             f"Invalid UUID format after prefix for ID with prefix '{expected_prefix}'"
         ) from e
