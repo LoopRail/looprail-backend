@@ -1,9 +1,39 @@
-**/*/__pycache__/*
+# This is a .gitignore file
+# It specifies intentionally untracked files to ignore.
+# For more information on gitignore, see: https://git-scm.com/docs/gitignore
+
+# Compiled Python files
+*.pyc
+__pycache__/
+
+# Python virtual environment
 .venv/
+
+# IDE files
+.idea/
+.vscode/
+
+# Editor swap files
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+
+# Environment variables
+.env
 .env.dev
 .env.prod
 .env.staging
-.env
+
+# Test files and DB
 test.py
-*.egg-info/
 test.db
+
+# Egg info for Python packages
+*.egg-info/
