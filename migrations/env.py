@@ -3,8 +3,11 @@ from logging.config import fileConfig
 from alembic import context
 from sqlmodel import SQLModel
 
-from src.infrastructure.db import engine
+from src.infrastructure import load_config
+from src.infrastructure.db import get_engine
 
+db_uri = load_config().database.get_uri()
+engine = get_engine(db_uri)
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
