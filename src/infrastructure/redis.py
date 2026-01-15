@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 from coredis import Redis
 from coredis.exceptions import RedisError
 from coredis.pipeline import Pipeline
+from redis import Redis as SyncRedis
+from rq import Queue
 
 from src.infrastructure.settings import RedisConfig
 from src.types import Error, error
@@ -23,6 +25,28 @@ def _create_client(settings: RedisConfig):
         decode_responses=True,
     )
     return client
+
+
+class RQManager:
+    def __init__(self, settings: RedisConfig):
+        self._connection = self._create_sync_client(settings)
+        self._queue = Queue(connection=self._connection)
+
+    def get_connection(self) -> SyncRedis:
+        return self._connection
+
+    def _create_sync_client(self, settings: RedisConfig) -> SyncRedis:
+        """Initialize synchronous Redis connection for RQ."""
+        return SyncRedis(
+            host=settings.redis_host,
+            port=settings.redis_port,
+            username=settings.redis_username,
+            password=settings.redis_password,
+            decode_responses=True,
+        )
+
+    def get_queue(self) -> Queue:
+        return self._queue
 
 
 def _serialize_data(data: Any) -> Tuple[str | None, Error | None]:
