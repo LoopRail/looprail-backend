@@ -4,75 +4,10 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.dependencies import (
-    BearerToken,
-    get_jwt_usecase,
-    get_otp_usecase,
-    get_session_usecase,
-    get_user_usecases,
-    get_wallet_manager_factory,
-)
+from src.api.dependencies import BearerToken
 from src.main import app
 from src.models import User
 from src.types import AccessToken, TokenType, error
-from src.usecases import JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase
-
-
-@pytest.fixture(name="test_user")
-def test_user_fixture() -> tuple[User, str]:
-    user_id = uuid4()
-    mock_user = User(
-        id=user_id,
-        email="test@example.com",
-        first_name="Test",
-        last_name="User",
-        is_email_verified=True,
-        has_completed_onboarding=True,
-        username="testuser",
-        wallet_address="0xMockWalletAddress",
-    )
-    password = "testpassword"
-    return mock_user, password
-
-
-@pytest.fixture
-def mock_user_usecases() -> MagicMock:
-    mock = MagicMock(spec=UserUseCase)
-    app.dependency_overrides[get_user_usecases] = lambda: mock
-    yield mock
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def mock_otp_usecase() -> MagicMock:
-    mock = MagicMock(spec=OtpUseCase)
-    app.dependency_overrides[get_otp_usecase] = lambda: mock
-    yield mock
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def mock_session_usecase() -> MagicMock:
-    mock = MagicMock(spec=SessionUseCase)
-    app.dependency_overrides[get_session_usecase] = lambda: mock
-    yield mock
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def mock_jwt_usecase() -> MagicMock:
-    mock = MagicMock(spec=JWTUsecase)
-    app.dependency_overrides[get_jwt_usecase] = lambda: mock
-    yield mock
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def mock_wallet_manager_factory() -> MagicMock:
-    mock = MagicMock()
-    app.dependency_overrides[get_wallet_manager_factory] = lambda: mock
-    yield mock
-    app.dependency_overrides.clear()
 
 
 @pytest.fixture(name="authenticated_client")
@@ -84,28 +19,17 @@ def authenticated_client_fixture(
     mock_jwt_usecase: MagicMock,
 ) -> tuple[TestClient, str, str]:
     user, _ = test_user
-    device_id = "test_device_id"
-    platform = "web"
-
     # Mock user authentication
     mock_user_usecases.authenticate_user.return_value = (user, None)
 
     # Mock session creation
-    session_id = uuid4()
+    session_id = f"ses_{uuid4()}"
     mock_session = MagicMock()
     mock_session.id = session_id
     mock_session.user_id = user.id
     raw_refresh_token = "mock_refresh_token"
     mock_session_usecase.create_session.return_value = (mock_session, raw_refresh_token)
 
-    # Mock access token creation
-    access_token_data = AccessToken(
-        sub=user.id,
-        token_type=TokenType.ACCESS_TOKEN,
-        session_id=session_id,
-        platform=platform,
-        device_id=device_id,
-    )
     mock_access_token = "mock_access_token"
     mock_jwt_usecase.create_token.return_value = mock_access_token
 
@@ -126,7 +50,7 @@ def test_login_success(
     # Mock use case return values
     mock_user_usecases.authenticate_user.return_value = (user, None)
 
-    session_id = uuid4()
+    session_id = f"ses_{uuid4()}"
     mock_session = MagicMock()
     mock_session.id = session_id
     mock_session.user_id = user.id
@@ -151,7 +75,7 @@ def test_login_success(
         email=login_data["email"], password=login_data["password"]
     )
     mock_session_usecase.create_session.assert_called_once_with(
-        user_id=user.id,
+        user_id=user.get_prefixed_id(),
         device_id=headers["X-Device-ID"],
         platform=headers["X-Platform"],
         ip_address="testclient",
@@ -175,7 +99,7 @@ def test_login_invalid_credentials(
     response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
 
     assert response.status_code == 401
-    assert response.json() == {"error": "Invalid credentials"}
+    assert response.json() == {"message": "Invalid credentials"}
     mock_user_usecases.authenticate_user.assert_called_once_with(
         email=login_data["email"], password=login_data["password"]
     )
@@ -191,7 +115,7 @@ def test_refresh_token_success(
 
     mock_refresh_token_db = MagicMock()
     mock_refresh_token_db.id = uuid4()
-    mock_refresh_token_db.session_id = uuid4()
+    mock_refresh_token_db.session_id = f"ses_{uuid4()}"
     mock_refresh_token_db.replaced_by_hash = None
     mock_session_usecase.get_valid_refresh_token_by_hash.return_value = (
         mock_refresh_token_db,
@@ -200,7 +124,7 @@ def test_refresh_token_success(
 
     mock_session = MagicMock()
     mock_session.id = mock_refresh_token_db.session_id
-    mock_session.user_id = uuid4()
+    mock_session.user_id = f"usr_{uuid4()}"
     mock_session_usecase.get_session.return_value = (mock_session, None)
 
     new_raw_refresh_token_value = "mock_new_raw_refresh_token_string"
@@ -252,7 +176,7 @@ def test_refresh_token_invalid_token(
         headers={"X-Device-ID": "test_device_id", "X-Platform": "web"},
     )
     assert response.status_code == 401
-    assert response.json() == {"error": "Invalid or expired refresh token"}
+    assert response.json() == {"message": "Invalid or expired refresh token"}
     mock_session_usecase.get_valid_refresh_token_by_hash.assert_called_once()
 
 
@@ -266,7 +190,7 @@ def test_refresh_token_reuse_detection(
 
     mock_refresh_token_db_first_call = MagicMock()
     mock_refresh_token_db_first_call.id = uuid4()
-    mock_refresh_token_db_first_call.session_id = uuid4()
+    mock_refresh_token_db_first_call.session_id = f"ses_{uuid4()}"
     mock_refresh_token_db_first_call.replaced_by_hash = None
 
     mock_refresh_token_db_second_call = MagicMock()
@@ -285,7 +209,7 @@ def test_refresh_token_reuse_detection(
 
     mock_session = MagicMock()
     mock_session.id = mock_refresh_token_db_first_call.session_id
-    mock_session.user_id = uuid4()
+    mock_session.user_id = f"usr_{uuid4()}"
     mock_session_usecase.get_session.return_value = (mock_session, None)
 
     new_raw_refresh_token_value = "mock_new_raw_refresh_token_string_for_reuse"
@@ -331,14 +255,14 @@ def test_logout_success(
     mock_session_usecase: MagicMock,
 ):
     _, access_token, _ = authenticated_client
-    mock_session_id = uuid4()
-    mock_user_id = uuid4()
+    mock_session_id = f"ses_{uuid4()}"
+    mock_user_id = f"usr_{uuid4()}"
     mock_platform = "web"
     mock_access_token_obj = AccessToken(
-        sub=mock_user_id,
+        sub=f"usr_{mock_user_id}",
         token_type=TokenType.ACCESS_TOKEN,
         session_id=mock_session_id,
-        platform=mock_platform,
+        platform="android",
     )
 
     # Override BearerToken dependency to return our mock AccessToken
@@ -367,13 +291,13 @@ def test_logout_all_success(
     mock_session_usecase: MagicMock,
 ):
     user, _ = test_user
-    mock_session_id = uuid4()
+    mock_session_id = f"ses_{uuid4()}"
     mock_platform = "web"
     mock_access_token_obj = AccessToken(
-        sub=user.id,
+        sub=user.get_prefixed_id(),
         token_type=TokenType.ACCESS_TOKEN,
         session_id=mock_session_id,
-        platform=mock_platform,
+        platform="android",
     )
 
     # Override BearerToken dependency to return our mock AccessToken
@@ -390,7 +314,9 @@ def test_logout_all_success(
     assert response.status_code == 200
     assert response.json() == {"message": "Logged out from all sessions successfully"}
 
-    mock_session_usecase.revoke_all_user_sessions.assert_called_once_with(user.id)
+    mock_session_usecase.revoke_all_user_sessions.assert_called_once_with(
+        user.get_prefixed_id()
+    )
 
     # Clear the override
     app.dependency_overrides.clear()
