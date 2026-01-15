@@ -14,40 +14,45 @@ logger = get_logger(__name__)
 
 
 def get_engine(db_uri: str) -> AsyncEngine:
-    engine = create_async_engine(db_uri) # TODO do not echo in prod
+    engine = create_async_engine(db_uri, echo=True)  # TODO do not echo in prod
     return engine
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     engine = get_engine(db_url)
     async_session = async_sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
     )
+
+    logger.debug("Creating database session")
 
     async with async_session() as session:
         try:
-            async with session.begin():
-                logger.info("Database session")
-                yield session
+            logger.debug("Database session opened: %s", id(session))
+            yield session
+
         except ConnectionRefusedError as e:
             logger.error(
-                "Database session error: %s, connection refused", e, exc_info=True
+                "Database connection refused (session=%s)",
+                id(session),
+                exc_info=True,
             )
-
             raise InternaleServerError from e
 
         except SQLAlchemyError as e:
-            logger.error("Database session error: %s", e, exc_info=True)
-            await session.rollback()
+            logger.error(
+                "SQLAlchemy error during session usage (session=%s)",
+                id(session),
+                exc_info=True,
+            )
             raise InternaleServerError from e
+
         finally:
-            if session.is_active:
-                try:
-                    await session.flush()
-                    await session.commit()
-                except SQLAlchemyError as e:
-                    logger.error(
-                        "Failed to flush/commit in finally: %s", e, exc_info=True
-                    )
-                    await session.rollback()
-            await session.close()
+            await session.commit()
+            logger.debug(
+                "Database session closed (session=%s, in_transaction=%s)",
+                id(session),
+                session.in_transaction(),
+            )
