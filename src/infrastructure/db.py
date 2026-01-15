@@ -1,8 +1,7 @@
 from typing import AsyncGenerator
 
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
-                                    create_async_engine)
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
 
 from src.infrastructure import get_logger, load_config
@@ -31,26 +30,26 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
         try:
             logger.debug("Database session opened: %s", id(session))
+            await session.begin()
             yield session
-
+            await session.commit()
         except ConnectionRefusedError as e:
             logger.error(
                 "Database connection refused (session=%s)",
                 id(session),
                 exc_info=True,
             )
+            await session.rollback()  # Rollback on error
             raise InternaleServerError from e
-
         except SQLAlchemyError as e:
             logger.error(
                 "SQLAlchemy error during session usage (session=%s)",
                 id(session),
                 exc_info=True,
             )
+            await session.rollback()
             raise InternaleServerError from e
-
         finally:
-            await session.commit()
             logger.debug(
                 "Database session closed (session=%s, in_transaction=%s)",
                 id(session),
