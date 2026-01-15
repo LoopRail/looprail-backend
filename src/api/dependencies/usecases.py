@@ -97,7 +97,12 @@ async def get_wallet_manager_usecase(
     ledger_config: LedgerConfig = Depends(get_ledger_config),
     wallet_service: WalletService = Depends(get_blockrader_wallet_service),
 ) -> WalletManagerUsecase:
-    ledger = ledger_config.ledgers.get_ledger(CUSTOMER_WALLET_LEDGER)
+    ledger, err = ledger_config.ledgers.get_ledger(CUSTOMER_WALLET_LEDGER)
+    if err:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": f"Failed to get legder with name {CUSTOMER_WALLET_LEDGER}"},
+        )
     base_master_wallet, err = wallet_service.blockrader_config.wallets.get_wallet(
         MASTER_BASE_WALLET
     )

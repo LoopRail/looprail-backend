@@ -34,7 +34,7 @@ async def verify_onboarding_otp(
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, content="Invalid otp type"
         )
-    user, err = await user_usecase.get_user_by_email(email=otp.user_email)
+    user, err = await user_usecase.get_user_by_email(user_email=otp.user_email)
     if err == NotFoundError:
         logger.error(
             "Could not find user with email: %s, Error: %s", otp.user_email, err
