@@ -31,25 +31,19 @@ async def verify_onboarding_otp(
 ):
     if otp.otp_type != OtpType.ONBOARDING_EMAIL_VERIFICATION:
         logger.error("Invalid OTP type for onboarding verification")
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST, content="Invalid otp type"
-        )
+        raise AuthError(code=status.HTTP_400_BAD_REQUEST, message="Invalid otp type")
     user, err = await user_usecase.get_user_by_email(user_email=otp.user_email)
     if err == NotFoundError:
         logger.error(
             "Could not find user with email: %s, Error: %s", otp.user_email, err
         )
-        return JSONResponse(
-            code=status.HTTP_404_NOT_FOUND, content={"error": "user not found"}
-        )
+        raise AuthError(code=status.HTTP_404_NOT_FOUND, message="user not found")
 
     user.is_email_verified = True
     user, err = user_usecase.save(user)
     if err:
         logger.error("Could not update user: Error: %s", err)
-        return JSONResponse(
-            code=status.HTTP_404_NOT_FOUND, content={"error": "user not found"}
-        )
+        raise AuthError(code=status.HTTP_404_NOT_FOUND, message="user not found")
     data = OnBoardingToken(sub=user.id, user_id=user.id)
     access_token = jwt_usecase.create_access_token(
         data=data, exp_minutes=config.jwt.onboarding_token_expire_minutes
