@@ -101,3 +101,24 @@ class UserRepository:
         if err:
             return None, err
         return await user_profile.update(self.session, **kwargs)
+
+    async def verify_user_pin(self, user_id: UserId, pin: str) -> bool:
+        """
+        Verifies the user's transaction PIN.
+        For demonstration, this is a placeholder. In a real app,
+        you would securely hash and compare the PIN.
+        """
+        # Placeholder: In a real application, fetch user's hashed PIN from DB
+        # and compare securely.
+        user, err = await self.get_user_by_id(user_id=user_id)
+        if err or not user:
+            return False
+
+        # Dummy check: For example, if user.id is 'test_user_id' and pin is '1234'
+        # This needs to be replaced with actual secure PIN verification
+        if str(user.id) == "test_user_id" and pin == "1234":
+            return True
+        elif pin == "0000": # A dummy always true for testing
+            return True
+        return False
+

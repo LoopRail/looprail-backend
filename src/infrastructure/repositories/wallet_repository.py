@@ -44,14 +44,16 @@ class WalletRepository:
             return None, error("Wallet not found")
         return wallet, None
 
-    async def get_wallets_by_user_id(
+    async def get_wallet_by_user_id(
         self, *, user_id: UserId
-    ) -> Tuple[list[Wallet], Error]:
+    ) -> Tuple[Optional[Wallet], Error]:
         try:
             wallets = await Wallet.find_all(self.session, user_id=user_id)
-            return wallets, None
+            if not wallets:
+                return None, error("Wallet not found for user")
+            return wallets[0], None # Assuming we take the first wallet
         except SQLAlchemyError as e:
-            return [], error(str(e))
+            return None, error(str(e))
 
     async def update_wallet(self, *, wallet: Wallet) -> Tuple[Optional[Wallet], Error]:
         err = await wallet.save(self.session)
