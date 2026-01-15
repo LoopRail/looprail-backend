@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Request, status
-from fastapi.responses import JSONResponse
 
 from src.api.dependencies import (
     get_config,
@@ -12,7 +11,7 @@ from src.dtos import OTPSuccessResponse
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.models import Otp
-from src.types import NotFoundError, OnBoardingToken, OtpType
+from src.types import AuthError, NotFoundError, OnBoardingToken, OtpType
 from src.usecases import JWTUsecase, UserUseCase
 
 logger = get_logger(__name__)
@@ -40,11 +39,11 @@ async def verify_onboarding_otp(
         raise AuthError(code=status.HTTP_404_NOT_FOUND, message="user not found")
 
     user.is_email_verified = True
-    user, err = user_usecase.save(user)
+    err = await user_usecase.save(user)
     if err:
         logger.error("Could not update user: Error: %s", err)
         raise AuthError(code=status.HTTP_404_NOT_FOUND, message="user not found")
-    data = OnBoardingToken(sub=user.id, user_id=user.id)
+    data = OnBoardingToken(sub=user.get_id_prefix(), user_id=user.get_id_prefix())
     access_token = jwt_usecase.create_access_token(
         data=data, exp_minutes=config.jwt.onboarding_token_expire_minutes
     )
