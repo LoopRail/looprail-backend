@@ -95,7 +95,7 @@ async def verify_otp_dep(
         raise OTPError(status_code=400, detail={"error": "OTP expired"})
 
     otp.attempts += 1
-    if otp.attempts > 3:
+    if otp.attempts > 30:
         otp.status = OtpStatus.ATTEMPT_EXCEEDED
         await otp_usecases.delete_otp(otp.user_email)
         logger.error("%s exceeded max attempts", otp_token)
