@@ -18,6 +18,7 @@ class ENVIRONMENT(str, Enum):
     DEVELOPMENT = "dev"
     STAGING = "staging"
     PRODUCTION = "prod"
+    TEST = "test"
 
 
 class AppSettings(BaseSettings):
@@ -92,9 +93,13 @@ class DatabaseConfig(ServerConfig):
     db_host: str
     db_port: str
     db_name: str
+    database_uri: str | None = None
+    db_driver: str = "postgresql+asyncpg"
 
     def get_uri(self) -> str:
-        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
+        if self.database_uri:
+            return self.database_uri
+        return f"{self.db_driver}://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
 
 class RedisConfig(ServerConfig):

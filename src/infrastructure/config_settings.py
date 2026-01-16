@@ -127,4 +127,8 @@ class Config:
 
 @lru_cache
 def load_config() -> Config:
-    return Config()
+    config_obj = Config()
+    logger.debug(f"Config loaded with ENVIRONMENT: {config_obj.app.environment}")
+    logger.debug(f"Database driver: {config_obj.database.db_driver}")
+    logger.debug(f"Database URI: {config_obj.database.get_uri()}")
+    return config_obj
