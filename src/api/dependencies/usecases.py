@@ -37,6 +37,7 @@ async def get_session_usecase(
     ),
     config: Config = Depends(get_config),
 ) -> SessionUseCase:
+    logger.debug("Entering get_session_usecase")
     yield SessionUseCase(
         config.jwt.refresh_token_expires_in_days,
         session_repository,
@@ -48,18 +49,21 @@ async def get_otp_usecase(
     config: Config = Depends(get_config),
     redis_client: RedisClient = Depends(get_redis_service),
 ) -> OtpUseCase:
+    logger.debug("Entering get_otp_usecase")
     yield OtpUseCase(redis_client, config.otp)
 
 
 async def get_secrets_usecase(
     blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
 ) -> SecretsUsecase:
+    logger.debug("Entering get_secrets_usecase")
     yield SecretsUsecase(blockrader_config)
 
 
 async def get_otp_token(
     x_otp_token: Optional[str] = Header(default=None, description="OTP token"),
 ):
+    logger.debug("Entering get_otp_token")
     if x_otp_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -69,12 +73,14 @@ async def get_otp_token(
 
 
 async def get_jwt_usecase(config: Config = Depends(get_config)):
+    logger.debug("Entering get_jwt_usecase")
     yield JWTUsecase(config.jwt)
 
 
 def get_transaction_usecase(
     transaction_repo: TransactionRepository = Depends(get_transaction_repository),
 ) -> TransactionUsecase:
+    logger.debug("Entering get_transaction_usecase")
     return TransactionUsecase(transaction_repo)
 
 
@@ -87,6 +93,7 @@ async def get_blockrader_wallet_service(
     paycrest_service: PaycrestService = Depends(get_paycrest_service),
     transaction_usecase: TransactionUsecase = Depends(get_transaction_usecase),
 ):
+    logger.debug("Entering get_blockrader_wallet_service")
     return WalletService(
         blockrader_config=blockrader_config,
         user_repository=user_repository,
@@ -102,6 +109,7 @@ async def get_wallet_manager_usecase(
     ledger_config: LedgerConfig = Depends(get_ledger_config),
     wallet_service: WalletService = Depends(get_blockrader_wallet_service),
 ) -> WalletManagerUsecase:
+    logger.debug("Entering get_wallet_manager_usecase")
     ledger, err = ledger_config.ledgers.get_ledger(CUSTOMER_WALLET_LEDGER)
     if err:
         raise HTTPException(
@@ -134,6 +142,7 @@ async def get_user_usecases(
     wallet_manager_usecase: WalletManagerUsecase = Depends(get_wallet_manager_usecase),
     wallet_service: WalletService = Depends(get_blockrader_wallet_service),
 ) -> UserUseCase:
+    logger.debug("Entering get_user_usecases")
     argon2_config = request.app.state.argon2_config
     yield UserUseCase(
         user_repository,

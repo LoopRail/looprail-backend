@@ -6,6 +6,9 @@ from resend.exceptions import ResendError
 from src.infrastructure.settings import ResendConfig
 from src.types import Error, httpError
 from src.utils import load_html_template
+from src.infrastructure.logger import get_logger
+
+logger = get_logger(__name__)
 
 resend.api_key = ""
 
@@ -20,6 +23,7 @@ class ResendService:
             config: The Resend configuration.
         """
         resend.api_key = config.resend_api_key
+        logger.debug("ResendService initialized.")
 
     async def send(
         self,
@@ -41,7 +45,9 @@ class ResendService:
         Returns:
             A tuple containing the Resend API response (dict) and an error, if any.
         """
+        logger.debug("Attempting to send email to: %s from: %s with subject: %s", to, _from, subject)
         if not html_content and not text_content:
+            logger.error("Attempted to send email without html_content or text_content.")
             return None, httpError(
                 code=400,
                 message="Either html_content or text_content must be provided.",
@@ -58,9 +64,11 @@ class ResendService:
                     "text": text_content,
                 }
             )
+            logger.info("Email sent successfully to %s with subject: %s", to, subject)
             return response, None
         except ResendError as e:
-            return None, httpError(code=500, message=f"Failed to send email: {e}")
+            logger.error("Failed to send email to %s with subject %s: %s", to, subject, e)
+            return None, httpError(code=500, message="Failed to send email: %s" % e)
 
     async def send_otp(
         self,
@@ -80,8 +88,10 @@ class ResendService:
         Returns:
             A tuple containing the Resend API response (dict) and an error, if any.
         """
+        logger.debug("Attempting to send OTP email to: %s from: %s", to, _from)
         html_content, err = load_html_template("email/otp_email", otp_code=otp_code)
         if err:
+            logger.error("Failed to load OTP email template: %s", err.message)
             return None, err
         text_content = f"Your One-Time Password is: {otp_code}"
         return await self.send(to, _from, subject, html_content, text_content)

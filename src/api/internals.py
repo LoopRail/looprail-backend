@@ -18,6 +18,7 @@ async def send_otp_internal(
     otp_usecases: OtpUseCase,
     resend_service: ResendService,
 ) -> str:
+    logger.info("Initiating internal OTP send for email: %s", email)
     _, err = await otp_usecases.get_user_token(user_email=email)
     if err and err != "Not found":
         raise HTTPException(status_code=500, detail="Server Error")
@@ -49,6 +50,7 @@ async def send_otp_internal(
 # TODO move to main
 
 async def set_user_create_config(config: Config = Depends(get_config)):
+    logger.debug("Entering set_user_create_config")
     config = {
         "disposable_email_domains": config.disposable_email_domains,
         "allowed_countries": config.countries,
@@ -57,6 +59,7 @@ async def set_user_create_config(config: Config = Depends(get_config)):
 
 
 async def set_send_otp_config(config: Config = Depends(get_config)):
+    logger.debug("Entering set_send_otp_config")
     config = {
         "disposable_email_domains": config.disposable_email_domains,
     }

@@ -37,6 +37,7 @@ class BearerToken[T]:
         credentials: HTTPAuthorizationCredentials = Depends(security),
         jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     ) -> T:
+        logger.debug("Entering BearerToken.__call__")
         """
         FastAPI dependency to validate a Bearer token.
         Raises 401 if missing, invalid, or wrong type.
@@ -70,6 +71,7 @@ class BearerToken[T]:
 async def get_current_user_token(
     token: AccessToken = Depends(BearerToken[AccessToken]()),
 ) -> AccessToken:
+    logger.debug("Entering get_current_user_token")
     if token.token_type != TokenType.ACCESS_TOKEN:
         raise AuthError(code=401, message="User not found")
     return token
@@ -79,6 +81,7 @@ async def get_current_user(
     access_token: AccessToken = Depends(get_current_user_token),
     user_usecase: UserUseCase = Depends(get_user_usecases),
 ) -> User:
+    logger.debug("Entering get_current_user for user ID: %s", access_token.sub)
     user, err = await user_usecase.get_user_by_id(access_token.sub)
     if err:
         raise AuthError(code=401, message="User not found")
@@ -90,6 +93,7 @@ async def verify_otp_dep(
     otp_token: str = Depends(get_otp_token),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
 ) -> Tuple[Optional[Otp], Error]:
+    logger.info("Verifying OTP dependency for token: %s", otp_token)
     """Verify an OTP against what is stored in Redis."""
 
     otp, err = await otp_usecases.get_otp(otp_token, req.otp_type)
@@ -135,6 +139,7 @@ class VerifyWebhookRequest:
         self.secrets_usecase = secrets_usecase
 
     async def __call__(self, request: Request) -> Tuple[WebhookProvider, bytes]:
+        logger.debug("Entering VerifyWebhookRequest.__call__")
         body = await request.body()
 
         provider = self._detect_provider(request.headers, request)
@@ -165,6 +170,7 @@ class VerifyWebhookRequest:
         return provider
 
     def _detect_provider(self, headers, request: Request) -> Optional[WebhookProvider]:
+        logger.debug("Entering _detect_provider")
         if "X-BlockRadar-Signature" in headers:
             request.state.webhook_signature = headers.get("X-BlockRadar-Signature")
             # TODO: Add origin checking here (e.g., IP whitelisting)
@@ -174,6 +180,7 @@ class VerifyWebhookRequest:
     def _verify_signature(
         self, provider: WebhookProvider, body: bytes, secret: str, signature: str
     ) -> bool:
+        logger.debug("Entering _verify_signature for provider: %s", provider.value)
         if provider == WebhookProvider.BLOCKRADER:
             return verify_signature(body, signature, secret)
         return False

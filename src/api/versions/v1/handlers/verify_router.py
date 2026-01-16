@@ -28,6 +28,7 @@ async def verify_onboarding_otp(
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     user_usecase: UserUseCase = Depends(get_user_usecases),
 ):
+    logger.info("Verifying onboarding OTP for user email %s", otp.user_email)
     if otp.otp_type != OtpType.ONBOARDING_EMAIL_VERIFICATION:
         logger.error("Invalid OTP type for onboarding verification")
         raise AuthError(code=status.HTTP_400_BAD_REQUEST, message="Invalid otp type")

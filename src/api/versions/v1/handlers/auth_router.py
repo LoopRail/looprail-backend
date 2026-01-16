@@ -77,6 +77,7 @@ async def create_user(
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
     resend_service: ResendService = Depends(get_resend_service),
 ) -> dict:
+    logger.info("Received create user request for email: %s", user_data.email)
     validation_error = validate_password_strength(user_data.password)
     if validation_error:
         return JSONResponse(
@@ -132,6 +133,7 @@ async def complete_onboarding(
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
 ):
+    logger.info("Completing onboarding for user ID: %s", token.user_id)
     if token.token_type != TokenType.ONBOARDING_TOKEN:
         logger.error(
             "Invalid token type expected %s got %s for %s",
@@ -223,6 +225,7 @@ async def login(
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
 ):
+    logger.info("Received login request for email: %s", login_request.email)
     user, err = await user_usecases.authenticate_user(
         email=login_request.email, password=login_request.password
     )
@@ -282,6 +285,7 @@ async def refresh_token(
     platform: Platform = Header(..., alias="X-Platform"),
     config: Config = Depends(get_config),
 ):
+    logger.info("Received refresh token request from device ID: %s", device_id)
     incoming_refresh_token_hash = hashlib.sha256(
         refresh_token_request.refresh_token.encode()
     ).hexdigest()
@@ -359,6 +363,7 @@ async def logout(
     current_token: AccessToken = Depends(BearerToken[AccessToken]),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
 ):
+    logger.info("Received logout request for session ID: %s", current_token.session_id)
     err = await session_usecase.revoke_session(current_token.session_id)
     if err:
         logger.error(
@@ -383,6 +388,7 @@ async def logout_all(
     current_token: AccessToken = Depends(BearerToken[AccessToken]),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
 ):
+    logger.info("Received logout all sessions request for user ID: %s", current_token.sub)
     err = await session_usecase.revoke_all_user_sessions(current_token.sub)
     if err:
         logger.error(

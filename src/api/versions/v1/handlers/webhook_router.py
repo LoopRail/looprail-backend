@@ -28,10 +28,12 @@ async def handle_blockrader_webhook(
         get_transaction_usecase
     ),
 ):
+    logger.info("Handling BlockRadar webhook event of type: %s", webhook_event.event)
     logger.info("Received BlockRadar webhook event: %s", webhook_event.event)
     registry = get_registry()
     handler = registry.get(webhook_event.event)
     if handler:
+        logger.info("Handler found for event %s, processing...", webhook_event.event)
         await handler(
             webhook_event,
             ledger_service=ledger_service,
@@ -39,6 +41,7 @@ async def handle_blockrader_webhook(
             asset_repo=asset_repo,
             transaction_usecase=transaction_usecase,
         )
+        logger.info("Webhook event %s processed successfully.", webhook_event.event)
         return {"message": "Webhook received and processed"}
-    logger.warning("No handler found for event: %s", webhook_event.event)
+    logger.warning("No handler found for event: %s. Webhook received but no handler found", webhook_event.event)
     return {"message": "Webhook received but no handler found"}

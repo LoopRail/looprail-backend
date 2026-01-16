@@ -11,6 +11,9 @@ from src.api.versions.v1.handlers import (
     webhook_router,
 )
 from src.infrastructure.services.paycrest.paycrest_service import PaycrestService
+from src.infrastructure.logger import get_logger
+
+logger = get_logger(__name__)
 
 v1_router = APIRouter(prefix="/v1")
 
@@ -21,12 +24,15 @@ async def get_rates(
     currency: str = Query(..., description="Target currency (e.g., USD)"),
     paycrest_service: PaycrestService = Depends(get_paycrest_service),
 ):
+    logger.info("Fetching rates for amount %s %s", amount, currency)
     rate, err = await paycrest_service.fetch_letest_usdc_rate(amount, currency)
     if err:
+        logger.error("Error fetching rates for amount %s %s: %s", amount, currency, err.message)
         return JSONResponse(
             status_code=err.code,
             content={"message": err.message},
         )
+    logger.info("Successfully fetched rates for amount %s %s: %s", amount, currency, rate.data)
     return {"rate": round(float(rate.data), 2)}
 
 

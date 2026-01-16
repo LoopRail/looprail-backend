@@ -18,6 +18,7 @@ async def verify_account(
     paystack_service: PaystackService = Depends(get_paystack_service),
     paycrest_service: PaycrestService = Depends(get_paycrest_service),
 ):
+    logger.info("Verifying account for account identifier: %s", verify_request.account_identifier)
     # response, err = await paycrest_service.verify_account(
     #     account_number=verify_request.accountIdentifier,
     #     institution=verify_request.institution,

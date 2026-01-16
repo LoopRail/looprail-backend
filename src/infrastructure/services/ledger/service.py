@@ -10,10 +10,13 @@ from src.infrastructure.services.ledger.client import (
     BlnkApiKeyManager,
     BlnkGenericManager,
 )
+from src.infrastructure.logger import get_logger
 
+logger = get_logger(__name__)
 
 class LedgerService:
     def __init__(self, config: LedgderServiceConfig):
+        logger.debug("LedgerService initialized.")
         self.ledgers = LedgerManager(config)
         self.balances = BalanceManager(config)
         self.identities = IdentityManager(config) # TODO look at tokenize 

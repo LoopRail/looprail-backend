@@ -23,9 +23,10 @@ async def initiate_withdraw(
     user: User = Depends(get_current_user),
     wallet_manager: WalletManagerUsecase = Depends(get_wallet_manager_usecase),
 ):
+    logger.info("Initiating withdrawal for user %s, asset ID: %s, amount: %s", user.id, req.assetId, req.amount)
     specific_withdrawal, err = req.destination.to_specific_event()
     if err:
-        logger.error("Invalid withdrawal request: %s", err.message)
+        logger.error("Invalid withdrawal request for user %s: %s", user.id, err.message)
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, detail={"error": err.message}
         )
@@ -34,12 +35,13 @@ async def initiate_withdraw(
         user=user, withdrawal_request=req, specific_withdrawal=specific_withdrawal
     )
     if err:
-        logger.error("Failed to initiate withdrawal: %s", err.message)
+        logger.error("Failed to initiate withdrawal for user %s: %s", user.id, err.message)
 
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": err.message},
         )
+    logger.info("Withdrawal initiated successfully for user %s, transaction ID: %s", user.id, data.get("transaction_id"))
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"data": data},
@@ -53,14 +55,18 @@ async def process_withraw_request(
     config: Config = Depends(get_config),
     rq_manager: RQManager = Depends(get_rq_manager),
 ):
+    logger.info("Processing withdrawal request for user %s, transaction ID: %s", user.id, req.transaction_id)
     rq_manager.get_queue().enqueue(
         process_withdrawal_task,
         user_id=user.id,
-        pin=req.pin,
+        pin=req.transation_pin, # Changed from req.pin to req.transation_pin
         config=config,
         transaction_id=req.transaction_id,
+        wallet_name=config.block_rader.wallets.wallets[0].wallet_id, # Assuming default wallet for now
+        ledger_id=config.ledger.ledgers.ledgers[0].ledger_id, # Assuming default ledger for now
     )
 
+    logger.info("Withdrawal processing initiated in background for user %s, transaction ID: %s", user.id, req.transaction_id)
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "Withdrawal processing initiated successfully."},
