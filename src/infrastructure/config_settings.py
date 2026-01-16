@@ -7,19 +7,12 @@ import toml
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.security import Argon2Config
-from src.infrastructure.settings import (
-    ENVIRONMENT,
-    AppSettings,
-    BlockRaderConfig,
-    DatabaseConfig,
-    JWTConfig,
-    LedgderServiceConfig,
-    OTPConfig,
-    PayCrestConfig,
-    PaystackConfig,
-    RedisConfig,
-    ResendConfig,
-)
+from src.infrastructure.settings import (ENVIRONMENT, AppSettings,
+                                         BlockRaderConfig, DatabaseConfig,
+                                         JWTConfig, LedgderServiceConfig,
+                                         OTPConfig, PayCrestConfig,
+                                         PaystackConfig, RedisConfig,
+                                         ResendConfig)
 from src.types import CountriesData, LedgerConfig, WalletConfig
 from src.utils import return_base_dir
 
@@ -31,7 +24,7 @@ def load_wallet_configs_into_config(
 ) -> WalletConfig | None:
     config_filename = (
         "blockrader.json"
-        if environment == ENVIRONMENT.DEVELOPMENT
+        if environment in (ENVIRONMENT.DEVELOPMENT, ENVIRONMENT.STAGING)
         else "blockrader.prod.json"
     )
 
@@ -81,7 +74,7 @@ def load_ledger_settings_from_file(environment: ENVIRONMENT) -> LedgerConfig:
     config_filename = (
         "ledger_config.toml"
         if environment == ENVIRONMENT.DEVELOPMENT
-        else "ledger_config.{environment.value}.toml"
+        else f"ledger_config.{environment.value}.toml"
     )
     config_path = os.path.join(return_base_dir(), "config", config_filename)
     try:
