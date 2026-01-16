@@ -31,7 +31,7 @@ class JWTUsecase:
         encoded_jwt = jwt.encode(
             to_encode,
             self.config.secret_key,
-            algorithms=[self.config.algorithm],
+            algorithm=self.config.algorithm,
         )
         return encoded_jwt
 

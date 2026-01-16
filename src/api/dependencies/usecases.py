@@ -130,7 +130,6 @@ async def get_wallet_manager_usecase(
 async def get_user_usecases(
     request: Request,
     user_repository: UserRepository = Depends(get_user_repository),
-    wallet_repository: WalletRepository = Depends(get_wallet_repository),
     blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
     wallet_manager_usecase: WalletManagerUsecase = Depends(get_wallet_manager_usecase),
     wallet_service: WalletService = Depends(get_blockrader_wallet_service),
@@ -138,9 +137,8 @@ async def get_user_usecases(
     argon2_config = request.app.state.argon2_config
     yield UserUseCase(
         user_repository,
-        wallet_repository,
         blockrader_config,
         argon2_config,
         wallet_manager_usecase,
-        wallet_service,  # Added this line
+        wallet_service,  
     )

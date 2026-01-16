@@ -3,16 +3,13 @@ from typing import Optional, Tuple
 
 from src.dtos.user_dtos import UserCreate
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import UserRepository, WalletRepository
+from src.infrastructure.repositories import UserRepository
 from src.infrastructure.security import Argon2Config
-from src.infrastructure.services.blockrader_client import AddressManager, WalletManager
 from src.infrastructure.settings import BlockRaderConfig
-from src.models import User, UserProfile, Wallet
+from src.models import User, UserProfile
 from src.types import Error, HashedPassword, InvalidCredentialsError
-from src.types.blockrader import CreateAddressRequest
 from src.types.common_types import UserId
-from src.usecases.wallet_usecases import WalletManagerUsecase  # Added
-from src.usecases.wallet_usecases import WalletService
+from src.usecases.wallet_usecases import WalletManagerUsecase, WalletService
 from src.utils import hash_password_argon2, verify_password_argon2
 
 logger = get_logger(__name__)
@@ -22,18 +19,16 @@ class UserUseCase:
     def __init__(
         self,
         user_repository: UserRepository,
-        wallet_repository: WalletRepository,
         blockrader_config: BlockRaderConfig,
         argon2_config: Argon2Config,
-        wallet_manager_usecase: WalletManagerUsecase,  # Added this line
-        wallet_service: WalletService,  # Added this line
+        wallet_manager_usecase: WalletManagerUsecase,
+        wallet_service: WalletService,
     ):
         self.user_repository = user_repository
-        self.wallet_repository = wallet_repository
         self.blockrader_config = blockrader_config
         self.argon2_config = argon2_config
-        self.wallet_manager_usecase = wallet_manager_usecase  # Added this line
-        self.wallet_service = wallet_service  # Added this line
+        self.wallet_manager_usecase = wallet_manager_usecase
+        self.wallet_service = wallet_service
 
     async def authenticate_user(
         self, email: str, password: str
@@ -106,7 +101,13 @@ class UserUseCase:
                 err.message,
                 exc_info=True,
             )
-
+            rollback_err = await self.user_repository.rollback()
+            if rollback_err:
+                logger.error(
+                    "Failed to rollback usercreation %s",
+                    err.message,
+                    exc_info=True,
+                )
             return None, err
         logger.info("Ledger identity created for user %s.", created_user.username)
 
