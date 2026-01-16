@@ -10,10 +10,10 @@
         {
           "id": "bcf86097-014c-4a9e-bd3b-eb416a814534",
           "name": "USDC Coin",
-          "symbol": "USDC",
+          "symbol": "usdc",
           "decimals": 6,
           "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-          "standard": "ERC20",
+          "standard": "erc20",
           "isActive": true,
           "logoUrl": "https://res.cloudinary.com/blockradar/image/upload/v1716800083/crypto-assets/usd-coin-usdc-logo_fs9mhv.png",
           "network": "testnet"
