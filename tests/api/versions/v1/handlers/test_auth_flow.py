@@ -36,8 +36,7 @@ def authenticated_client_fixture(
     return client, mock_access_token, raw_refresh_token
 
 
-@pytest.mark.asyncio
-async def test_login_success(
+def test_login_success(
     client: TestClient,
     test_user: tuple[User, str],
     mock_user_usecases: MagicMock,
@@ -84,8 +83,7 @@ async def test_login_success(
     mock_jwt_usecase.create_token.assert_called_once()  # Detailed assertion can be added if needed
 
 
-@pytest.mark.asyncio
-async def test_login_invalid_credentials(
+def test_login_invalid_credentials(
     client: TestClient, test_user: tuple[User, str], mock_user_usecases: MagicMock
 ):
     user, _ = test_user
