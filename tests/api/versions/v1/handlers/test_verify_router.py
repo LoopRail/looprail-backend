@@ -1,27 +1,12 @@
-import time
 from unittest.mock import MagicMock
-from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
 
-from src.api.dependencies import (
-    get_config,
-    get_jwt_usecase,
-    get_otp_usecase,
-    get_otp_token,
-    get_user_usecases,
-)
-from src.infrastructure.config_settings import Config
-from src.infrastructure.settings import JWTConfig
-from src.main import app
 from src.models import Otp, User
 from src.types import error, NotFoundError, OtpType
-from src.usecases import JWTUsecase, OtpUseCase, UserUseCase
 
 
 import httpx
-from fastapi.testclient import TestClient
 
 class TestVerifyOnboardingOtp:
     @pytest.mark.asyncio

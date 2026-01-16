@@ -13,7 +13,6 @@ from src.infrastructure.config import load_config
 from src.infrastructure.services.ledger.client import LedgerManager
 from src.infrastructure.settings import ENVIRONMENT
 from src.types.blnk.dtos import CreateLedgerRequest
-from src.types.error import Error  # For error handling
 
 
 async def main():
@@ -46,7 +45,7 @@ async def main():
     args = parser.parse_args()
 
     try:
-        env = ENVIRONMENT(args.environment)
+        ENVIRONMENT(args.environment)
     except ValueError:
         print(
             f"Error: Invalid environment '{args.environment}'. Must be one of {list(e.value for e in ENVIRONMENT)}"
