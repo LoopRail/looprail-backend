@@ -36,7 +36,8 @@ def authenticated_client_fixture(
     return client, mock_access_token, raw_refresh_token
 
 
-def test_login_success(
+@pytest.mark.asyncio
+async def test_login_success(
     client: TestClient,
     test_user: tuple[User, str],
     mock_user_usecases: MagicMock,
@@ -83,7 +84,8 @@ def test_login_success(
     mock_jwt_usecase.create_token.assert_called_once()  # Detailed assertion can be added if needed
 
 
-def test_login_invalid_credentials(
+@pytest.mark.asyncio
+async def test_login_invalid_credentials(
     client: TestClient, test_user: tuple[User, str], mock_user_usecases: MagicMock
 ):
     user, _ = test_user
@@ -105,7 +107,8 @@ def test_login_invalid_credentials(
     )
 
 
-def test_refresh_token_success(
+@pytest.mark.asyncio
+async def test_refresh_token_success(
     client: TestClient,
     authenticated_client: tuple[TestClient, str, str],
     mock_session_usecase: MagicMock,
@@ -161,7 +164,8 @@ def test_refresh_token_success(
     assert mock_jwt_usecase.create_token.call_count == 1
 
 
-def test_refresh_token_invalid_token(
+@pytest.mark.asyncio
+async def test_refresh_token_invalid_token(
     client: TestClient, mock_session_usecase: MagicMock
 ):
     # Mock SessionUseCase.get_valid_refresh_token_by_hash to return an error
@@ -180,7 +184,8 @@ def test_refresh_token_invalid_token(
     mock_session_usecase.get_valid_refresh_token_by_hash.assert_called_once()
 
 
-def test_refresh_token_reuse_detection(
+@pytest.mark.asyncio
+async def test_refresh_token_reuse_detection(
     client: TestClient,
     authenticated_client: tuple[TestClient, str, str],
     mock_session_usecase: MagicMock,
@@ -249,14 +254,15 @@ def test_refresh_token_reuse_detection(
     assert mock_jwt_usecase.create_token.call_count == 1
 
 
-def test_logout_success(
+@pytest.mark.asyncio
+async def test_logout_success(
     client: TestClient,
     authenticated_client: tuple[TestClient, str, str],
     mock_session_usecase: MagicMock,
 ):
     _, access_token, _ = authenticated_client
     mock_session_id = f"ses_{uuid4()}"
-    mock_user_id = f"usr_{uuid4()}"
+    mock_user_id = str(uuid4())
     mock_platform = "web"
     mock_access_token_obj = AccessToken(
         sub=f"usr_{mock_user_id}",
@@ -285,7 +291,8 @@ def test_logout_success(
     app.dependency_overrides.clear()
 
 
-def test_logout_all_success(
+@pytest.mark.asyncio
+async def test_logout_all_success(
     client: TestClient,
     test_user: tuple[User, str],
     mock_session_usecase: MagicMock,

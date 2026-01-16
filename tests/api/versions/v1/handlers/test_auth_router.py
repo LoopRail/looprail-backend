@@ -1,6 +1,7 @@
 import time
 from unittest.mock import MagicMock
 
+import httpx
 from fastapi.testclient import TestClient
 
 
@@ -8,7 +9,11 @@ from fastapi.testclient import TestClient
 from src.models.otp_model import Otp
 
 
-def test_verify_otp_expired_email_otp(client: TestClient, mock_otp_usecase: MagicMock):
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_verify_otp_expired_email_otp(client: httpx.AsyncClient, mock_otp_usecase: MagicMock):
     # Arrange
     otp = Otp(
         code_hash="hashed_code",
@@ -19,7 +24,7 @@ def test_verify_otp_expired_email_otp(client: TestClient, mock_otp_usecase: Magi
     mock_otp_usecase.delete_otp.return_value = None
 
     # Act
-    response = client.post(
+    response = await client.post(
         "/api/v1/verify/onbaording-otp",
         json={"code": "123456", "otp-type": "onboarding_email_verification"},
         headers={"X-OTP-Token": "test_token"},
@@ -29,8 +34,9 @@ def test_verify_otp_expired_email_otp(client: TestClient, mock_otp_usecase: Magi
     assert response.status_code == 400
 
 
-def test_verify_otp_max_attempts_exceeded_email_otp(
-    client: TestClient, mock_otp_usecase: MagicMock
+@pytest.mark.asyncio
+async def test_verify_otp_max_attempts_exceeded_email_otp(
+    client: httpx.AsyncClient, mock_otp_usecase: MagicMock
 ):
     # Arrange
     otp = Otp(
@@ -40,9 +46,10 @@ def test_verify_otp_max_attempts_exceeded_email_otp(
     )
     mock_otp_usecase.get_otp.return_value = (otp, None)
     mock_otp_usecase.delete_otp.return_value = None
+    mock_otp_usecase.update_otp.return_value = None
 
     # Act
-    response = client.post(
+    response = await client.post(
         "/api/v1/verify/onbaording-otp",
         json={"code": "123456", "otp-type": "onboarding_email_verification"},
         headers={"X-OTP-Token": "test_token"},
@@ -52,7 +59,8 @@ def test_verify_otp_max_attempts_exceeded_email_otp(
     assert response.status_code == 400
 
 
-def test_verify_otp_invalid_code(client: TestClient, mock_otp_usecase: MagicMock):
+@pytest.mark.asyncio
+async def test_verify_otp_invalid_code(client: httpx.AsyncClient, mock_otp_usecase: MagicMock):
     # Arrange
     otp = Otp(
         code_hash="hashed_code",
@@ -63,7 +71,7 @@ def test_verify_otp_invalid_code(client: TestClient, mock_otp_usecase: MagicMock
     mock_otp_usecase.verify_code.return_value = False
 
     # Act
-    response = client.post(
+    response = await client.post(
         "/api/v1/verify/onbaording-otp",
         json={"code": "wrong_code", "otp-type": "onboarding_email_verification"},
         headers={"X-OTP-Token": "test_token"},
@@ -73,8 +81,9 @@ def test_verify_otp_invalid_code(client: TestClient, mock_otp_usecase: MagicMock
     assert response.status_code == 400
 
 
-def test_create_user_invalid_country_code(
-    client: TestClient, mock_user_usecases: MagicMock
+@pytest.mark.asyncio
+async def test_create_user_invalid_country_code(
+    client: httpx.AsyncClient, mock_user_usecases: MagicMock
 ):
     user_data = {
         "email": "test@example.com",
@@ -92,15 +101,16 @@ def test_create_user_invalid_country_code(
     }
 
     # Act
-    response = client.post("/api/v1/auth/create-user", json=user_data)
+    response = await client.post("/api/v1/auth/create-user", json=user_data)
 
     # Assert
     assert response.status_code == 400
     mock_user_usecases.create_user.assert_not_called()
 
 
-def test_create_user_invalid_phone_number_format(
-    client: TestClient, mock_user_usecases: MagicMock
+@pytest.mark.asyncio
+async def test_create_user_invalid_phone_number_format(
+    client: httpx.AsyncClient, mock_user_usecases: MagicMock
 ):
     user_data = {
         "email": "test@example.com",
@@ -118,14 +128,15 @@ def test_create_user_invalid_phone_number_format(
     }
 
     # Act
-    response = client.post("/api/v1/auth/create-user", json=user_data)
+    response = await client.post("/api/v1/auth/create-user", json=user_data)
 
     # Assert
     assert response.status_code == 400
     mock_user_usecases.create_user.assert_not_called()
 
 
-def test_create_user_invalid_email(client: TestClient, mock_user_usecases: MagicMock):
+@pytest.mark.asyncio
+async def test_create_user_invalid_email(client: httpx.AsyncClient, mock_user_usecases: MagicMock):
     # Arrange
     user_data = {
         "email": "admin@example.com",  # Invalid email
@@ -143,15 +154,16 @@ def test_create_user_invalid_email(client: TestClient, mock_user_usecases: Magic
     }
 
     # Act
-    response = client.post("/api/v1/auth/create-user", json=user_data)
+    response = await client.post("/api/v1/auth/create-user", json=user_data)
 
     # Assert
     assert response.status_code == 400
     mock_user_usecases.create_user.assert_not_called()
 
 
-def test_create_user_disposable_email(
-    client: TestClient, mock_user_usecases: MagicMock
+@pytest.mark.asyncio
+async def test_create_user_disposable_email(
+    client: httpx.AsyncClient, mock_user_usecases: MagicMock
 ):
     # Arrange
     user_data = {
@@ -170,14 +182,15 @@ def test_create_user_disposable_email(
     }
 
     # Act
-    response = client.post("/api/v1/auth/create-user", json=user_data)
+    response = await client.post("/api/v1/auth/create-user", json=user_data)
 
     # Assert
     assert response.status_code == 400
     mock_user_usecases.create_user.assert_not_called()
 
 
-def test_create_user_invalid_gender(client: TestClient, mock_user_usecases: MagicMock):
+@pytest.mark.asyncio
+async def test_create_user_invalid_gender(client: httpx.AsyncClient, mock_user_usecases: MagicMock):
     # Arrange
     user_data = {
         "email": "test@example.com",
@@ -195,7 +208,7 @@ def test_create_user_invalid_gender(client: TestClient, mock_user_usecases: Magi
     }
 
     # Act
-    response = client.post("/api/v1/auth/create-user", json=user_data)
+    response = await client.post("/api/v1/auth/create-user", json=user_data)
 
     # Assert
     assert response.status_code == 400
