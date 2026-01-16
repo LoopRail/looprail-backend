@@ -28,9 +28,6 @@ from src.types import LedgerConfig
 from src.usecases import (JWTUsecase, OtpUseCase, SecretsUsecase,
                           SessionUseCase, TransactionUsecase, UserUseCase,
                           WalletManagerUsecase, WalletService)
-from src.infrastructure.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 async def get_session_usecase(

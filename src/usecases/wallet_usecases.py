@@ -12,14 +12,13 @@ from src.infrastructure.services import (LedgerService, PaycrestService,
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, User, Wallet
 from src.types import (AssetType, Error, IdentiyType, PaymentMethod, Provider,
-                       TransactionType, WalletConfig, error, AssetId) # Added AssetId
+                       TransactionType, WalletConfig, error)
 from src.types.blnk import (CreateBalanceRequest, CreateIdentityRequest,
                             IdentityResponse)
 from src.types.blockrader import (CreateAddressRequest, NetworkFeeRequest,
                                   WalletAddressResponse)
 from src.types.common_types import UserId
 from src.types.ledger_types import Ledger
-from src.types.types import WithdrawalMethod # Added this import
 from src.usecases.transaction_usecases import TransactionUsecase
 
 logger = get_logger(__name__)

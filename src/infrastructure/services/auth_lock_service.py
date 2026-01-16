@@ -1,13 +1,3 @@
-import json
-from datetime import datetime, timedelta
-from typing import Optional, Tuple
-
-from src.infrastructure.redis import RedisClient
-from src.infrastructure.constants import (
-    ACCOUNT_LOCKOUT_DURATION_MINUTES,
-    MAX_FAILED_OTP_ATTEMPTS,
-)
-from src.types import Error, FailedAttemptError, LockedAccount
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
