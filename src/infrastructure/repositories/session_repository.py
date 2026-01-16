@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Tuple
 
-from sqlmodel import select
 
 from src.infrastructure.repositories.base import Base
 from src.models import Session

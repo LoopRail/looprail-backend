@@ -67,7 +67,7 @@ class TaskDependenciesFactory:
 
         # Find ledger_config from config
         ledger_config = next(
-            (l for l in self.config.ledger.ledgers if l.ledger_id == ledger_id),
+            (ledger_item for ledger_item in self.config.ledger.ledgers if ledger_item.ledger_id == ledger_id),
             None,
         )
         if not ledger_config:

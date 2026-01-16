@@ -1,4 +1,4 @@
-from fastapi import Body, Depends, HTTPException
+from fastapi import Depends, HTTPException
 
 from src.api.dependencies import get_config
 from src.dtos import OtpCreate, UserCreate

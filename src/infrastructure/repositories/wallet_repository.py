@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 from src.infrastructure.repositories.base import Base
 from src.models.wallet_model import Wallet
 from src.types.common_types import UserId, WalletId
-from src.types.error import Error, error
+from src.types.error import Error
 
 
 class WalletRepository(Base):

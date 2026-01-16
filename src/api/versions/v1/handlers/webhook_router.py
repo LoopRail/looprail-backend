@@ -1,7 +1,7 @@
 from src.usecases.transaction_usecases import TransactionUsecase
 from src.api.dependencies.usecases import get_transaction_usecase
 from src.api.webhooks import handlers  # noqa: F401
-from fastapi import APIRouter, Depends, status, Request
+from fastapi import APIRouter, Depends, status
 from src.api.dependencies.repositories import get_wallet_repository, get_asset_repository
 from src.api.dependencies.services import get_ledger_service
 from src.infrastructure.repositories import WalletRepository, AssetRepository
