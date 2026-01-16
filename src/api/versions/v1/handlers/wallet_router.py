@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import get_current_user, get_wallet_manager_usecase
+from src.api.dependencies import (get_config, get_current_user,
+                                  get_wallet_manager_usecase)
 from src.api.dependencies.extra_deps import get_rq_manager
 from src.dtos.wallet_dtos import ProcessWithdrawalRequest, WithdrawalRequest
+from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RQManager
 from src.infrastructure.tasks.withdrawal_tasks import process_withdrawal_task
@@ -48,12 +50,14 @@ async def initiate_withdraw(
 async def process_withraw_request(
     req: ProcessWithdrawalRequest,
     user: User = Depends(get_current_user),
+    config: Config = Depends(get_config),
     rq_manager: RQManager = Depends(get_rq_manager),
 ):
     rq_manager.get_queue().enqueue(
         process_withdrawal_task,
         user_id=user.id,
         pin=req.pin,
+        config=config,
         transaction_id=req.transaction_id,
     )
 
