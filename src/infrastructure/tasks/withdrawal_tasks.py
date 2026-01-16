@@ -15,6 +15,8 @@ def process_withdrawal_task(
     withdrawal_request_data: Dict[str, Any],
     pin: str,
     transaction_id: str,
+    wallet_name: str, # New direct argument
+    ledger_id: str,    # New direct argument
 ):
     """
     RQ task to process a withdrawal request asynchronously.
@@ -24,8 +26,7 @@ def process_withdrawal_task(
         user_id,
         transaction_id,
     )
-    wallet_name = withdrawal_request_data["wallet_name"]
-    ledger_id = withdrawal_request_data["ledger_id"]
+    # wallet_name and ledger_id are now direct arguments, no need to extract from withdrawal_request_data
     wallet_manager_usecase = get_task_wallet_manager_usecase(
         config, wallet_name, ledger_id
     )
