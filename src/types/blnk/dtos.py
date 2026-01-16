@@ -38,11 +38,11 @@ class BalanceResponse(BlnkBase):
     inflight_credit_balance: float
     debit_balance: float
     inflight_debit_balance: float
-    precision: int
+    precision: Optional[int] = None
     ledger_id: str
     identity_id: str
     balance_id: str
-    indicator: str
+    indicator: Optional[str] = None
     currency: str
     created_at: datetime
     inflight_expires_at: datetime
@@ -129,7 +129,7 @@ class TransactionResponse(BlnkBase):
     precise_amount: float
     amount: float
     rate: float
-    precision: int
+    precision: Optional[int] = None
     transaction_id: str
     parent_transaction: str
     source: str
