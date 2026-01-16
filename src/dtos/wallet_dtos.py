@@ -73,4 +73,4 @@ class WithdrawalRequest(Base):
 
 class ProcessWithdrawalRequest(Base):
     transaction_id: str
-    pin: str
+    transation_pin: str

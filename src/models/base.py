@@ -11,9 +11,14 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.infrastructure.logger import get_logger
 from src.types.common_types import DeletionFilter
-from src.types.error import (Error, ItemDoesNotExistError, NotFoundError,
-                             ProtectedModelError, UpdatingProtectedFieldError,
-                             error)
+from src.types.error import (
+    Error,
+    ItemDoesNotExistError,
+    NotFoundError,
+    ProtectedModelError,
+    UpdatingProtectedFieldError,
+    error,
+)
 
 logger = get_logger(__name__)
 __default_protected_fields__ = ["id", "created_at", "updated_at", "deleted_at"]
@@ -44,7 +49,7 @@ class DatabaseMixin:
             return None, err
         return self, None
 
-    async def save(self, session: AsyncSession) -> error:
+    async def save(self, session: AsyncSession) -> Error:
         try:
             session.add(self)
             await session.flush()

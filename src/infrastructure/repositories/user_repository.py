@@ -3,23 +3,17 @@ from typing import Optional, Tuple
 from pydantic import EmailStr
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.infrastructure.repositories.base import Base
 from src.models.user_model import User, UserProfile
 from src.types.common_types import UserId
 from src.types.error import Error, NotFoundError, UserAlreadyExistsError, error
 
 
-class UserRepository:
+class UserRepository(Base):
     """
     Concrete implementation of the user repository using SQLModel.
     """
-
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
-    async def save(self, user: User) -> Error:
-        return await user.save(self.session)
 
     async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]:
         async with self.session.begin_nested():
@@ -42,20 +36,20 @@ class UserRepository:
                     "User with this username already exists"
                 )
 
-            return await user.create(self.session)
+            return await self.create(user)
 
     async def get_user_by_id(self, *, user_id: UserId) -> Tuple[Optional[User], Error]:
-        return await User.get(self.session, user_id)
+        return await self.get(User, user_id)
 
     async def get_user_by_email(
         self, *, email: EmailStr
     ) -> Tuple[Optional[User], Error]:
-        return await User.find_one(self.session, email=email)
+        return await self.find_one(User, email=email)
 
     async def get_user_by_username(
         self, *, username: str
     ) -> Tuple[Optional[User], Error]:
-        return await User.find_one(self.session, username=username)
+        return await self.find_one(User, username=username)
 
     async def list_users(
         self, *, limit: int = 50, offset: int = 0
@@ -70,29 +64,29 @@ class UserRepository:
     async def update_user(
         self, *, user_id: UserId, **kwargs
     ) -> Tuple[Optional[User], Error]:
-        user, err = await self.get_user_by_id(user_id=user_id)
+        user, err = await self.get(User, user_id)
         if err:
             return None, err
-        return await user.update(self.session, **kwargs)
+        return await self.update(user, **kwargs)
 
     async def delete_user(self, *, user_id: UserId) -> Error:
-        user, err = await self.get_user_by_id(user_id=user_id)
+        user, err = await self.get(User, user_id)
         if err:
             return err
-        return await user.delete(self.session)
+        return await self.delete(user)
 
     async def create_user_profile(
         self, *, user_profile: UserProfile
     ) -> Tuple[Optional[UserProfile], Error]:
-        return await user_profile.create(self.session)
+        return await self.create(user_profile)
 
     async def get_user_profile_by_user_id(
         self, *, user_id: UserId
     ) -> Tuple[Optional[UserProfile], Error]:
-        user, err = await self.get_user_by_id(user_id=user_id)
+        user, err = await self.get(User, user_id)
         if err:
             return None, err
-        return await UserProfile.get(self.session, _id=user.profile.id)
+        return await self.get(UserProfile, _id=user.profile.id)
 
     async def update_user_profile(
         self, *, user_id: UserId, **kwargs
@@ -100,17 +94,10 @@ class UserRepository:
         user_profile, err = await self.get_user_profile_by_user_id(user_id=user_id)
         if err:
             return None, err
-        return await user_profile.update(self.session, **kwargs)
+        return await self.update(user_profile, **kwargs)
 
     async def verify_user_pin(self, user_id: UserId, pin: str) -> bool:
-        """
-        Verifies the user's transaction PIN.
-        For demonstration, this is a placeholder. In a real app,
-        you would securely hash and compare the PIN.
-        """
-        # Placeholder: In a real application, fetch user's hashed PIN from DB
-        # and compare securely.
-        user, err = await self.get_user_by_id(user_id=user_id)
+        user, err = await self.get(User, user_id)
         if err or not user:
             return False
 
@@ -118,7 +105,6 @@ class UserRepository:
         # This needs to be replaced with actual secure PIN verification
         if str(user.id) == "test_user_id" and pin == "1234":
             return True
-        elif pin == "0000": # A dummy always true for testing
+        elif pin == "0000":  # A dummy always true for testing
             return True
         return False
-

@@ -3,17 +3,14 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
 from sqlmodel import select, update
-from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.infrastructure.repositories.base import Base
 from src.models import RefreshToken
 from src.types import Error, error
 from src.types.common_types import SessionId, UserId
 
 
-class RefreshTokenRepository:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
+class RefreshTokenRepository(Base):
     async def create_refresh_token(
         self,
         session_id: SessionId,
@@ -30,10 +27,7 @@ class RefreshTokenRepository:
             token_hash=refresh_token_hash,
             expires_at=expires_at,
         )
-        err = refresh_token.save(self.session)
-        if err:
-            return None, err
-        return refresh_token, None
+        return await self.create(refresh_token)
 
     async def get_valid_refresh_token_by_hash(
         self, refresh_token_hash: str

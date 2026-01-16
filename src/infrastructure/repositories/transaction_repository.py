@@ -2,33 +2,27 @@ from typing import Optional, Tuple
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.infrastructure.repositories.base import Base
 from src.models import Transaction
 from src.types.common_types import TransactionId, WalletId
 from src.types.error import Error, error
 
 
-class TransactionRepository:
+class TransactionRepository(Base):
     """
     Concrete implementation of the transaction repository using SQLModel.
     """
 
-    def __init__(self, session: AsyncSession):
-        self.session = session
-
     async def create_transaction(
         self, *, transaction: Transaction
     ) -> Tuple[Optional[Transaction], Error]:
-        return await transaction.create(self.session)
+        return await self.create(transaction)
 
     async def get_transaction_by_id(
         self, *, transaction_id: TransactionId
     ) -> Tuple[Optional[Transaction], Error]:
-        transaction = await Transaction.get(self.session, transaction_id)
-        if not transaction:
-            return None, error("Transaction not found")
-        return transaction, None
+        return await self.get(Transaction, transaction_id)
 
     async def get_transactions_by_wallet_id(
         self, *, wallet_id: WalletId, limit: int = 20, offset: int = 0
@@ -48,25 +42,14 @@ class TransactionRepository:
     async def get_transaction_by_hash(
         self, *, transaction_hash: str
     ) -> Tuple[Optional[Transaction], Error]:
-        transaction = await Transaction.find_one(
-            self.session, transaction_hash=transaction_hash
-        )
-        if not transaction:
-            return None, error("Transaction not found")
-        return transaction, None
+        return await self.find_one(Transaction, transaction_hash=transaction_hash)
 
     async def get_transaction_by_provider_id(
         self, *, provider_id: str
     ) -> Tuple[Optional[Transaction], Error]:
-        transaction = await Transaction.find_one(self.session, provider_id=provider_id)
-        if not transaction:
-            return None, error("Transaction not found")
-        return transaction, None
+        return await self.find_one(Transaction, provider_id=provider_id)
 
     async def update_transaction(
         self, *, transaction: Transaction
     ) -> Tuple[Optional[Transaction], Error]:
-        err = await transaction.save(self.session)
-        if err:
-            return None, err
-        return transaction, None
+        return await self.update(transaction)
