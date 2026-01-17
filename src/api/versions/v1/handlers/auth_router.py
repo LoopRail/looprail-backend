@@ -1,64 +1,29 @@
 import hashlib
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Body,
-    Depends,
-    Header,
-    Request,
-    Response,
-    status,
-)
+from fastapi import (APIRouter, BackgroundTasks, Body, Depends, Header,
+                     Request, Response, status)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (
-    BearerToken,
-    get_app_environment,
-    get_config,
-    get_jwt_usecase,
-    get_otp_usecase,
-    get_resend_service,
-    get_session_usecase,
-    get_user_usecases,
-    get_wallet_manager_usecase,
-)
-from src.api.internals import (
-    send_otp_internal,
-    set_send_otp_config,
-    set_user_create_config,
-)
+from src.api.dependencies import (BearerToken, get_app_environment, get_config,
+                                  get_jwt_usecase, get_otp_usecase,
+                                  get_resend_service, get_session_usecase,
+                                  get_user_usecases,
+                                  get_wallet_manager_usecase)
+from src.api.internals import (send_otp_internal, set_send_otp_config,
+                               set_user_create_config)
 from src.api.rate_limiter import limiter
-from src.dtos import (
-    AuthTokensResponse,
-    AuthWithTokensAndUserResponse,
-    CreateUserResponse,
-    LoginRequest,
-    MessageResponse,
-    OnboardUserUpdate,
-    OtpCreate,
-    RefreshTokenRequest,
-    UserCreate,
-    UserPublic,
-)
+from src.dtos import (AuthTokensResponse, AuthWithTokensAndUserResponse,
+                      CreateUserResponse, LoginRequest, MessageResponse,
+                      OnboardUserUpdate, OtpCreate, RefreshTokenRequest,
+                      UserCreate, UserPublic)
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
-from src.types import (
-    AccessToken,
-    OnBoardingToken,
-    Platform,
-    TokenType,
-    UserAlreadyExistsError,
-)
-from src.usecases import (
-    JWTUsecase,
-    OtpUseCase,
-    SessionUseCase,
-    UserUseCase,
-    WalletManagerUsecase,
-)
+from src.types import (AccessToken, OnBoardingToken, Platform, TokenType,
+                       UserAlreadyExistsError)
+from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
+                          WalletManagerUsecase)
 from src.utils import validate_password_strength
 
 logger = get_logger(__name__)
@@ -197,7 +162,7 @@ async def complete_onboarding(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
     return {
-        "message": "User onboarded successfully, wallet creation in progress.",
+        "message": "User onboarded successfully",
         "user": UserPublic.model_validate(current_user.model_dump()).model_dump(
             exclude_none=True
         ),
