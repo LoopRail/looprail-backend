@@ -105,8 +105,7 @@ def test_login_invalid_credentials(
     )
 
 
-@pytest.mark.asyncio
-async def test_refresh_token_success(
+def test_refresh_token_success(
     client: TestClient,
     authenticated_client: tuple[TestClient, str, str],
     mock_session_usecase: MagicMock,
@@ -162,8 +161,7 @@ async def test_refresh_token_success(
     assert mock_jwt_usecase.create_token.call_count == 1
 
 
-@pytest.mark.asyncio
-async def test_refresh_token_invalid_token(
+def test_refresh_token_invalid_token(
     client: TestClient, mock_session_usecase: MagicMock
 ):
     # Mock SessionUseCase.get_valid_refresh_token_by_hash to return an error
@@ -182,8 +180,7 @@ async def test_refresh_token_invalid_token(
     mock_session_usecase.get_valid_refresh_token_by_hash.assert_called_once()
 
 
-@pytest.mark.asyncio
-async def test_refresh_token_reuse_detection(
+def test_refresh_token_reuse_detection(
     client: TestClient,
     authenticated_client: tuple[TestClient, str, str],
     mock_session_usecase: MagicMock,
@@ -252,8 +249,7 @@ async def test_refresh_token_reuse_detection(
     assert mock_jwt_usecase.create_token.call_count == 1
 
 
-@pytest.mark.asyncio
-async def test_logout_success(
+def test_logout_success(
     client: TestClient,
     authenticated_client: tuple[TestClient, str, str],
     mock_session_usecase: MagicMock,
@@ -289,8 +285,7 @@ async def test_logout_success(
     app.dependency_overrides.clear()
 
 
-@pytest.mark.asyncio
-async def test_logout_all_success(
+def test_logout_all_success(
     client: TestClient,
     test_user: tuple[User, str],
     mock_session_usecase: MagicMock,
