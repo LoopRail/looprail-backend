@@ -88,7 +88,7 @@ async def get_current_user(
     user_usecase: UserUseCase = Depends(get_user_usecases),
 ) -> User:
     logger.debug("Entering get_current_user for user ID: %s", access_token.sub)
-    user, err = await user_usecase.get_user_by_id(access_token.sub)
+    user, err = await user_usecase.get_user_by_id(access_token.get_clean_user_id())
     if err:
         raise AuthError(code=401, message="User not found")
     return user
