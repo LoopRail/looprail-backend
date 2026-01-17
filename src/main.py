@@ -74,7 +74,6 @@ async def custom_error_handler(request: Request, exc: Error):
     code = status.HTTP_400_BAD_REQUEST
     if hasattr(exc, "code"):
         code = exc.code
-    print(code)
     return JSONResponse(
         status_code=code,
         content={"message": exc.message},
