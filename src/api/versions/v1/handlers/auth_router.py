@@ -171,7 +171,8 @@ async def complete_onboarding(
             content={"message": "Internal server error"},
         )
     access_token_data = AccessToken(
-        sub=f"access_{current_user.id}",
+        sub=f"access_{session.get_prefixed_id()}",
+        user_id=current_user.get_prefixed_id(),
         token_type=TokenType.ACCESS_TOKEN,
         session_id=session.get_prefixed_id(),
         platform=platform,
@@ -226,7 +227,7 @@ async def login(
         )
 
     access_token_data = AccessToken(
-        sub=f"access_{user.id}",
+        sub=f"access_{session.get_prefixed_id()}",
         user_id=user.get_prefixed_id(),
         token_type=TokenType.ACCESS_TOKEN,
         session_id=session.id,
@@ -313,9 +314,10 @@ async def refresh_token(
 
     # Issue a new access token
     access_token_data = AccessToken(
-        sub=f"access_{session.user_id}",
+        sub=f"access_{session.get_prefixed_id()}",
         token_type=TokenType.ACCESS_TOKEN,
         session_id=session.id,
+        user_id=session.user_id,
         platform=platform,
         device_id=device_id,
     )
