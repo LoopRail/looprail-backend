@@ -61,7 +61,7 @@ class UserUseCase:
 
     async def save(self, user: User) -> Tuple[Optional[User], Error]:
         logger.debug("Saving user with ID: %s", user.id)
-        user, err = await self.user_repository.save(user)
+        err = await self.user_repository.save(user)
         if err:
             logger.error("Failed to save user %s: %s", user.id, err.message)
         else:

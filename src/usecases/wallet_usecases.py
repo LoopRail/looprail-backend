@@ -119,7 +119,7 @@ class WalletService:
             first_name=user.first_name,
             last_name=user.last_name,
             email_address=user.email,
-            phone_number=user.phone_number,
+            # phone_number=user.phone_number,
         )
         (
             ledger_identity,

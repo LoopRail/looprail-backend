@@ -1,11 +1,7 @@
 from fastapi import APIRouter, Depends, Request, status
 
-from src.api.dependencies import (
-    get_config,
-    get_jwt_usecase,
-    get_user_usecases,
-    verify_otp_dep,
-)
+from src.api.dependencies import (get_config, get_jwt_usecase,
+                                  get_user_usecases, verify_otp_dep)
 from src.api.rate_limiter import limiter
 from src.dtos import OTPSuccessResponse
 from src.infrastructure.config_settings import Config
@@ -40,7 +36,7 @@ async def verify_onboarding_otp(
         raise AuthError(code=status.HTTP_404_NOT_FOUND, message="user not found")
 
     user.is_email_verified = True
-    err = await user_usecase.save(user)
+    user, err = await user_usecase.save(user)
     if err:
         logger.error("Could not update user: Error: %s", err)
         raise AuthError(code=status.HTTP_404_NOT_FOUND, message="user not found")
