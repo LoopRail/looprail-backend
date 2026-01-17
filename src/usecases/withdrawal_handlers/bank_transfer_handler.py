@@ -10,7 +10,8 @@ from src.types.blnk import RecordTransactionRequest
 from src.types.common_types import WorldLedger
 from src.types.error import Error, error
 from src.types.types import TransactionType, WithdrawalMethod
-from src.usecases.withdrawal_handlers.registry import register_withdrawal_handler
+from src.usecases.withdrawal_handlers.registry import \
+    register_withdrawal_handler
 
 if TYPE_CHECKING:
     from src.usecases.wallet_usecases import WalletManagerUsecase

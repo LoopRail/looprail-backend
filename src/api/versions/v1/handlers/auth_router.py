@@ -1,64 +1,29 @@
 import hashlib
 
-from fastapi import (
-    APIRouter,
-    BackgroundTasks,
-    Body,
-    Depends,
-    Header,
-    Request,
-    Response,
-    status,
-)
+from fastapi import (APIRouter, BackgroundTasks, Body, Depends, Header,
+                     Request, Response, status)
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (
-    BearerToken,
-    get_app_environment,
-    get_config,
-    get_jwt_usecase,
-    get_otp_usecase,
-    get_resend_service,
-    get_session_usecase,
-    get_user_usecases,
-    get_wallet_manager_usecase,
-)
-from src.api.internals import (
-    send_otp_internal,
-    set_send_otp_config,
-    set_user_create_config,
-)
+from src.api.dependencies import (BearerToken, get_app_environment, get_config,
+                                  get_jwt_usecase, get_otp_usecase,
+                                  get_resend_service, get_session_usecase,
+                                  get_user_usecases,
+                                  get_wallet_manager_usecase)
+from src.api.internals import (send_otp_internal, set_send_otp_config,
+                               set_user_create_config)
 from src.api.rate_limiter import limiter
-from src.dtos import (
-    AuthTokensResponse,
-    AuthWithTokensAndUserResponse,
-    CreateUserResponse,
-    LoginRequest,
-    MessageResponse,
-    OnboardUserUpdate,
-    OtpCreate,
-    RefreshTokenRequest,
-    UserCreate,
-    UserPublic,
-)
+from src.dtos import (AuthTokensResponse, AuthWithTokensAndUserResponse,
+                      CreateUserResponse, LoginRequest, MessageResponse,
+                      OnboardUserUpdate, OtpCreate, RefreshTokenRequest,
+                      UserCreate, UserPublic)
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
-from src.types import (
-    AccessToken,
-    OnBoardingToken,
-    Platform,
-    TokenType,
-    UserAlreadyExistsError,
-)
-from src.usecases import (
-    JWTUsecase,
-    OtpUseCase,
-    SessionUseCase,
-    UserUseCase,
-    WalletManagerUsecase,
-)
+from src.types import (AccessToken, OnBoardingToken, Platform, TokenType,
+                       UserAlreadyExistsError)
+from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
+                          WalletManagerUsecase)
 from src.utils import validate_password_strength
 
 logger = get_logger(__name__)
@@ -123,10 +88,8 @@ async def create_user(
 async def complete_onboarding(
     request: Request,
     user_data: OnboardUserUpdate,
-    background_tasks: BackgroundTasks,
-    token: OnBoardingToken = Depends(BearerToken[OnBoardingToken]()),
+    token: OnBoardingToken = Depends(BearerToken[OnBoardingToken](OnBoardingToken)),
     user_usecases: UserUseCase = Depends(get_user_usecases),
-    wallet_manager: WalletManagerUsecase = Depends(get_wallet_manager_usecase),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
     device_id: str = Header(..., alias="X-Device-ID"),
     platform: Platform = Header(..., alias="X-Platform"),
@@ -146,19 +109,24 @@ async def complete_onboarding(
             content={"message": "Invalid token"},
         )
 
-    current_user, err = await user_usecases.get_user_by_id(user_id=token.user_id)
+    current_user, err = await user_usecases.get_user_by_id(
+        user_id=token.get_clean_user_id()
+    )
     if err:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": "User not found"},
         )
-    _, err = await user_usecases.update_user_profile(current_user.id, **user_data)
+
+    pin_str = "".join(map(str, user_data.transaction_pin))
+    _, err = await user_usecases.update_transaction_pin(current_user.id, pin_str)
     if err:
-        logger.error("Could not update user: %s", err.message)
+        logger.error("Could not set transaction pin: %s", err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Internal server error"},
         )
+
     _, err = await user_usecases.update_user(
         current_user.id, has_completed_onboarding=True
     )
@@ -169,22 +137,12 @@ async def complete_onboarding(
             content={"message": "Internal server error"},
         )
 
-    async def create_wallets_in_background(user_id):
-        _, err = await wallet_manager.create_user_wallet(user_id)
-        if err:
-            logger.error(
-                "Failed to create user wallet for user %s: %s",
-                user_id,
-                err.message,
-            )
-
-    background_tasks.add_task(create_wallets_in_background, current_user.id)
-
-    session, raw_refresh_token = await session_usecase.create_session(
+    session, raw_refresh_token, err = await session_usecase.create_session(
         user_id=current_user.id,
         device_id=device_id,
         platform=platform,
         ip_address=request.client.host,
+        allow_notifications=user_data.allow_notifications,
     )
     if err:
         logger.error(

@@ -34,7 +34,11 @@ async def initiate_withdraw(
     )
     specific_withdrawal, err = req.destination.to_specific_event()
     if err:
-        logger.error("Invalid withdrawal request for user %s: %s", user.id, err.message)
+        logger.error(
+            "Invalid withdrawal request for user %s: %s",
+            user.get_prefixed_id(),
+            err.message,
+        )
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, detail={"error": err.message}
         )

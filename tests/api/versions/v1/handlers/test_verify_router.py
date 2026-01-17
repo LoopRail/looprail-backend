@@ -10,8 +10,7 @@ import httpx
 
 
 class TestVerifyOnboardingOtp:
-    @pytest.mark.asyncio
-    async def test_verify_onboarding_otp_success(
+    def test_verify_onboarding_otp_success(
         self,
         client: httpx.AsyncClient,
         mock_get_otp_token: MagicMock,
@@ -29,7 +28,7 @@ class TestVerifyOnboardingOtp:
         mock_user_usecases.save.return_value = (test_user, None)
         mock_jwt_usecase.create_token.return_value = "mock_access_token"
 
-        response = await client.post(
+        response = client.post(
             "/api/v1/verify/onbaording-otp",
             headers={"X-OTP-Token": mock_get_otp_token.return_value},
         )
@@ -47,8 +46,7 @@ class TestVerifyOnboardingOtp:
         mock_user_usecases.save.assert_called_once_with(test_user)
         mock_jwt_usecase.create_token.assert_called_once()
 
-    @pytest.mark.asyncio
-    async def test_verify_onboarding_otp_invalid_otp_type(
+    def test_verify_onboarding_otp_invalid_otp_type(
         self,
         client: httpx.AsyncClient,
         mock_get_otp_token: MagicMock,
@@ -61,7 +59,7 @@ class TestVerifyOnboardingOtp:
 
         mock_otp_usecase.get_otp.return_value = (invalid_otp, None)
 
-        response = await client.post(
+        response = client.post(
             "/api/v1/verify/onbaording-otp",
             headers={"X-OTP-Token": mock_get_otp_token.return_value},
         )
@@ -70,8 +68,7 @@ class TestVerifyOnboardingOtp:
         assert response.json()["message"] == "Invalid otp type"
         mock_otp_usecase.get_otp.assert_called_once()
 
-    @pytest.mark.asyncio
-    async def test_verify_onboarding_otp_user_not_found(
+    def test_verify_onboarding_otp_user_not_found(
         self,
         client: httpx.AsyncClient,
         mock_get_otp_token: MagicMock,
@@ -83,7 +80,7 @@ class TestVerifyOnboardingOtp:
         mock_otp_usecase.verify_code.return_value = True
         mock_user_usecases.get_user_by_email.return_value = (None, NotFoundError)
 
-        response = await client.post(
+        response = client.post(
             "/api/v1/verify/onbaording-otp",
             headers={"X-OTP-Token": mock_get_otp_token.return_value},
         )
@@ -96,8 +93,7 @@ class TestVerifyOnboardingOtp:
             user_email=test_otp_onboarding.user_email
         )
 
-    @pytest.mark.asyncio
-    async def test_verify_onboarding_otp_user_save_fails(
+    def test_verify_onboarding_otp_user_save_fails(
         self,
         client: httpx.AsyncClient,
         mock_get_otp_token: MagicMock,
@@ -111,7 +107,7 @@ class TestVerifyOnboardingOtp:
         mock_user_usecases.get_user_by_email.return_value = (test_user, None)
         mock_user_usecases.save.return_value = (None, error("Database error"))
 
-        response = await client.post(
+        response = client.post(
             "/api/v1/verify/onbaording-otp",
             headers={"X-OTP-Token": mock_get_otp_token.return_value},
         )

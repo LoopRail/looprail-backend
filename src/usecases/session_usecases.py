@@ -32,6 +32,7 @@ class SessionUseCase:
         platform: str,
         device_id: str,
         ip_address: str,
+        allow_notifications: bool = False,
         user_agent: str | None = None,
     ) -> Tuple[Optional[Session], str, Error]:
         logger.debug(
@@ -47,6 +48,7 @@ class SessionUseCase:
             device_id=device_id,
             ip_address=ip_address,
             user_agent=user_agent,
+            allow_notifications=allow_notifications,
         )
         if err:
             logger.error(

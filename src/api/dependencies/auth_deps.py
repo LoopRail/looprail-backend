@@ -32,6 +32,9 @@ security = HTTPBearer(auto_error=False)
 
 
 class BearerToken[T]:
+    def __init__(self, response_model: T) -> None:
+        self.response_model = response_model
+
     async def __call__(
         self,
         credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -61,7 +64,7 @@ class BearerToken[T]:
                 message="Token missing",
             )
 
-        response_token, err = jwt_usecase.verify_token(token, T)
+        response_token, err = jwt_usecase.verify_token(token, self.response_model)
         if err:
             raise AuthError(code=401, message="Invalid token")
 
@@ -69,7 +72,7 @@ class BearerToken[T]:
 
 
 async def get_current_user_token(
-    token: AccessToken = Depends(BearerToken[AccessToken]()),
+    token: AccessToken = Depends(BearerToken[AccessToken](AccessToken)),
 ) -> AccessToken:
     logger.debug("Entering get_current_user_token")
     if token.token_type != TokenType.ACCESS_TOKEN:

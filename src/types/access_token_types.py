@@ -28,9 +28,15 @@ class OnBoardingToken(Token):
     __sub_prefix__ = "onboarding"
     user_id: UserId
 
+    def get_clean_user_id(self) -> str:
+        return self.user_id.removeprefix("usr_")
+
 
 class AccessToken(Token):
     __sub_prefix__ = "access"
     sub: UserId
     session_id: SessionId
     platform: str
+
+    def get_clean_session_id(self) -> str:
+        return self.session_id.removeprefix("ses_")

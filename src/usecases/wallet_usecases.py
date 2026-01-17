@@ -2,37 +2,21 @@ from typing import Any, Dict, Optional, Self, Tuple
 from uuid import UUID, uuid4
 
 from src.dtos import CreateTransactionParams
-from src.dtos.wallet_dtos import (
-    BankTransferData,
-    ExternalWalletTransferData,
-    TransferType,
-    WithdrawalRequest,
-)
+from src.dtos.wallet_dtos import (BankTransferData, ExternalWalletTransferData,
+                                  TransferType, WithdrawalRequest)
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import (
-    AssetRepository,
-    UserRepository,
-    WalletRepository,
-)
-from src.infrastructure.services import LedgerService, PaycrestService, WalletManager
+from src.infrastructure.repositories import (AssetRepository, UserRepository,
+                                             WalletRepository)
+from src.infrastructure.services import (LedgerService, PaycrestService,
+                                         WalletManager)
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, User, Wallet
-from src.types import (
-    AssetType,
-    Error,
-    IdentiyType,
-    PaymentMethod,
-    Provider,
-    TransactionType,
-    WalletConfig,
-    error,
-)
-from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse
-from src.types.blockrader import (
-    CreateAddressRequest,
-    NetworkFeeRequest,
-    WalletAddressResponse,
-)
+from src.types import (AssetType, Error, IdentiyType, PaymentMethod, Provider,
+                       TransactionType, WalletConfig, error)
+from src.types.blnk import (CreateBalanceRequest, CreateIdentityRequest,
+                            IdentityResponse)
+from src.types.blockrader import (CreateAddressRequest, NetworkFeeRequest,
+                                  WalletAddressResponse)
 from src.types.common_types import AssetId, UserId
 from src.types.ledger_types import Ledger
 from src.types.types import WithdrawalMethod  # Added this import
@@ -293,12 +277,12 @@ class WalletManagerUsecase:
 
             balance_request = CreateBalanceRequest(
                 ledger_id=ledger_id,
-                identity_id=user.ledger_identiy_id,
+                identity_id=user.ledger_identity_id,
                 currency=asset_data.symbol.lower(),
             )
             logger.debug(
                 "Creating ledger balance for identity %s, currency %s",
-                user.ledger_identiy_id,
+                user.ledger_identity_id,
                 asset_data.symbol,
             )
             (
@@ -684,7 +668,7 @@ class WalletManagerUsecase:
             transaction.currency.value,
         )
         debit_result, err = await self.service.ledger_service.balances.debit_balance(
-            identity_id=user.ledger_identiy_id,
+            identity_id=user.ledger_identity_id,
             currency=transaction.currency.value.lower(),
             amount=transaction.amount,
             # Pass other necessary details from transaction like reference, etc.
