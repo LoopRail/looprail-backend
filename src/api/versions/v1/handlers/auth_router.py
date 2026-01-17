@@ -213,8 +213,8 @@ async def login(
             content={"message": "Invalid credentials"},
         )
 
-    session, raw_refresh_token = await session_usecase.create_session(
-        user_id=user.get_prefixed_id(),
+    session, raw_refresh_token, err = await session_usecase.create_session(
+        user_id=user.id,
         device_id=device_id,
         platform=platform,
         ip_address=request.client.host,
@@ -230,7 +230,7 @@ async def login(
         sub=f"access_{session.get_prefixed_id()}",
         user_id=user.get_prefixed_id(),
         token_type=TokenType.ACCESS_TOKEN,
-        session_id=session.id,
+        session_id=session.get_prefixed_id(),
         platform=platform,
         device_id=device_id,
     )
