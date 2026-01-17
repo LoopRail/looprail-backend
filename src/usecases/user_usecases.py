@@ -7,7 +7,13 @@ from src.infrastructure.repositories import UserRepository
 from src.infrastructure.security import Argon2Config
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import User, UserCredentials, UserPin, UserProfile
-from src.types import Error, HashedPassword, InvalidCredentialsError
+from src.types import (
+    Error,
+    NotFoundError,
+    HashedPassword,
+    InvalidCredentialsError,
+    UserAlreadyExistsError,
+)
 from src.types.common_types import UserId
 from src.usecases.wallet_usecases import WalletManagerUsecase, WalletService
 from src.utils import hash_password, verify_password
@@ -103,6 +109,22 @@ class UserUseCase:
         logger.debug(
             "Generated temporary ledger identity ID: %s", temp_ledger_identity_id
         )
+
+        existing_user_by_phone, err = await self.get_user_by_phone_number(
+            phone_number=str(user_create.phone_number)
+        )
+
+        if err and err != NotFoundError:
+            logger.error(
+                "Failed to check for existing phone number for %s: %s",
+                user_create.phone_number,
+                err.message,
+            )
+            return None, err
+        if existing_user_by_phone:
+            return None, UserAlreadyExistsError(
+                "User with this phone number already exists"
+            )
 
         hashed_password_obj = hash_password(user_create.password, self.argon2_config)
 
@@ -221,6 +243,33 @@ class UserUseCase:
         else:
             logger.debug("User with email %s retrieved.", user_email)
         return user, err
+
+    async def get_user_by_phone_number(
+        self, phone_number: str
+    ) -> Tuple[Optional[User], Error]:
+        logger.debug("Getting user by phone number: %s", phone_number)
+        user_profile, err = await self.user_repository.find_one(
+            UserProfile, phone_number=phone_number
+        )
+        if err:
+            logger.debug(
+                "User with phone number %s not found: %s", phone_number, err.message
+            )
+            return None, err
+        if not user_profile:
+            return None, None
+        user, err = await self.user_repository.get_user_by_id(
+            user_id=user_profile.user_id
+        )
+        if err:
+            logger.error(
+                "Could not retrieve user for profile with phone number %s: %s",
+                phone_number,
+                err.message,
+            )
+            return None, err
+        logger.debug("User %s retrieved by phone number.", user.id)
+        return user, None
 
     async def update_transaction_pin(
         self, user_id: UserId, pin: str

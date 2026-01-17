@@ -1,9 +1,10 @@
 from typing import ClassVar
+from uuid import uuid4
 
-from pydantic import (BaseModel, ConfigDict, Field, field_serializer,
-                      field_validator)
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
-from src.types.common_types import SessionId, TokenSub, UserId
+from src.types.common_types import SessionId, UserId
+from src.types.error import ValidationError
 from src.types.types import TokenType
 from src.utils.app_utils import kebab_case
 
@@ -17,7 +18,7 @@ class Token(BaseModel):
         alias_generator=kebab_case,
         populate_by_name=True,
     )
-    sub: str 
+    sub: str = Field(default_factory=lambda: str(uuid4()))
     token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
 
     @field_serializer("sub")
@@ -29,9 +30,16 @@ class Token(BaseModel):
 
     @field_validator("sub", mode="before")
     @classmethod
-    def validate_sub(cls, v:str):
-        if not v.startswith()
-
+    def validate_sub(cls, v: str) -> str:
+        if not isinstance(v, str):
+            raise ValidationError(message="Sub field must be a string")
+        if hasattr(cls, "__sub_prefix__"):
+            expected_prefix = f"{cls.__sub_prefix__}_"
+            if not v.startswith(expected_prefix):
+                raise ValidationError(
+                    message=f"Sub ID must start with '{expected_prefix}'"
+                )
+        return v
 
 
 class OnBoardingToken(Token):

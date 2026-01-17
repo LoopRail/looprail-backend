@@ -3,25 +3,47 @@ import hashlib
 from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (BearerToken, get_app_environment, get_config,
-                                  get_jwt_usecase, get_otp_usecase,
-                                  get_resend_service, get_session_usecase,
-                                  get_user_usecases)
-from src.api.internals import (send_otp_internal, set_send_otp_config,
-                               set_user_create_config)
+from src.api.dependencies import (
+    BearerToken,
+    get_app_environment,
+    get_config,
+    get_jwt_usecase,
+    get_otp_usecase,
+    get_resend_service,
+    get_session_usecase,
+    get_user_usecases,
+)
+from src.api.internals import (
+    send_otp_internal,
+    set_send_otp_config,
+    set_user_create_config,
+)
 from src.api.rate_limiter import limiter
-from src.dtos import (AuthTokensResponse, AuthWithTokensAndUserResponse,
-                      CreateUserResponse, LoginRequest, MessageResponse,
-                      OnboardUserUpdate, OtpCreate, RefreshTokenRequest,
-                      UserCreate, UserPublic)
+from src.dtos import (
+    AuthTokensResponse,
+    AuthWithTokensAndUserResponse,
+    CreateUserResponse,
+    LoginRequest,
+    MessageResponse,
+    OnboardUserUpdate,
+    OtpCreate,
+    RefreshTokenRequest,
+    UserCreate,
+    UserPublic,
+)
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
-from src.types import (AccessToken, OnBoardingToken, Platform, TokenType,
-                       UserAlreadyExistsError)
+from src.types import (
+    AccessToken,
+    OnBoardingToken,
+    Platform,
+    TokenType,
+    UserAlreadyExistsError,
+)
 from src.usecases import JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase
-from src.utils import create_refresh_token, validate_password_strength
+from src.utils import create_refresh_token
 
 logger = get_logger(__name__)
 
@@ -40,12 +62,6 @@ async def create_user(
     resend_service: ResendService = Depends(get_resend_service),
 ) -> dict:
     logger.info("Received create user request for email: %s", user_data.email)
-    validation_error = validate_password_strength(user_data.password)
-    if validation_error:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content={"message": validation_error.message},
-        )
     created_user, err = await user_usecases.create_user(user_create=user_data)
     if type(err) is type(UserAlreadyExistsError()):
         logger.error("Failed to create user: %s", err.message)
@@ -113,6 +129,11 @@ async def complete_onboarding(
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content={"message": "User not found"},
+        )
+    if current_user.has_completed_onboarding:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"message": "Onboarding already completed"},
         )
 
     pin_str = "".join(map(str, user_data.transaction_pin))
@@ -185,9 +206,7 @@ async def login(
         email=login_request.email, password=login_request.password
     )
     if err:
-        logger.error(
-            "Authentication failed for user %s: %s", login_request.email, err
-        )
+        logger.error("Authentication failed for user %s: %s", login_request.email, err)
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"message": "Invalid credentials"},

@@ -2,8 +2,7 @@ import hashlib
 from typing import List, Optional, Tuple
 
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import (RefreshTokenRepository,
-                                             SessionRepository)
+from src.infrastructure.repositories import RefreshTokenRepository, SessionRepository
 from src.models import RefreshToken, Session
 from src.types import Error
 from src.types.common_types import SessionId, UserId
