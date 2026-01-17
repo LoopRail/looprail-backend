@@ -18,7 +18,7 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
 async def get_transactions(
     user: User = Depends(get_current_user),
     usecase: TransactionUsecase = Depends(get_transaction_usecase),
-    limit: int = 20,
+    limit: int = 10,
     offset: int = 0,
 ):
     logger.info(
