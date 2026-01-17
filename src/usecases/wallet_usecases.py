@@ -18,10 +18,9 @@ from src.infrastructure.services import LedgerService, PaycrestService, WalletMa
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, User, Wallet
 from src.types import (
-    AssetId,
     AssetType,
     Error,
-    IdentiyType,  # Added AssetId
+    IdentiyType,
     PaymentMethod,
     Provider,
     TransactionType,
@@ -34,7 +33,7 @@ from src.types.blockrader import (
     NetworkFeeRequest,
     WalletAddressResponse,
 )
-from src.types.common_types import UserId
+from src.types.common_types import AssetId, UserId
 from src.types.ledger_types import Ledger
 from src.types.types import WithdrawalMethod  # Added this import
 from src.usecases.transaction_usecases import TransactionUsecase
