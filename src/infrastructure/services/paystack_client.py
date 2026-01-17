@@ -45,12 +45,19 @@ class PaystackService(PaystackClient):
         self, account_number: str, institution_code: str, country: str
     ) -> Tuple[Optional[Any], Error]:
         """Verify bank account details"""
-        logger.debug("Verifying account for account number %s, institution code %s, country %s", account_number, institution_code, country)
+        logger.debug(
+            "Verifying account for account number %s, institution code %s, country %s",
+            account_number,
+            institution_code,
+            country,
+        )
         if country.lower() not in SUPPORTED_COUNTRIES:
-            logger.error("Country %s not supported for Paystack account verification.", country)
+            logger.error(
+                "Country %s not supported for Paystack account verification.", country
+            )
             return None, httpError(
                 code=400,
-                message="%s not supported for paystack account verification" % country,
+                message=f"{country} not supported for paystack account verification",
             )
 
         data = {"bank_code": institution_code, "account_number": account_number}
@@ -58,7 +65,9 @@ class PaystackService(PaystackClient):
             VerifyAccountResponse, path_suffix="/bank/resolve", req_params=data
         )
         if err:
-            logger.error("Failed to verify account for %s: %s", account_number, err.message)
+            logger.error(
+                "Failed to verify account for %s: %s", account_number, err.message
+            )
             return None, err
         logger.info("Account %s verified successfully.", account_number)
         return response, None

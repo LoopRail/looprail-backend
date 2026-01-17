@@ -8,6 +8,7 @@ from src.types import error, NotFoundError, OtpType
 
 import httpx
 
+
 class TestVerifyOnboardingOtp:
     @pytest.mark.asyncio
     async def test_verify_onboarding_otp_success(
@@ -56,7 +57,7 @@ class TestVerifyOnboardingOtp:
     ):
         # Mock OTP with a different type
         invalid_otp = test_otp_onboarding
-        invalid_otp.otp_type = OtpType.ONBOARDING_EMAIL_VERIFICATION 
+        invalid_otp.otp_type = OtpType.ONBOARDING_EMAIL_VERIFICATION
 
         mock_otp_usecase.get_otp.return_value = (invalid_otp, None)
 

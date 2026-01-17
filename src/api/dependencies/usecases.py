@@ -3,31 +3,45 @@ from typing import Optional
 from fastapi import Depends, Header, HTTPException, Request, status
 
 from src.api.dependencies.extra_deps import get_config
-from src.api.dependencies.repositories import (get_asset_repository,
-                                               get_refresh_token_repository,
-                                               get_session_repository,
-                                               get_transaction_repository,
-                                               get_user_repository,
-                                               get_wallet_repository)
-from src.api.dependencies.services import (get_blockrader_config,
-                                           get_ledger_config,
-                                           get_ledger_service,
-                                           get_paycrest_service,
-                                           get_redis_service)
+from src.api.dependencies.repositories import (
+    get_asset_repository,
+    get_refresh_token_repository,
+    get_session_repository,
+    get_transaction_repository,
+    get_user_repository,
+    get_wallet_repository,
+)
+from src.api.dependencies.services import (
+    get_blockrader_config,
+    get_ledger_config,
+    get_ledger_service,
+    get_paycrest_service,
+    get_redis_service,
+)
 from src.infrastructure import CUSTOMER_WALLET_LEDGER, MASTER_BASE_WALLET
 from src.infrastructure.config_settings import Config
 from src.infrastructure.redis import RedisClient
-from src.infrastructure.repositories import (AssetRepository,
-                                             RefreshTokenRepository,
-                                             SessionRepository,
-                                             TransactionRepository,
-                                             UserRepository, WalletRepository)
+from src.infrastructure.repositories import (
+    AssetRepository,
+    RefreshTokenRepository,
+    SessionRepository,
+    TransactionRepository,
+    UserRepository,
+    WalletRepository,
+)
 from src.infrastructure.services import LedgerService, PaycrestService
 from src.infrastructure.settings import BlockRaderConfig
 from src.types import LedgerConfig
-from src.usecases import (JWTUsecase, OtpUseCase, SecretsUsecase,
-                          SessionUseCase, TransactionUsecase, UserUseCase,
-                          WalletManagerUsecase, WalletService)
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    SecretsUsecase,
+    SessionUseCase,
+    TransactionUsecase,
+    UserUseCase,
+    WalletManagerUsecase,
+    WalletService,
+)
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
@@ -117,7 +131,9 @@ async def get_wallet_manager_usecase(
     if err:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"error": f"Failed to get legder with name {CUSTOMER_WALLET_LEDGER}"},
+            detail={
+                "error": f"Failed to get legder with name {CUSTOMER_WALLET_LEDGER}"
+            },
         )
     base_master_wallet, err = wallet_service.blockrader_config.wallets.get_wallet(
         MASTER_BASE_WALLET
@@ -152,5 +168,5 @@ async def get_user_usecases(
         blockrader_config,
         argon2_config,
         wallet_manager_usecase,
-        wallet_service,  
+        wallet_service,
     )

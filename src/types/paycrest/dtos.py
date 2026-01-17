@@ -31,6 +31,7 @@ class CreateOrderRequest(basePaycrestType):
     amount: Decimal
     recipient: PaycrestRecipiant
 
+
 class CreateOrderResponse(basePaycrestResponse):
     data: PaycrestPaymentOrder
 

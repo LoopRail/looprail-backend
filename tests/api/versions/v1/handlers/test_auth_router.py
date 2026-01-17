@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 import httpx
 
 
-
 from src.models.otp_model import Otp
 
 
@@ -12,7 +11,9 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_verify_otp_expired_email_otp(client: httpx.AsyncClient, mock_otp_usecase: MagicMock):
+async def test_verify_otp_expired_email_otp(
+    client: httpx.AsyncClient, mock_otp_usecase: MagicMock
+):
     # Arrange
     otp = Otp(
         code_hash="hashed_code",
@@ -59,7 +60,9 @@ async def test_verify_otp_max_attempts_exceeded_email_otp(
 
 
 @pytest.mark.asyncio
-async def test_verify_otp_invalid_code(client: httpx.AsyncClient, mock_otp_usecase: MagicMock):
+async def test_verify_otp_invalid_code(
+    client: httpx.AsyncClient, mock_otp_usecase: MagicMock
+):
     # Arrange
     otp = Otp(
         code_hash="hashed_code",
@@ -135,7 +138,9 @@ async def test_create_user_invalid_phone_number_format(
 
 
 @pytest.mark.asyncio
-async def test_create_user_invalid_email(client: httpx.AsyncClient, mock_user_usecases: MagicMock):
+async def test_create_user_invalid_email(
+    client: httpx.AsyncClient, mock_user_usecases: MagicMock
+):
     # Arrange
     user_data = {
         "email": "admin@example.com",  # Invalid email
@@ -189,7 +194,9 @@ async def test_create_user_disposable_email(
 
 
 @pytest.mark.asyncio
-async def test_create_user_invalid_gender(client: httpx.AsyncClient, mock_user_usecases: MagicMock):
+async def test_create_user_invalid_gender(
+    client: httpx.AsyncClient, mock_user_usecases: MagicMock
+):
     # Arrange
     user_data = {
         "email": "test@example.com",

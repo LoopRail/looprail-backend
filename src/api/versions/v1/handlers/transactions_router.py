@@ -21,12 +21,19 @@ async def get_transactions(
     limit: int = 20,
     offset: int = 0,
 ):
-    logger.info("Fetching transactions for user %s with limit %s and offset %s", user.id, limit, offset)
+    logger.info(
+        "Fetching transactions for user %s with limit %s and offset %s",
+        user.id,
+        limit,
+        offset,
+    )
     transactions, err = await usecase.get_transactions_by_wallet_id(
         wallet_id=user.wallet.id, limit=limit, offset=offset
     )
     if err:
-        logger.error("Error fetching transactions for user %s: %s", user.id, err.message)
+        logger.error(
+            "Error fetching transactions for user %s: %s", user.id, err.message
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err.message)
     return TransactionReadList(transactions=transactions)
 
@@ -42,11 +49,20 @@ async def get_transaction(
         transaction_id=transaction_id
     )
     if err:
-        logger.error("Error fetching transaction %s for user %s: %s", transaction_id, user.id, err.message)
+        logger.error(
+            "Error fetching transaction %s for user %s: %s",
+            transaction_id,
+            user.id,
+            err.message,
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=err.message)
 
     if transaction.wallet_id != user.wallet.id:
-        logger.warning("User %s attempted to access unauthorized transaction %s", user.id, transaction_id)
+        logger.warning(
+            "User %s attempted to access unauthorized transaction %s",
+            user.id,
+            transaction_id,
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this transaction",

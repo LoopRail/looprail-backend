@@ -45,9 +45,16 @@ class ResendService:
         Returns:
             A tuple containing the Resend API response (dict) and an error, if any.
         """
-        logger.debug("Attempting to send email to: %s from: %s with subject: %s", to, _from, subject)
+        logger.debug(
+            "Attempting to send email to: %s from: %s with subject: %s",
+            to,
+            _from,
+            subject,
+        )
         if not html_content and not text_content:
-            logger.error("Attempted to send email without html_content or text_content.")
+            logger.error(
+                "Attempted to send email without html_content or text_content."
+            )
             return None, httpError(
                 code=400,
                 message="Either html_content or text_content must be provided.",
@@ -67,8 +74,10 @@ class ResendService:
             logger.info("Email sent successfully to %s with subject: %s", to, subject)
             return response, None
         except ResendError as e:
-            logger.error("Failed to send email to %s with subject %s: %s", to, subject, e)
-            return None, httpError(code=500, message="Failed to send email: %s" % e)
+            logger.error(
+                "Failed to send email to %s with subject %s: %s", to, subject, e
+            )
+            return None, httpError(code=500, message=f"Failed to send email: {e}")
 
     async def send_otp(
         self,

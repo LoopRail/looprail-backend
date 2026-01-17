@@ -36,14 +36,23 @@ class TransactionUsecase:
     async def get_transactions_by_wallet_id(
         self, *, wallet_id: WalletId, limit: int = 20, offset: int = 0
     ) -> Tuple[List[Transaction], Error]:
-        logger.debug("Getting transactions for wallet %s with limit %s and offset %s", wallet_id, limit, offset)
+        logger.debug(
+            "Getting transactions for wallet %s with limit %s and offset %s",
+            wallet_id,
+            limit,
+            offset,
+        )
         transactions, err = await self._transaction_repo.get_transactions_by_wallet_id(
             wallet_id=wallet_id, limit=limit, offset=offset
         )
         if err:
-            logger.error("Failed to get transactions for wallet %s: %s", wallet_id, err.message)
+            logger.error(
+                "Failed to get transactions for wallet %s: %s", wallet_id, err.message
+            )
             return [], err
-        logger.debug("Retrieved %s transactions for wallet %s", len(transactions), wallet_id)
+        logger.debug(
+            "Retrieved %s transactions for wallet %s", len(transactions), wallet_id
+        )
         return transactions, err
 
     async def get_transaction_by_id(
@@ -62,7 +71,9 @@ class TransactionUsecase:
     async def update_status_from_event(
         self, event_data: Union[WithdrawFailedData, WithdrawCancelledData]
     ) -> Error:
-        logger.debug("Updating transaction status from event for provider ID: %s", event_data.id)
+        logger.debug(
+            "Updating transaction status from event for provider ID: %s", event_data.id
+        )
         transaction, err = await self._transaction_repo.get_transaction_by_provider_id(
             provider_id=event_data.id
         )
@@ -73,7 +84,9 @@ class TransactionUsecase:
                 err.message,
             )
             return err
-        logger.debug("Transaction %s found for provider ID %s.", transaction.id, event_data.id)
+        logger.debug(
+            "Transaction %s found for provider ID %s.", transaction.id, event_data.id
+        )
 
         transaction.status = event_data.status.value
         transaction.reason = event_data.reason
@@ -88,7 +101,11 @@ class TransactionUsecase:
                 err.message,
             )
             return err
-        logger.info("Transaction %s status updated to %s from event.", transaction.id, event_data.status.value)
+        logger.info(
+            "Transaction %s status updated to %s from event.",
+            transaction.id,
+            event_data.status.value,
+        )
         return None
 
     async def update_transaction_status(
@@ -98,7 +115,12 @@ class TransactionUsecase:
         new_status: str,
         message: Optional[str] = None,
     ) -> Optional[Error]:
-        logger.debug("Updating status of transaction %s to %s with message: %s", transaction_id, new_status, message)
+        logger.debug(
+            "Updating status of transaction %s to %s with message: %s",
+            transaction_id,
+            new_status,
+            message,
+        )
         transaction, err = await self._transaction_repo.get_transaction_by_id(
             transaction_id=transaction_id
         )

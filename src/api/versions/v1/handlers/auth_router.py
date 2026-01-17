@@ -388,7 +388,9 @@ async def logout_all(
     current_token: AccessToken = Depends(BearerToken[AccessToken]),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
 ):
-    logger.info("Received logout all sessions request for user ID: %s", current_token.sub)
+    logger.info(
+        "Received logout all sessions request for user ID: %s", current_token.sub
+    )
     err = await session_usecase.revoke_all_user_sessions(current_token.sub)
     if err:
         logger.error(
@@ -414,7 +416,6 @@ async def send_otp(
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
     resend_service: ResendService = Depends(get_resend_service),
 ):
-
     token = await send_otp_internal(
         environment,
         email=otp_data.email,

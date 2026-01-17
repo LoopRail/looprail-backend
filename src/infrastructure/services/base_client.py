@@ -69,7 +69,13 @@ class BaseClient(ABC):
         Returns:
             A tuple containing the HTTP response and an error, if any.
         """
-        logger.debug("Sending %s request to %s with data: %s and params: %s", method, url, data, req_params)
+        logger.debug(
+            "Sending %s request to %s with data: %s and params: %s",
+            method,
+            url,
+            data,
+            req_params,
+        )
         headers = self._get_headers()
         async with AsyncClient() as client:
             try:
@@ -82,7 +88,11 @@ class BaseClient(ABC):
                     params=req_params,
                     timeout=30,
                 )
-                logger.debug("Received response from %s with status code: %s", url, res.status_code)
+                logger.debug(
+                    "Received response from %s with status code: %s",
+                    url,
+                    res.status_code,
+                )
                 return res, None
             except (
                 TimeoutException,
@@ -91,7 +101,7 @@ class BaseClient(ABC):
                 TypeError,
             ) as e:
                 logger.error("Request to %s failed: %s", url, e, exc_info=True)
-                return None, httpError(code=504, message="Request to %s failed" % url)
+                return None, httpError(code=504, message=f"Request to {url} failed")
 
     def _process_response(
         self, res: Response, response_model: Type[T]
@@ -105,7 +115,11 @@ class BaseClient(ABC):
         Returns:
             A tuple containing the response data and an error, if any.
         """
-        logger.debug("Processing response for URL: %s with status code: %s", res.url, res.status_code)
+        logger.debug(
+            "Processing response for URL: %s with status code: %s",
+            res.url,
+            res.status_code,
+        )
         if res.status_code >= 500:
             logger.error(
                 "Service not available (status code: %s) for request to %s",
@@ -113,7 +127,8 @@ class BaseClient(ABC):
                 res.url,
             )
             return None, httpError(
-                code=res.status_code, message="Service not available %s" % res.status_code
+                code=res.status_code,
+                message=f"Service not available {res.status_code}",
             )
 
         if not res.is_success:
@@ -125,7 +140,7 @@ class BaseClient(ABC):
             )
             return None, httpError(
                 code=res.status_code,
-                message="Request failed %s: %s" % (res.status_code, res.text),
+                message=f"Request failed {res.status_code}: {res.text}",
             )
 
         response_data = response_model.model_validate(res.json())
@@ -148,7 +163,11 @@ class BaseClient(ABC):
         Returns:
             A tuple containing the response data and an error, if any.
         """
-        logger.debug("Sending GET request with path suffix: %s and params: %s", path_suffix, req_params)
+        logger.debug(
+            "Sending GET request with path suffix: %s and params: %s",
+            path_suffix,
+            req_params,
+        )
         url = self._get_url(path_suffix)
         res, err = await self._send(url, HTTPMethod.GET, req_params=req_params)
         if err:
@@ -174,7 +193,12 @@ class BaseClient(ABC):
         Returns:
             A tuple containing the response data and an error, if any.
         """
-        logger.debug("Sending POST request with path suffix: %s, data: %s, and params: %s", path_suffix, data, req_params)
+        logger.debug(
+            "Sending POST request with path suffix: %s, data: %s, and params: %s",
+            path_suffix,
+            data,
+            req_params,
+        )
         url = self._get_url(path_suffix)
         res, err = await self._send(
             url, HTTPMethod.POST, data=data, req_params=req_params
@@ -202,7 +226,12 @@ class BaseClient(ABC):
         Returns:
             A tuple containing the response data and an error, if any.
         """
-        logger.debug("Sending PUT request with path suffix: %s, data: %s, and params: %s", path_suffix, data, req_params)
+        logger.debug(
+            "Sending PUT request with path suffix: %s, data: %s, and params: %s",
+            path_suffix,
+            data,
+            req_params,
+        )
         url = self._get_url(path_suffix)
         res, err = await self._send(
             url, HTTPMethod.PUT, data=data, req_params=req_params

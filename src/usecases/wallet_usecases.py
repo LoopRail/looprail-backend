@@ -11,15 +11,16 @@ from src.infrastructure.services import (LedgerService, PaycrestService,
                                          WalletManager)
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, User, Wallet
-from src.types import (AssetType, Error, IdentiyType, PaymentMethod, Provider,
-                       TransactionType, WalletConfig, error, AssetId) # Added AssetId
+from src.types import (AssetId, AssetType, Error, IdentiyType,  # Added AssetId
+                       PaymentMethod, Provider, TransactionType, WalletConfig,
+                       error)
 from src.types.blnk import (CreateBalanceRequest, CreateIdentityRequest,
                             IdentityResponse)
 from src.types.blockrader import (CreateAddressRequest, NetworkFeeRequest,
                                   WalletAddressResponse)
 from src.types.common_types import UserId
 from src.types.ledger_types import Ledger
-from src.types.types import WithdrawalMethod # Added this import
+from src.types.types import WithdrawalMethod  # Added this import
 from src.usecases.transaction_usecases import TransactionUsecase
 
 logger = get_logger(__name__)
@@ -63,7 +64,11 @@ class WalletService:
     def new_manager(
         self, wallet_id: str, ledger: Ledger
     ) -> Tuple[Optional["WalletManagerUsecase"], Error]:
-        logger.debug("Creating new WalletManagerUsecase for wallet ID: %s, ledger: %s", wallet_id, ledger.name)
+        logger.debug(
+            "Creating new WalletManagerUsecase for wallet ID: %s, ledger: %s",
+            wallet_id,
+            ledger.name,
+        )
         wallet_config = next(
             (
                 w
@@ -85,7 +90,9 @@ class WalletService:
         manager_usecase = WalletManagerUsecase(
             self, self._manager, wallet_config, ledger
         )
-        logger.debug("WalletManagerUsecase created successfully for wallet ID: %s", wallet_id)
+        logger.debug(
+            "WalletManagerUsecase created successfully for wallet ID: %s", wallet_id
+        )
         return manager_usecase, None
 
     async def create_ledger_identity(
@@ -105,11 +112,16 @@ class WalletService:
         ) = await self.ledger_service.identities.create_identity(identity_request)
         if err:
             logger.error(
-                "Could not create ledger identity for user %s: %s", user.email,
+                "Could not create ledger identity for user %s: %s",
+                user.email,
                 err.message,
             )
             return None, error("Could not create ledger identity")
-        logger.info("Ledger identity %s created for user %s.", ledger_identity.identity_id, user.email)
+        logger.info(
+            "Ledger identity %s created for user %s.",
+            ledger_identity.identity_id,
+            user.email,
+        )
         return ledger_identity, None
 
 
@@ -125,7 +137,11 @@ class WalletManagerUsecase:
         self.manager = manager
         self.wallet_config = wallet_config
         self.ledger_config = ledger_config
-        logger.debug("WalletManagerUsecase initialized for wallet %s, ledger %s", wallet_config.wallet_id, ledger_config.ledger_id)
+        logger.debug(
+            "WalletManagerUsecase initialized for wallet %s, ledger %s",
+            wallet_config.wallet_id,
+            ledger_config.ledger_id,
+        )
 
     async def _get_user_data(self, user_id: UserId) -> Tuple[Optional[User], Error]:
         logger.debug("Attempting to get user data for user ID: %s", user_id)
@@ -143,9 +159,7 @@ class WalletManagerUsecase:
             user_id=user_id
         )
         if err:
-            logger.error(
-                "Could not get wallet for user %s: %s", user_id, err.message
-            )
+            logger.error("Could not get wallet for user %s: %s", user_id, err.message)
             return None, error("Could not get user wallet")
         logger.debug("Wallet %s retrieved for user %s.", wallet.id, user_id)
         return wallet, None
@@ -176,27 +190,39 @@ class WalletManagerUsecase:
     ) -> Tuple[Optional[WalletAddressResponse], Error]:
         logger.debug("Generating provider wallet for user ID: %s", user_id)
         wallet_request = CreateAddressRequest(
-            name="wallet:customer:%s" % user_id,
+            name=f"wallet:customer:{user_id}",
             metadata={"user_id": str(user_id)},
         )
         provider_wallet, err = await self.manager.generate_address(wallet_request)
         if err:
-            logger.error("Could not generate blockrader wallet for user %s: %s", user_id, err.message)
+            logger.error(
+                "Could not generate blockrader wallet for user %s: %s",
+                user_id,
+                err.message,
+            )
             return None, error("Could not generate wallet")
-        logger.info("Provider wallet generated for user %s with address: %s", user_id, provider_wallet.data.address)
+        logger.info(
+            "Provider wallet generated for user %s with address: %s",
+            user_id,
+            provider_wallet.data.address,
+        )
         return provider_wallet, None
 
     async def _create_local_wallet(
         self, user: User, provider_wallet: WalletAddressResponse
     ) -> Tuple[Optional[Wallet], Error]:
-        logger.debug("Creating local wallet for user %s with provider wallet ID: %s", user.id, provider_wallet.data.data_id)
+        logger.debug(
+            "Creating local wallet for user %s with provider wallet ID: %s",
+            user.id,
+            provider_wallet.data.data_id,
+        )
         new_wallet = Wallet(
             user_id=user.id,
             address=provider_wallet.data.address,
             chain=self.wallet_config.chain,
             provider=self.service.provider,
             ledger_id=self.ledger_config.ledger_id,
-            name="wallet:customer:%s" % user.id,
+            name=f"wallet:customer:{user.id}",
             derivation_path=provider_wallet.data.derivationPath,
         )
 
@@ -217,7 +243,11 @@ class WalletManagerUsecase:
     async def _create_ledger_balance(
         self, user: User, local_wallet: Wallet
     ) -> Optional[Error]:
-        logger.debug("Creating ledger balances for user %s, local wallet %s", user.id, local_wallet.id)
+        logger.debug(
+            "Creating ledger balances for user %s, local wallet %s",
+            user.id,
+            local_wallet.id,
+        )
         wallet_config = self.wallet_config
 
         # Use stored ledger_config_entry
@@ -225,14 +255,20 @@ class WalletManagerUsecase:
         ledger_id = ledger_config.ledger_id
 
         for asset_data in wallet_config.assets:
-            logger.debug("Processing asset %s for ledger balance creation.", asset_data.symbol)
+            logger.debug(
+                "Processing asset %s for ledger balance creation.", asset_data.symbol
+            )
             if not asset_data.isActive:
                 logger.debug("Asset %s is not active, skipping.", asset_data.symbol)
                 continue
 
             try:
                 asset_type = AssetType(asset_data.symbol.lower())
-                logger.debug("Asset symbol %s converted to AssetType: %s", asset_data.symbol, asset_type.value)
+                logger.debug(
+                    "Asset symbol %s converted to AssetType: %s",
+                    asset_data.symbol,
+                    asset_type.value,
+                )
             except ValueError:
                 logger.warning(
                     "Invalid asset symbol found in config: %s. Skipping asset.",
@@ -245,7 +281,11 @@ class WalletManagerUsecase:
                 identity_id=user.ledger_identiy_id,
                 currency=asset_data.symbol.lower(),
             )
-            logger.debug("Creating ledger balance for identity %s, currency %s", user.ledger_identiy_id, asset_data.symbol)
+            logger.debug(
+                "Creating ledger balance for identity %s, currency %s",
+                user.ledger_identiy_id,
+                asset_data.symbol,
+            )
             (
                 ledger_balance,
                 err,
@@ -260,9 +300,14 @@ class WalletManagerUsecase:
                     err.message,
                 )
                 return error(
-                    "Could not create ledger balance for asset %s" % asset_data.symbol
+                    f"Could not create ledger balance for asset {asset_data.symbol}"
                 )
-            logger.info("Ledger balance %s created for asset %s in wallet %s.", ledger_balance.balance_id, asset_data.symbol, local_wallet.id)
+            logger.info(
+                "Ledger balance %s created for asset %s in wallet %s.",
+                ledger_balance.balance_id,
+                asset_data.symbol,
+                local_wallet.id,
+            )
 
             # Create Asset record in local DB
             new_asset = Asset(
@@ -278,7 +323,11 @@ class WalletManagerUsecase:
                 standard=asset_data.standard,
                 is_active=asset_data.isActive,
             )
-            logger.debug("Creating local asset record for wallet %s, asset %s", local_wallet.id, asset_type.value)
+            logger.debug(
+                "Creating local asset record for wallet %s, asset %s",
+                local_wallet.id,
+                asset_type.value,
+            )
             _, err = await self.service.asset_repository.create_asset(asset=new_asset)
             if err:
                 logger.error(
@@ -288,9 +337,14 @@ class WalletManagerUsecase:
                     err.message,
                 )
                 return error(
-                    "Could not create local asset record for asset %s" % asset_data.symbol
+                    f"Could not create local asset record for asset {asset_data.symbol}"
                 )
-            logger.info("Local asset record %s created for asset %s in wallet %s.", new_asset.id, asset_type.value, local_wallet.id)
+            logger.info(
+                "Local asset record %s created for asset %s in wallet %s.",
+                new_asset.id,
+                asset_type.value,
+                local_wallet.id,
+            )
 
         return None
 
@@ -318,7 +372,9 @@ class WalletManagerUsecase:
 
         wallet, err = await self._create_local_wallet(user, provider_wallet)
         if err:
-            logger.error("Failed to create local wallet for user %s: %s", user_id, err.message)
+            logger.error(
+                "Failed to create local wallet for user %s: %s", user_id, err.message
+            )
             return None, err
         logger.debug("Local wallet created for user %s", user_id)
 
@@ -342,7 +398,12 @@ class WalletManagerUsecase:
         withdrawal_request: WithdrawalRequest,
         specific_withdrawal: TransferType,
     ) -> Tuple[Optional[Dict[str, Any]], Optional[Error]]:
-        logger.info("Initiating withdrawal for user %s, asset ID: %s, amount: %s", user.id, withdrawal_request.assetId, withdrawal_request.amount)
+        logger.info(
+            "Initiating withdrawal for user %s, asset ID: %s, amount: %s",
+            user.id,
+            withdrawal_request.assetId,
+            withdrawal_request.amount,
+        )
         # Fetch user's wallet and asset
         user_wallet, err = await self._get_user_wallet(user_id=user.id)
         if err:
@@ -385,11 +446,19 @@ class WalletManagerUsecase:
             receiver_address = external_wallet_data.address
             payment_method = PaymentMethod.EXTERNAL_WALLET
             network = external_wallet_data.chain.value  # Using chain as network
-            logger.debug("Withdrawal method: External Wallet to %s on network %s", receiver_address, network)
+            logger.debug(
+                "Withdrawal method: External Wallet to %s on network %s",
+                receiver_address,
+                network,
+            )
         else:
-            logger.error("Unsupported withdrawal method: %s for user %s", specific_withdrawal.event, user.id)
+            logger.error(
+                "Unsupported withdrawal method: %s for user %s",
+                specific_withdrawal.event,
+                user.id,
+            )
             return None, error(
-                "Unsupported withdrawal method: %s" % specific_withdrawal.event
+                f"Unsupported withdrawal method: {specific_withdrawal.event}"
             )
 
         # Create transaction record
@@ -414,7 +483,10 @@ class WalletManagerUsecase:
             reason=None,
             fee=None,  # Will be calculated by blockrader, update transaction later
         )
-        logger.debug("Creating transaction record with params: %s", transaction_params.model_dump())
+        logger.debug(
+            "Creating transaction record with params: %s",
+            transaction_params.model_dump(),
+        )
         err = await self.service.transaction_usecase.create_transaction(
             transaction_params
         )
@@ -425,10 +497,18 @@ class WalletManagerUsecase:
                 err.message,
             )
             return None, error("Failed to create withdrawal transaction record")
-        logger.info("Transaction record %s created for withdrawal for user %s", transaction_params.id, user.id)
+        logger.info(
+            "Transaction record %s created for withdrawal for user %s",
+            transaction_params.id,
+            user.id,
+        )
 
         # Now fetch rates and fees, these might be updated in the transaction later
-        logger.debug("Fetching paycrest rate for user %s, amount %s", user.id, withdrawal_request.amount)
+        logger.debug(
+            "Fetching paycrest rate for user %s, amount %s",
+            user.id,
+            withdrawal_request.amount,
+        )
         paycrest_rate, err = await self.service.paycrest_service.fetch_letest_usdc_rate(
             amount=float(withdrawal_request.amount),
             currency="NGN",
@@ -444,7 +524,7 @@ class WalletManagerUsecase:
             await self.service.transaction_usecase.update_transaction_status(
                 transaction_id=transaction_params.id,
                 new_status="failed",
-                message="Failed to fetch paycrest rate: %s" % err.message,
+                message=f"Failed to fetch paycrest rate: {err.message}",
             )
             return None, error("Could not fetch paycrest rate")
         logger.debug("Paycrest rate fetched: %s", paycrest_rate.data)
@@ -453,7 +533,10 @@ class WalletManagerUsecase:
             assetId=withdrawal_request.assetId,
             amount=withdrawal_request.amount,
         )
-        logger.debug("Fetching blockrader network fee with request: %s", network_fee_request.model_dump())
+        logger.debug(
+            "Fetching blockrader network fee with request: %s",
+            network_fee_request.model_dump(),
+        )
         blockrader_fee, err = await self.manager.withdraw_network_fee(
             network_fee_request
         )
@@ -468,14 +551,18 @@ class WalletManagerUsecase:
             await self.service.transaction_usecase.update_transaction_status(
                 transaction_id=transaction_params.id,
                 new_status="failed",
-                message="Failed to fetch blockrader network fee: %s" % err.message,
+                message="Failed to fetch blockrader network fee",
             )
             return None, error("Could not fetch blockrader network fee")
         logger.debug("Blockrader network fee fetched: %s", blockrader_fee.fee)
 
         # Update fee in the transaction
         if blockrader_fee and blockrader_fee.fee:
-            logger.debug("Updating transaction %s with fee: %s", transaction_params.id, blockrader_fee.fee)
+            logger.debug(
+                "Updating transaction %s with fee: %s",
+                transaction_params.id,
+                blockrader_fee.fee,
+            )
             update_err = await self.service.transaction_usecase.update_transaction_fee(
                 transaction_id=transaction_params.id, fee=blockrader_fee.fee
             )
@@ -486,7 +573,11 @@ class WalletManagerUsecase:
                     update_err.message,
                 )
             else:
-                logger.info("Transaction %s fee updated to %s.", transaction_params.id, blockrader_fee.fee)
+                logger.info(
+                    "Transaction %s fee updated to %s.",
+                    transaction_params.id,
+                    blockrader_fee.fee,
+                )
 
         return {
             "transaction_id": transaction_params.id,
@@ -500,7 +591,11 @@ class WalletManagerUsecase:
         pin: str,
         transaction_id: str,
     ) -> Optional[Error]:
-        logger.info("Executing withdrawal processing for user %s, transaction %s", user_id, transaction_id)
+        logger.info(
+            "Executing withdrawal processing for user %s, transaction %s",
+            user_id,
+            transaction_id,
+        )
         transaction, err = await self.service.transaction_usecase.get_transaction_by_id(
             transaction_id=transaction_id
         )
@@ -510,7 +605,7 @@ class WalletManagerUsecase:
                 transaction_id,
                 err.message,
             )
-            return error("Failed to retrieve transaction: %s" % err.message)
+            return error(f"Failed to retrieve transaction: {err.message}")
         logger.debug("Transaction %s retrieved for processing.", transaction_id)
 
         # 1. Retrieve User
@@ -521,14 +616,16 @@ class WalletManagerUsecase:
                 user_id,
                 err.message,
             )
-            return error("Failed to retrieve user: %s" % err.message)
+            return error(f"Failed to retrieve user: {err.message}")
         logger.debug("User %s data retrieved for withdrawal processing.", user_id)
 
         if not await self.service.user_repository.verify_user_pin(
             user_id=user.id, pin=pin
         ):
             logger.error(
-                "Invalid PIN for user %s during withdrawal processing for transaction %s", user_id, transaction_id
+                "Invalid PIN for user %s during withdrawal processing for transaction %s",
+                user_id,
+                transaction_id,
             )
             # TODO move the pin verificaition out of here
             await self.service.transaction_usecase.update_transaction_status(
@@ -545,7 +642,11 @@ class WalletManagerUsecase:
         # For assetId, we convert from UUID stored in transaction.asset_id to AssetId enum
         try:
             asset_id_enum = AssetId(str(transaction.asset_id))
-            logger.debug("Asset ID %s from transaction converted to enum: %s", transaction.asset_id, asset_id_enum.value)
+            logger.debug(
+                "Asset ID %s from transaction converted to enum: %s",
+                transaction.asset_id,
+                asset_id_enum.value,
+            )
         except ValueError:
             logger.error(
                 "Invalid Asset ID in transaction %s: %s",
@@ -560,7 +661,13 @@ class WalletManagerUsecase:
             return error("Invalid asset ID in transaction")
 
         # 4. Perform Ledger Debit
-        logger.debug("Performing ledger debit for user %s, transaction %s, amount %s %s", user_id, transaction_id, transaction.amount, transaction.currency.value)
+        logger.debug(
+            "Performing ledger debit for user %s, transaction %s, amount %s %s",
+            user_id,
+            transaction_id,
+            transaction.amount,
+            transaction.currency.value,
+        )
         debit_result, err = await self.service.ledger_service.balances.debit_balance(
             identity_id=user.ledger_identiy_id,
             currency=transaction.currency.value.lower(),
@@ -579,10 +686,15 @@ class WalletManagerUsecase:
             await self.service.transaction_usecase.update_transaction_status(
                 transaction_id=transaction_id,
                 new_status="failed",
-                message="Ledger debit failed: %s" % err.message,
+                message=f"Ledger debit failed: {err.message}",
             )
-            return error("Ledger debit failed: %s" % err.message)
-        logger.info("Ledger debited for user %s, transaction %s. Debit result: %s", user_id, transaction_id, debit_result)
+            return error(f"Ledger debit failed: {err.message}")
+        logger.info(
+            "Ledger debited for user %s, transaction %s. Debit result: %s",
+            user_id,
+            transaction_id,
+            debit_result,
+        )
 
         # 5. Update Transaction Status to completed
         logger.debug("Updating transaction %s status to 'completed'", transaction_id)
@@ -597,7 +709,7 @@ class WalletManagerUsecase:
                 transaction_id,
                 err.message,
             )
-            return error("Failed to update transaction status: %s" % err.message)
+            return error(f"Failed to update transaction status: {err.message}")
 
         logger.info(
             "Withdrawal for user %s, transaction %s processed successfully",

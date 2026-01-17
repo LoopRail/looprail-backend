@@ -2,7 +2,10 @@ from src.usecases.transaction_usecases import TransactionUsecase
 from src.api.dependencies.usecases import get_transaction_usecase
 from src.api.webhooks import handlers  # noqa: F401
 from fastapi import APIRouter, Depends, status
-from src.api.dependencies.repositories import get_wallet_repository, get_asset_repository
+from src.api.dependencies.repositories import (
+    get_wallet_repository,
+    get_asset_repository,
+)
 from src.api.dependencies.services import get_ledger_service
 from src.infrastructure.repositories import WalletRepository, AssetRepository
 from src.infrastructure.services.ledger import LedgerService
@@ -24,9 +27,7 @@ async def handle_blockrader_webhook(
     ledger_service: LedgerService = Depends(get_ledger_service),
     wallet_repo: WalletRepository = Depends(get_wallet_repository),
     asset_repo: AssetRepository = Depends(get_asset_repository),
-    transaction_usecase: TransactionUsecase = Depends(
-        get_transaction_usecase
-    ),
+    transaction_usecase: TransactionUsecase = Depends(get_transaction_usecase),
 ):
     logger.info("Handling BlockRadar webhook event of type: %s", webhook_event.event)
     logger.info("Received BlockRadar webhook event: %s", webhook_event.event)
@@ -43,5 +44,8 @@ async def handle_blockrader_webhook(
         )
         logger.info("Webhook event %s processed successfully.", webhook_event.event)
         return {"message": "Webhook received and processed"}
-    logger.warning("No handler found for event: %s. Webhook received but no handler found", webhook_event.event)
+    logger.warning(
+        "No handler found for event: %s. Webhook received but no handler found",
+        webhook_event.event,
+    )
     return {"message": "Webhook received but no handler found"}

@@ -11,7 +11,7 @@ from src.api.dependencies import (
     get_jwt_usecase,
     get_otp_usecase,
     get_otp_token,
-    get_session_usecase, # Re-added this import
+    get_session_usecase,  # Re-added this import
     get_user_usecases,
     get_wallet_manager_usecase,
 )
@@ -37,9 +37,9 @@ async def test_db_session_fixture():
     # with the application's engine if it were to be initialized.
     # The get_uri() from load_config() now correctly points to sqlite+aiosqlite:///./test.db
     test_db_url = load_config().database.get_uri()
-    
+
     engine = create_async_engine(test_db_url, echo=False)
-    
+
     async_session = async_sessionmaker(
         engine,
         class_=AsyncSession,
@@ -59,6 +59,7 @@ async def test_db_session_fixture():
 
 
 import httpx
+
 
 @pytest.fixture(name="client")
 async def client_fixture(test_db_session: AsyncSession):
@@ -124,6 +125,7 @@ def mock_wallet_manager_factory() -> MagicMock:
     yield mock
     app.dependency_overrides.clear()
 
+
 @pytest.fixture
 def mock_config() -> MagicMock:
     mock_jwt_settings = MagicMock(spec=JWTConfig)
@@ -136,12 +138,14 @@ def mock_config() -> MagicMock:
     yield mock
     app.dependency_overrides.clear()
 
+
 @pytest.fixture
 def mock_get_otp_token() -> MagicMock:
     mock = MagicMock(return_value="dummy_otp_token")
     app.dependency_overrides[get_otp_token] = lambda: mock
     yield mock
     app.dependency_overrides.clear()
+
 
 @pytest.fixture
 def test_otp_onboarding() -> Otp:

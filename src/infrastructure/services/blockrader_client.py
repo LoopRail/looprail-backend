@@ -51,18 +51,33 @@ class BlockRaderCLient(BaseClient):
         self, res: Response, response_model: Type[T]
     ) -> Tuple[Optional[T], Error]:
         """Processes the HTTP response from the BlockRadar API."""
-        logger.debug("Processing BlockRader response for URL: %s with status code: %s", res.url, res.status_code)
+        logger.debug(
+            "Processing BlockRader response for URL: %s with status code: %s",
+            res.url,
+            res.status_code,
+        )
         if res.status_code >= 500:
-            logger.error("Service not available (status code: %s) for request to %s", res.status_code, res.url)
-            return None, error("Service not available %s" % res.status_code)
+            logger.error(
+                "Service not available (status code: %s) for request to %s",
+                res.status_code,
+                res.url,
+            )
+            return None, error(f"Service not available {res.status_code}")
 
         response_data = response_model.model_validate(res.json())
-        logger.debug("BlockRader response validated with model %s", response_model.__name__)
+        logger.debug(
+            "BlockRader response validated with model %s", response_model.__name__
+        )
 
         if 300 <= response_data.statusCode < 500:
-            logger.error("BlockRader request failed (status code: %s): %s for request to %s", response_data.statusCode, response_data.message, res.url)
+            logger.error(
+                "BlockRader request failed (status code: %s): %s for request to %s",
+                response_data.statusCode,
+                response_data.message,
+                res.url,
+            )
             return None, error(
-                "%s status: %s" % (response_data.message, response_data.statusCode)
+                f"{response_data.message} status: {response_data.statusCode}"
             )
         logger.debug("BlockRader response successfully processed.")
         return response_data, None
@@ -71,7 +86,9 @@ class BlockRaderCLient(BaseClient):
         self, req_params: AMLCheckRequest
     ) -> Tuple[Optional[AMLCheckResponse], Error]:
         """Performs an AML (Anti-Money Laundering) lookup."""
-        logger.debug("Performing AML lookup with request params: %s", req_params.model_dump())
+        logger.debug(
+            "Performing AML lookup with request params: %s", req_params.model_dump()
+        )
         return await self._get(
             AMLCheckResponse,
             path_suffix="/aml/lookup",
@@ -119,14 +136,16 @@ class TransactionalMixin:
         """Retrieves a specific transaction by its ID."""
         logger.debug("Retrieving transaction with ID: %s", transaction_id)
         return await self._get(
-            TransactionResponse, path_suffix="/transactions/%s" % transaction_id
+            TransactionResponse, path_suffix=f"/transactions/{transaction_id}"
         )
 
     async def withdraw_network_fee(
         self: Any, request: NetworkFeeRequest
     ) -> Tuple[Optional[NetworkFeeResponse], Error]:
         """Calculates the network fee for a withdrawal."""
-        logger.debug("Calculating withdrawal network fee with request: %s", request.model_dump())
+        logger.debug(
+            "Calculating withdrawal network fee with request: %s", request.model_dump()
+        )
         return await self._post(
             NetworkFeeResponse,
             path_suffix="/withdraw/network-fee",
@@ -153,7 +172,11 @@ class AddressManager(BlockRaderCLient, TransactionalMixin):
     ) -> None:
         """Initializes the AddressManager."""
         super().__init__(config, path=f"/wallets/{wallet_id}/addresses/{address_id}")
-        logger.debug("AddressManager initialized for wallet %s, address %s", wallet_id, address_id)
+        logger.debug(
+            "AddressManager initialized for wallet %s, address %s",
+            wallet_id,
+            address_id,
+        )
 
 
 class WalletManager(BlockRaderCLient, TransactionalMixin):
@@ -167,14 +190,22 @@ class WalletManager(BlockRaderCLient, TransactionalMixin):
 
     def addresses(self, address_id: str) -> "AddressManager":
         """Returns an AddressManager for a specific address within the wallet."""
-        logger.debug("Getting AddressManager for address %s within wallet %s", address_id, self.wallet_id)
+        logger.debug(
+            "Getting AddressManager for address %s within wallet %s",
+            address_id,
+            self.wallet_id,
+        )
         return AddressManager(self.config, self.wallet_id, address_id)
 
     async def generate_address(
         self, request: CreateAddressRequest
     ) -> Tuple[Optional[WalletAddressDetailResponse], Error]:
         """Generates a new address for the wallet."""
-        logger.debug("Generating new address for wallet %s with request: %s", self.wallet_id, request.model_dump())
+        logger.debug(
+            "Generating new address for wallet %s with request: %s",
+            self.wallet_id,
+            request.model_dump(),
+        )
         return await self._post(
             WalletAddressDetailResponse,
             path_suffix="/addresses",

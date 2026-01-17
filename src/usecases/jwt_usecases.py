@@ -27,7 +27,11 @@ class JWTUsecase:
         """
         Create a JWT from a Token object with a given expiration in minutes.
         """
-        logger.debug("Creating token for subject: %s with expiration: %s minutes", data.sub, exp_minutes)
+        logger.debug(
+            "Creating token for subject: %s with expiration: %s minutes",
+            data.sub,
+            exp_minutes,
+        )
         to_encode = data.model_dump()
 
         expire = datetime.utcnow() + timedelta(minutes=exp_minutes)
@@ -61,7 +65,7 @@ class JWTUsecase:
             logger.debug("Token successfully decoded.")
         except JWTError as e:
             logger.error("Failed to decode JWT: %s", e)
-            return None, error("Could not decode JWT: %s" % e)
+            return None, error(f"Could not decode JWT: {e}")
 
         return response_model(**payload), None
 

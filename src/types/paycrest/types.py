@@ -14,9 +14,7 @@ class PaycrestRecipiant(basePaycrestType):
     memo: str
     provider_id: str | None = None
     metadata: dict[str, Any] | None = None
-    currency_enum: Currency = Field(
-        default=Currency.NAIRA, alias="currency"
-    )
+    currency_enum: Currency = Field(default=Currency.NAIRA, alias="currency")
 
     @property
     def currency(self) -> str:

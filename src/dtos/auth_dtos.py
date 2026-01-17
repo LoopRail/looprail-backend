@@ -1,4 +1,3 @@
-
 from src.dtos.user_dtos import UserPublic
 from src.dtos.base import Base
 

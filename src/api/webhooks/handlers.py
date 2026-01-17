@@ -27,7 +27,10 @@ async def handle_deposit_success(
     transaction_usecase: TransactionUsecase,
 ):
     logger.info("Handling deposit success event: %s", event.data.id)
-    logger.debug("Attempting to get wallet for recipient address: %s", event.data.recipientAddress)
+    logger.debug(
+        "Attempting to get wallet for recipient address: %s",
+        event.data.recipientAddress,
+    )
     wallet, err = await wallet_repo.get_wallet_by_address(
         address=event.data.recipientAddress
     )
@@ -40,7 +43,9 @@ async def handle_deposit_success(
         return
     logger.debug("Wallet found: %s", wallet.id)
 
-    logger.debug("Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id)
+    logger.debug(
+        "Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id
+    )
     asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
         wallet_id=wallet.id, asset_type=event.data.asset.asset_id
     )
@@ -79,9 +84,15 @@ async def handle_deposit_success(
 
     try:
         amount_in_minor_units = int(float(event.data.amount) * 100)
-        logger.debug("Converted amount %s to minor units: %s", event.data.amount, amount_in_minor_units)
+        logger.debug(
+            "Converted amount %s to minor units: %s",
+            event.data.amount,
+            amount_in_minor_units,
+        )
     except (ValueError, TypeError):
-        logger.error("Invalid amount format: %s for event %s", event.data.amount, event.data.id)
+        logger.error(
+            "Invalid amount format: %s for event %s", event.data.amount, event.data.id
+        )
         return
 
     transaction_request = RecordTransactionRequest(
@@ -89,7 +100,7 @@ async def handle_deposit_success(
         reference=event.data.id,
         source=WorldLedger.WORLD,
         destination=asset.ledger_balance_id,
-        description="Deposit from %s" % event.data.senderAddress,
+        description=f"Deposit from {event.data.senderAddress}",
     )
     logger.debug("Recording transaction on ledger for event %s", event.data.id)
     _, err = await ledger_service.transactions.record_transaction(transaction_request)
@@ -112,7 +123,9 @@ async def handle_withdraw_success(
     transaction_usecase: TransactionUsecase,
 ):
     logger.info("Handling withdraw success event: %s", event.data.id)
-    logger.debug("Attempting to get wallet for sender address: %s", event.data.senderAddress)
+    logger.debug(
+        "Attempting to get wallet for sender address: %s", event.data.senderAddress
+    )
     wallet, err = await wallet_repo.get_wallet_by_address(
         address=event.data.senderAddress
     )
@@ -125,7 +138,9 @@ async def handle_withdraw_success(
         return
     logger.debug("Wallet found: %s", wallet.id)
 
-    logger.debug("Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id)
+    logger.debug(
+        "Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id
+    )
     asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
         wallet_id=wallet.id, asset_type=event.data.asset.asset_id
     )
@@ -164,9 +179,15 @@ async def handle_withdraw_success(
 
     try:
         amount_in_minor_units = int(float(event.data.amount) * 100)
-        logger.debug("Converted amount %s to minor units: %s", event.data.amount, amount_in_minor_units)
+        logger.debug(
+            "Converted amount %s to minor units: %s",
+            event.data.amount,
+            amount_in_minor_units,
+        )
     except (ValueError, TypeError):
-        logger.error("Invalid amount format: %s for event %s", event.data.amount, event.data.id)
+        logger.error(
+            "Invalid amount format: %s for event %s", event.data.amount, event.data.id
+        )
         return
 
     transaction_request = RecordTransactionRequest(
@@ -174,7 +195,7 @@ async def handle_withdraw_success(
         reference=event.data.id,
         source=asset.ledger_balance_id,
         destination=WorldLedger.WORLD,
-        description="Withdrawal to %s" % event.data.recipientAddress,
+        description=f"Withdrawal to {event.data.recipientAddress}",
     )
     logger.debug("Recording transaction on ledger for event %s", event.data.id)
     _, err = await ledger_service.transactions.record_transaction(transaction_request)
@@ -198,7 +219,9 @@ async def handle_withdraw_failed(
     transaction_usecase: TransactionUsecase,
 ):
     logger.info("Handling withdraw failed event: %s", event.data.id)
-    logger.debug("Attempting to update local transaction status for event %s", event.data.id)
+    logger.debug(
+        "Attempting to update local transaction status for event %s", event.data.id
+    )
     err = await transaction_usecase.update_status_from_event(event.data)
     if err:
         logger.error(
@@ -207,9 +230,13 @@ async def handle_withdraw_failed(
             err.message,
         )
         return
-    logger.info("Local transaction status updated to failed for event %s", event.data.id)
+    logger.info(
+        "Local transaction status updated to failed for event %s", event.data.id
+    )
 
-    logger.debug("Attempting to get wallet for sender address: %s", event.data.senderAddress)
+    logger.debug(
+        "Attempting to get wallet for sender address: %s", event.data.senderAddress
+    )
     wallet, err = await wallet_repo.get_wallet_by_address(
         address=event.data.senderAddress
     )
@@ -222,7 +249,9 @@ async def handle_withdraw_failed(
         return
     logger.debug("Wallet found: %s", wallet.id)
 
-    logger.debug("Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id)
+    logger.debug(
+        "Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id
+    )
     asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
         wallet_id=wallet.id, asset_type=event.data.asset.asset_id
     )
@@ -248,7 +277,7 @@ async def handle_withdraw_failed(
         reference=event.data.id,
         source=asset.ledger_balance_id,
         destination=WorldLedger.WORLD,
-        description="Failed withdrawal to %s. Reason: %s" % (event.data.recipientAddress, event.data.reason),
+        description=f"Failed withdrawal to {event.data.recipientAddress}. Reason: {event.data.reason}",
     )
     logger.debug("Recording failed transaction on ledger for event %s", event.data.id)
     _, err = await ledger_service.transactions.record_transaction(transaction_request)
@@ -259,7 +288,9 @@ async def handle_withdraw_failed(
             err.message,
         )
         return
-    logger.info("Failed withdrawal transaction recorded on ledger for event %s", event.data.id)
+    logger.info(
+        "Failed withdrawal transaction recorded on ledger for event %s", event.data.id
+    )
     return
 
 
@@ -272,7 +303,9 @@ async def handle_withdraw_cancelled(
     transaction_usecase: TransactionUsecase,
 ):
     logger.info("Handling withdraw cancelled event: %s", event.data.id)
-    logger.debug("Attempting to update local transaction status for event %s", event.data.id)
+    logger.debug(
+        "Attempting to update local transaction status for event %s", event.data.id
+    )
     err = await transaction_usecase.update_status_from_event(event.data)
     if err:
         logger.error(
@@ -281,9 +314,13 @@ async def handle_withdraw_cancelled(
             err.message,
         )
         return
-    logger.info("Local transaction status updated to cancelled for event %s", event.data.id)
+    logger.info(
+        "Local transaction status updated to cancelled for event %s", event.data.id
+    )
 
-    logger.debug("Attempting to get wallet for sender address: %s", event.data.senderAddress)
+    logger.debug(
+        "Attempting to get wallet for sender address: %s", event.data.senderAddress
+    )
     wallet, err = await wallet_repo.get_wallet_by_address(
         address=event.data.senderAddress
     )
@@ -296,7 +333,9 @@ async def handle_withdraw_cancelled(
         return
     logger.debug("Wallet found: %s", wallet.id)
 
-    logger.debug("Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id)
+    logger.debug(
+        "Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id
+    )
     asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
         wallet_id=wallet.id, asset_type=event.data.asset.asset_id
     )
@@ -322,9 +361,11 @@ async def handle_withdraw_cancelled(
         reference=event.data.id,
         source=asset.ledger_balance_id,
         destination=WorldLedger.WORLD,
-        description="Cancelled withdrawal to %s. Reason: %s" % (event.data.recipientAddress, event.data.reason),
+        description=f"Cancelled withdrawal to {event.data.recipientAddress}. Reason: {event.data.reason}",
     )
-    logger.debug("Recording cancelled transaction on ledger for event %s", event.data.id)
+    logger.debug(
+        "Recording cancelled transaction on ledger for event %s", event.data.id
+    )
     _, err = await ledger_service.transactions.record_transaction(transaction_request)
     if err:
         logger.error(
@@ -333,4 +374,7 @@ async def handle_withdraw_cancelled(
             err.message,
         )
         return
-    logger.info("Cancelled withdrawal transaction recorded on ledger for event %s", event.data.id)
+    logger.info(
+        "Cancelled withdrawal transaction recorded on ledger for event %s",
+        event.data.id,
+    )

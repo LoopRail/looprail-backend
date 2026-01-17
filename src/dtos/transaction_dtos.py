@@ -66,4 +66,3 @@ class TransactionRead(Base):
 
 class TransactionReadList(Base):
     transactions: List[TransactionRead]
-

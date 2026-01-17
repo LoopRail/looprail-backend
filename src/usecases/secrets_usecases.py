@@ -6,6 +6,7 @@ from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 class SecretsUsecase:
     def __init__(self, blockrader_config: BlockRaderConfig) -> None:
         self.blockrader_config = blockrader_config

@@ -60,17 +60,21 @@ class BlnkClient(BaseClient):
         self, res: Response, response_model: Type[T]
     ) -> Tuple[Optional[T], Error]:
         """Processes the HTTP response from the Blnk API."""
-        logger.debug("Processing Blnk response for URL: %s with status code: %s", res.url, res.status_code)
+        logger.debug(
+            "Processing Blnk response for URL: %s with status code: %s",
+            res.url,
+            res.status_code,
+        )
         if not res.is_success:
             logger.error(
                 "Blnk API request failed (status code: %s): %s for request to %s",
                 res.status_code,
                 res.json(),
-                res.url
+                res.url,
             )
             return None, httpError(
                 code=res.status_code,
-                message="Blnk API request failed %s: %s" % (res.status_code, res.json()),
+                message=f"Blnk API request failed {res.status_code}: {res.json()}",
             )
 
         response_data = response_model.model_validate(res.json())
@@ -88,7 +92,9 @@ class LedgerManager(BlnkClient):
     async def create_ledger(
         self, request: CreateLedgerRequest
     ) -> Tuple[Optional[LedgerResponse], Error]:
-        logger.debug("Creating ledger with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Creating ledger with request: %s", request.model_dump(by_alias=True)
+        )
         return await self._post(
             LedgerResponse,
             data=request.model_dump(by_alias=True),
@@ -100,7 +106,7 @@ class LedgerManager(BlnkClient):
         logger.debug("Getting ledger with ID: %s", ledger_id)
         return await self._get(
             LedgerResponse,
-            path_suffix="/%s" % ledger_id,
+            path_suffix=f"/{ledger_id}",
         )
 
 
@@ -114,7 +120,9 @@ class BalanceManager(BlnkClient):
     async def create_balance(
         self, request: CreateBalanceRequest
     ) -> Tuple[Optional[BalanceResponse], Error]:
-        logger.debug("Creating balance with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Creating balance with request: %s", request.model_dump(by_alias=True)
+        )
         return await self._post(
             BalanceResponse,
             data=request.model_dump(by_alias=True),
@@ -126,7 +134,7 @@ class BalanceManager(BlnkClient):
         logger.debug("Getting balance with ID: %s", balance_id)
         return await self._get(
             BalanceResponse,
-            path_suffix="/%s" % balance_id,
+            path_suffix=f"/{balance_id}",
         )
 
     async def take_balance_snapshots(self) -> Tuple[Any, Error]:
@@ -149,7 +157,9 @@ class IdentityManager(BlnkClient):
     async def create_identity(
         self, request: CreateIdentityRequest
     ) -> Tuple[Optional[IdentityResponse], Error]:
-        logger.debug("Creating identity with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Creating identity with request: %s", request.model_dump(by_alias=True)
+        )
         return await self._post(
             IdentityResponse,
             data=request.model_dump(by_alias=True),
@@ -161,7 +171,7 @@ class IdentityManager(BlnkClient):
         logger.debug("Getting identity with ID: %s", identity_id)
         return await self._get(
             IdentityResponse,
-            path_suffix="/%s" % identity_id,
+            path_suffix=f"/{identity_id}",
         )
 
     async def get_tokenized_fields(self, identity_id: str) -> Tuple[Any, Error]:
@@ -169,7 +179,7 @@ class IdentityManager(BlnkClient):
         logger.debug("Getting tokenized fields for identity ID: %s", identity_id)
         return await self._get(
             BlnkBase,  # Placeholder
-            path_suffix="/%s/tokenized-fields" % identity_id,
+            path_suffix=f"/{identity_id}/tokenized-fields",
         )
 
     async def tokenize_field(self, identity_id: str, field: str) -> Tuple[Any, Error]:
@@ -177,7 +187,7 @@ class IdentityManager(BlnkClient):
         logger.debug("Tokenizing field %s for identity ID: %s", field, identity_id)
         return await self._post(
             BlnkBase,  # Placeholder
-            path_suffix="/%s/tokenize/%s" % (identity_id, field),
+            path_suffix=f"/{identity_id}/tokenize/{field}",
         )
 
     async def detokenize_field(self, identity_id: str, field: str) -> Tuple[Any, Error]:
@@ -185,17 +195,21 @@ class IdentityManager(BlnkClient):
         logger.debug("Detokenizing field %s for identity ID: %s", field, identity_id)
         return await self._get(
             BlnkBase,  # Placeholder
-            path_suffix="/%s/detokenize/%s" % (identity_id, field),
+            path_suffix=f"/{identity_id}/detokenize/{field}",
         )
 
     async def tokenize_identity(
         self, identity_id: str, request: TokenizeFieldsRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for tokenize Identity endpoint."""
-        logger.debug("Tokenizing identity %s with request: %s", identity_id, request.model_dump(by_alias=True))
+        logger.debug(
+            "Tokenizing identity %s with request: %s",
+            identity_id,
+            request.model_dump(by_alias=True),
+        )
         return await self._post(
             BlnkBase,  # Placeholder
-            path_suffix="/%s/tokenize" % identity_id,
+            path_suffix=f"/{identity_id}/tokenize",
             data=request.model_dump(by_alias=True),
         )
 
@@ -203,10 +217,14 @@ class IdentityManager(BlnkClient):
         self, identity_id: str, request: TokenizeFieldsRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Detokenize Identity endpoint."""
-        logger.debug("Detokenizing identity %s with request: %s", identity_id, request.model_dump(by_alias=True))
+        logger.debug(
+            "Detokenizing identity %s with request: %s",
+            identity_id,
+            request.model_dump(by_alias=True),
+        )
         return await self._post(
             BlnkBase,  # Placeholder
-            path_suffix="/%s/detokenize" % identity_id,
+            path_suffix=f"/{identity_id}/detokenize",
             data=request.model_dump(by_alias=True),
         )
 
@@ -221,7 +239,9 @@ class TransactionManager(BlnkClient):
     async def record_transaction(
         self, request: RecordTransactionRequest
     ) -> Tuple[Optional[TransactionResponse], Error]:
-        logger.debug("Recording transaction with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Recording transaction with request: %s", request.model_dump(by_alias=True)
+        )
         return await self._post(
             TransactionResponse,
             data=request.model_dump(by_alias=True),
@@ -231,7 +251,10 @@ class TransactionManager(BlnkClient):
         self, request: RecordBulkTransactionRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Record Bulk Transaction endpoint."""
-        logger.debug("Recording bulk transaction with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Recording bulk transaction with request: %s",
+            request.model_dump(by_alias=True),
+        )
         return await self._post(
             BlnkBase,  # Placeholder
             path_suffix="/bulk",
@@ -244,17 +267,21 @@ class TransactionManager(BlnkClient):
         logger.debug("Refunding transaction with ID: %s", transaction_id)
         return await self._post(
             RefundTransactionResponse,
-            path_suffix="/refund-transaction/%s" % transaction_id,  # This path is unusual
+            path_suffix=f"/refund-transaction/{transaction_id}",  # This path is unusual
         )
 
     async def update_inflight_transaction(
         self, transaction_id: str, request: UpdateInflightTransactionRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Update Inflight Transaction endpoint."""
-        logger.debug("Updating inflight transaction %s with request: %s", transaction_id, request.model_dump(by_alias=True))
-        return await self._put( 
+        logger.debug(
+            "Updating inflight transaction %s with request: %s",
+            transaction_id,
+            request.model_dump(by_alias=True),
+        )
+        return await self._put(
             BlnkBase,  # Placeholder
-            path_suffix="/inflight/%s" % transaction_id,
+            path_suffix=f"/inflight/{transaction_id}",
             data=request.model_dump(by_alias=True),
         )
 
@@ -262,7 +289,9 @@ class TransactionManager(BlnkClient):
         self, request: SearchTransactionRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Search Transactions endpoint."""
-        logger.debug("Searching transactions with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Searching transactions with request: %s", request.model_dump(by_alias=True)
+        )
         return await self._post(  # Assuming POST method based on Postman
             BlnkBase,  # Placeholder
             path_suffix="/search/transactions",
@@ -280,7 +309,10 @@ class BalanceMonitorManager(BlnkClient):
     async def create_balance_monitor(
         self, request: CreateBalanceMonitorRequest
     ) -> Tuple[Optional[BalanceMonitorResponse], Error]:
-        logger.debug("Creating balance monitor with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Creating balance monitor with request: %s",
+            request.model_dump(by_alias=True),
+        )
         return await self._post(
             BalanceMonitorResponse,
             data=request.model_dump(by_alias=True),
@@ -290,10 +322,14 @@ class BalanceMonitorManager(BlnkClient):
         self, monitor_id: str, request: UpdateBalanceMonitorRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Update Balance Monitor endpoint."""
-        logger.debug("Updating balance monitor %s with request: %s", monitor_id, request.model_dump(by_alias=True))
+        logger.debug(
+            "Updating balance monitor %s with request: %s",
+            monitor_id,
+            request.model_dump(by_alias=True),
+        )
         return await self._put(  # Assuming PUT method based on Postman
             BlnkBase,  # Placeholder
-            path_suffix="/%s" % monitor_id,
+            path_suffix=f"/{monitor_id}",
             data=request.model_dump(by_alias=True),
         )
 
@@ -303,7 +339,7 @@ class BalanceMonitorManager(BlnkClient):
         logger.debug("Getting balance monitor with ID: %s", monitor_id)
         return await self._get(
             BalanceMonitorResponse,
-            path_suffix="/%s" % monitor_id,
+            path_suffix=f"/{monitor_id}",
         )
 
 
@@ -318,7 +354,10 @@ class ReconciliationManager(BlnkClient):
         self, request: ReconciliationUploadRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Reconciliation Upload endpoint."""
-        logger.debug("Uploading reconciliation file with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Uploading reconciliation file with request: %s",
+            request.model_dump(by_alias=True),
+        )
         # This will require handling file uploads, potentially different from data=json
         return await self._post(
             BlnkBase,  # Placeholder
@@ -332,7 +371,10 @@ class ReconciliationManager(BlnkClient):
         self, request: CreateReconMatchingRulesRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Create Recon Matching Rules endpoint."""
-        logger.debug("Creating matching rules with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Creating matching rules with request: %s",
+            request.model_dump(by_alias=True),
+        )
         return await self._post(
             BlnkBase,  # Placeholder
             path_suffix="/matching-rules",
@@ -343,7 +385,10 @@ class ReconciliationManager(BlnkClient):
         self, request: StartReconciliationRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Start Reconciliation endpoint."""
-        logger.debug("Starting reconciliation with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Starting reconciliation with request: %s",
+            request.model_dump(by_alias=True),
+        )
         return await self._post(
             BlnkBase,  # Placeholder
             path_suffix="/start",
@@ -354,7 +399,10 @@ class ReconciliationManager(BlnkClient):
         self, request: StartInstantReconciliationRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Start Instant Reconciliation endpoint."""
-        logger.debug("Starting instant reconciliation with request: %s", request.model_dump(by_alias=True))
+        logger.debug(
+            "Starting instant reconciliation with request: %s",
+            request.model_dump(by_alias=True),
+        )
         return await self._post(
             BlnkBase,  # Placeholder
             path_suffix="/start-instant",
@@ -366,7 +414,7 @@ class ReconciliationManager(BlnkClient):
         logger.debug("Getting reconciliation with ID: %s", reconciliation_id)
         return await self._get(
             BlnkBase,  # Placeholder
-            path_suffix="/%s" % reconciliation_id,
+            path_suffix=f"/{reconciliation_id}",
         )
 
 
@@ -414,9 +462,13 @@ class BlnkGenericManager(BlnkClient):
         self, entity_id: str, request: PostMetadataRequest
     ) -> Tuple[Any, Error]:
         """Placeholder for Post MetaData endpoint."""
-        logger.debug("Posting metadata for entity %s with request: %s", entity_id, request.model_dump(by_alias=True))
+        logger.debug(
+            "Posting metadata for entity %s with request: %s",
+            entity_id,
+            request.model_dump(by_alias=True),
+        )
         return await self._post(
             BlnkBase,  # Placeholder
-            path_suffix="/%s/metadata" % entity_id,
+            path_suffix=f"/{entity_id}/metadata",
             data=request.model_dump(by_alias=True),
         )

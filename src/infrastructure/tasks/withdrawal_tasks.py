@@ -2,8 +2,7 @@ import logging
 from typing import Any, Dict
 
 from src.infrastructure.config_settings import Config
-from src.infrastructure.tasks.dependencies import \
-    get_task_wallet_manager_usecase
+from src.infrastructure.tasks.dependencies import get_task_wallet_manager_usecase
 from src.types.common_types import UserId
 
 logger = logging.getLogger(__name__)
@@ -15,8 +14,8 @@ def process_withdrawal_task(
     withdrawal_request_data: Dict[str, Any],
     pin: str,
     transaction_id: str,
-    wallet_name: str, # New direct argument
-    ledger_id: str,    # New direct argument
+    wallet_name: str,  # New direct argument
+    ledger_id: str,  # New direct argument
 ):
     """
     RQ task to process a withdrawal request asynchronously.

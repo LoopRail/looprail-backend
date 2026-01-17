@@ -1,12 +1,15 @@
 from decimal import Decimal
-from typing import  Optional, Tuple
+from typing import Optional, Tuple
 
 from src.dtos import VerifyAccountResponse
 from src.infrastructure.services.base_client import BaseClient
 from src.infrastructure.settings import PayCrestConfig
 from src.types import Chain, Error, error
-from src.types.paycrest import (CreateOrderResponse, FetchLatestRatesResponse,
-                                PaycrestRecipiant)
+from src.types.paycrest import (
+    CreateOrderResponse,
+    FetchLatestRatesResponse,
+    PaycrestRecipiant,
+)
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
@@ -50,11 +53,16 @@ class PaycrestService(PaycrestClient):
         return_address: str,
     ) -> Tuple[Optional[CreateOrderResponse], Error]:
         """Create a payment order to off-ramp tokens via Paycrest"""
-        logger.debug("Creating payment order for amount %s, recipient %s, reference %s", amount, recipient, reference)
+        logger.debug(
+            "Creating payment order for amount %s, recipient %s, reference %s",
+            amount,
+            recipient,
+            reference,
+        )
         rate, err = await self.fetch_letest_usdc_rate(amount, recipient.currency)
         if err:
             logger.error("Could not fetch rates for payment order: %s", err.message)
-            return None, error("Could not fetch rates: Error: %s" % err.message)
+            return None, error(f"Could not fetch rates: Error: {err.message}")
 
         order_data = {
             "amount": float(amount),
@@ -79,13 +87,19 @@ class PaycrestService(PaycrestClient):
         self, account_number: str, institution: str
     ) -> Tuple[Optional[VerifyAccountResponse], Error]:
         """Verify bank account details"""
-        logger.debug("Verifying account for account number %s, institution %s", account_number, institution)
+        logger.debug(
+            "Verifying account for account number %s, institution %s",
+            account_number,
+            institution,
+        )
         data = {"institution": institution, "accountIdentifier": account_number}
         response, err = await self._post(
             VerifyAccountResponse, path_suffix="/verify-account", data=data
         )
         if err:
-            logger.error("Failed to verify account for %s: %s", account_number, err.message)
+            logger.error(
+                "Failed to verify account for %s: %s", account_number, err.message
+            )
             return None, err
         logger.info("Account %s verified successfully.", account_number)
         return response, None
@@ -108,7 +122,12 @@ class PaycrestService(PaycrestClient):
             },
         )
         if err:
-            logger.error("Failed to fetch latest USDC rate for amount %s %s: %s", amount, currency, err.message)
+            logger.error(
+                "Failed to fetch latest USDC rate for amount %s %s: %s",
+                amount,
+                currency,
+                err.message,
+            )
             return None, err
         logger.info("Successfully fetched latest USDC rate: %s", response.data)
         return response, None

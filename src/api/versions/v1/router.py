@@ -27,12 +27,16 @@ async def get_rates(
     logger.info("Fetching rates for amount %s %s", amount, currency)
     rate, err = await paycrest_service.fetch_letest_usdc_rate(amount, currency)
     if err:
-        logger.error("Error fetching rates for amount %s %s: %s", amount, currency, err.message)
+        logger.error(
+            "Error fetching rates for amount %s %s: %s", amount, currency, err.message
+        )
         return JSONResponse(
             status_code=err.code,
             content={"message": err.message},
         )
-    logger.info("Successfully fetched rates for amount %s %s: %s", amount, currency, rate.data)
+    logger.info(
+        "Successfully fetched rates for amount %s %s: %s", amount, currency, rate.data
+    )
     return {"rate": round(float(rate.data), 2)}
 
 

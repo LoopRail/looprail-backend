@@ -47,7 +47,9 @@ async def send_otp_internal(
             raise HTTPException(status_code=500, detail="Failed to send OTP.")
     return token
 
+
 # TODO move to main
+
 
 async def set_user_create_config(config: Config = Depends(get_config)):
     logger.debug("Entering set_user_create_config")

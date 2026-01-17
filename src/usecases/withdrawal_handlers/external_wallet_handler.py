@@ -26,7 +26,11 @@ async def handle_external_wallet_transfer(
     external_wallet_transfer_data: ExternalWalletTransferData,
     asset: Asset,
 ) -> Optional[Error]:
-    logger.info("Handling external wallet transfer for user %s to address %s", user.id, external_wallet_transfer_data.address)
+    logger.info(
+        "Handling external wallet transfer for user %s to address %s",
+        user.id,
+        external_wallet_transfer_data.address,
+    )
     logger.info(
         "Initiating external wallet transfer for user %s to %s with asset %s amount %s",
         user.id,
@@ -44,9 +48,17 @@ async def handle_external_wallet_transfer(
         chain=external_wallet_transfer_data.chain,
     )
     if err:
-        logger.error("Failed to initiate external wallet transfer for user %s: %s", user.id, err.message)
+        logger.error(
+            "Failed to initiate external wallet transfer for user %s: %s",
+            user.id,
+            err.message,
+        )
         return error("External wallet transfer failed")
-    logger.info("External wallet transfer initiated with transaction ID: %s for user %s", transfer_response.transaction_id, user.id)
+    logger.info(
+        "External wallet transfer initiated with transaction ID: %s for user %s",
+        transfer_response.transaction_id,
+        user.id,
+    )
 
     # Record transaction in local DB and ledger (similar to bank transfer)
     create_transaction_params = CreateTransactionParams(
@@ -64,9 +76,13 @@ async def handle_external_wallet_transfer(
         confirmations=0,
         confirmed=False,
         reference=withdrawal_request.narration,
-        note="External wallet transfer to %s" % external_wallet_transfer_data.address,
+        note=f"External wallet transfer to {external_wallet_transfer_data.address}",
     )
-    logger.debug("Creating local transaction record for user %s with params: %s", user.id, create_transaction_params.model_dump())
+    logger.debug(
+        "Creating local transaction record for user %s with params: %s",
+        user.id,
+        create_transaction_params.model_dump(),
+    )
     _, err = await wallet_manager.service.transaction_usecase.create_transaction(
         create_transaction_params
     )
@@ -75,7 +91,11 @@ async def handle_external_wallet_transfer(
             "Failed to record local transaction for user %s: %s", user.id, err.message
         )
         return error("Failed to record transaction")
-    logger.info("Local transaction record created for user %s with ID: %s", user.id, create_transaction_params.id)
+    logger.info(
+        "Local transaction record created for user %s with ID: %s",
+        user.id,
+        create_transaction_params.id,
+    )
 
     transaction_request = RecordTransactionRequest(
         amount=int(withdrawal_request.amount * 100),
@@ -84,7 +104,11 @@ async def handle_external_wallet_transfer(
         destination=WorldLedger.WORLD,
         description=withdrawal_request.narration,
     )
-    logger.debug("Recording transaction in ledger for user %s with request: %s", user.id, transaction_request.model_dump())
+    logger.debug(
+        "Recording transaction in ledger for user %s with request: %s",
+        user.id,
+        transaction_request.model_dump(),
+    )
     (
         _,
         err,
@@ -96,6 +120,10 @@ async def handle_external_wallet_transfer(
             "Failed to record ledger transaction for user %s: %s", user.id, err.message
         )
         return error("Failed to record ledger transaction")
-    logger.info("Ledger transaction recorded for user %s, transaction ID: %s", user.id, transfer_response.transaction_id)
+    logger.info(
+        "Ledger transaction recorded for user %s, transaction ID: %s",
+        user.id,
+        transfer_response.transaction_id,
+    )
 
     return None

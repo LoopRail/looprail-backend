@@ -15,4 +15,3 @@ class basePaycrestType(BaseModel):
 class basePaycrestResponse(basePaycrestType):
     status: str
     message: str
-

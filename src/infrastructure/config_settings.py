@@ -6,12 +6,19 @@ import toml
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.security import Argon2Config
-from src.infrastructure.settings import (ENVIRONMENT, AppSettings,
-                                         BlockRaderConfig, DatabaseConfig,
-                                         JWTConfig, LedgderServiceConfig,
-                                         OTPConfig, PayCrestConfig,
-                                         PaystackConfig, RedisConfig,
-                                         ResendConfig)
+from src.infrastructure.settings import (
+    ENVIRONMENT,
+    AppSettings,
+    BlockRaderConfig,
+    DatabaseConfig,
+    JWTConfig,
+    LedgderServiceConfig,
+    OTPConfig,
+    PayCrestConfig,
+    PaystackConfig,
+    RedisConfig,
+    ResendConfig,
+)
 from src.types import CountriesData, LedgerConfig, WalletConfig
 from src.utils import return_base_dir
 
@@ -82,17 +89,27 @@ def load_disposable_email_domains() -> List[str]:
     )
     logger.debug("Disposable email domains config file path: %s", config_path)
     try:
-        logger.debug("Attempting to open disposable email domains config file: %s", config_path)
+        logger.debug(
+            "Attempting to open disposable email domains config file: %s", config_path
+        )
         with open(config_path, "r", encoding="utf-8") as f:
             domains = [
                 line.strip() for line in f if line.strip() and not line.startswith("#")
             ]
-            logger.info("Successfully loaded %s disposable email domains from %s", len(domains), config_path)
+            logger.info(
+                "Successfully loaded %s disposable email domains from %s",
+                len(domains),
+                config_path,
+            )
             return domains
     except FileNotFoundError:
-        logger.warning("Disposable email domains config file not found: %s", config_path)
+        logger.warning(
+            "Disposable email domains config file not found: %s", config_path
+        )
     except Exception as e:
-        logger.error("An unexpected error occurred while loading disposable email domains: %s", e)
+        logger.error(
+            "An unexpected error occurred while loading disposable email domains: %s", e
+        )
     logger.debug("Exiting load_disposable_email_domains function with empty list.")
     return []
 
@@ -120,8 +137,12 @@ def load_ledger_settings_from_file(environment: ENVIRONMENT) -> LedgerConfig:
     except toml.TomlDecodeError:
         logger.warning("Invalid TOML in ledger config file: %s", config_path)
     except Exception as e:
-        logger.error("An unexpected error occurred while loading ledger settings: %s", e)
-    logger.debug("Exiting load_ledger_settings_from_file function with empty LedgerConfig.")
+        logger.error(
+            "An unexpected error occurred while loading ledger settings: %s", e
+        )
+    logger.debug(
+        "Exiting load_ledger_settings_from_file function with empty LedgerConfig."
+    )
     return LedgerConfig(ledgers=[])
 
 
@@ -160,7 +181,9 @@ class Config:
             self.resend.default_sender_domain = "staging.looprail.xyz"
         else:
             self.resend.default_sender_domain = None
-        logger.debug("Resend default sender domain set to: %s", self.resend.default_sender_domain)
+        logger.debug(
+            "Resend default sender domain set to: %s", self.resend.default_sender_domain
+        )
         logger.debug("Config class initialization complete.")
 
 

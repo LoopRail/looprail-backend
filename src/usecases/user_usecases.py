@@ -40,7 +40,9 @@ class UserUseCase:
             logger.debug("Error getting user by email %s: %s", email, err.message)
             return None, err
         if not user:
-            logger.warning("Authentication failed: User with email %s not found.", email)
+            logger.warning(
+                "Authentication failed: User with email %s not found.", email
+            )
             return None, InvalidCredentialsError
         logger.debug("User %s found. Verifying password.", user.id)
 
@@ -50,7 +52,9 @@ class UserUseCase:
         if not verify_password_argon2(
             password, hashed_password_obj, self.argon2_config
         ):
-            logger.warning("Authentication failed: Invalid credentials for user %s", email)
+            logger.warning(
+                "Authentication failed: Invalid credentials for user %s", email
+            )
             return None, InvalidCredentialsError
         logger.info("User %s authenticated successfully.", user.id)
         return user, None
@@ -79,9 +83,13 @@ class UserUseCase:
         self, user_id: UserId, /, **kwargs
     ) -> Tuple[Optional[UserProfile], Error]:
         logger.debug("Updating user profile for user %s with data: %s", user_id, kwargs)
-        user_profile, err = await self.user_repository.update_user_profile(user_id, **kwargs)
+        user_profile, err = await self.user_repository.update_user_profile(
+            user_id, **kwargs
+        )
         if err:
-            logger.error("Failed to update user profile for user %s: %s", user_id, err.message)
+            logger.error(
+                "Failed to update user profile for user %s: %s", user_id, err.message
+            )
         else:
             logger.info("User profile for user %s updated successfully.", user_id)
         return user_profile, err
@@ -90,8 +98,10 @@ class UserUseCase:
         self, user_create: UserCreate
     ) -> Tuple[Optional[User], Error]:
         logger.debug("Creating new user with email: %s", user_create.email)
-        temp_ledger_identity_id = "temp_idty_%s" % uuid.uuid4()
-        logger.debug("Generated temporary ledger identity ID: %s", temp_ledger_identity_id)
+        temp_ledger_identity_id = f"temp_idty_{uuid.uuid4()}"
+        logger.debug(
+            "Generated temporary ledger identity ID: %s", temp_ledger_identity_id
+        )
 
         hashed_password_obj = hash_password_argon2(
             user_create.password, self.argon2_config
@@ -110,17 +120,21 @@ class UserUseCase:
         created_user, err = await self.user_repository.create_user(user=user)
         if err:
             logger.error(
-                "Failed to create user in repository for email %s: %s", user_create.email, err.message, exc_info=True
+                "Failed to create user in repository for email %s: %s",
+                user_create.email,
+                err.message,
+                exc_info=True,
             )
             return None, err
         logger.info(
             "User %s created successfully in repository with temporary ledger ID %s.",
-            created_user.username, temp_ledger_identity_id
+            created_user.username,
+            temp_ledger_identity_id,
         )
 
         logger.debug("Creating ledger identity for user %s", created_user.username)
         ledger_identity, err = await self.wallet_service.create_ledger_identity(
-            created_user # Changed from user_create to created_user to pass the User object
+            created_user  # Changed from user_create to created_user to pass the User object
         )
         if err:
             logger.error(
@@ -138,21 +152,34 @@ class UserUseCase:
                     exc_info=True,
                 )
             return None, err
-        logger.info("Ledger identity %s created for user %s.", ledger_identity.identity_id, created_user.username)
+        logger.info(
+            "Ledger identity %s created for user %s.",
+            ledger_identity.identity_id,
+            created_user.username,
+        )
 
-        logger.debug("Updating user %s with real ledger ID: %s", created_user.username, ledger_identity.identity_id)
+        logger.debug(
+            "Updating user %s with real ledger ID: %s",
+            created_user.username,
+            ledger_identity.identity_id,
+        )
         created_user, err = await self.user_repository.update_user(
             user_id=created_user.id, ledger_identiy_id=ledger_identity.identity_id
         )
         if err:
             logger.error(
                 "Failed to update user %s with real ledger ID %s: %s",
-                created_user.username, ledger_identity.identity_id,
+                created_user.username,
+                ledger_identity.identity_id,
                 err.message,
                 exc_info=True,
             )
             return None, err
-        logger.info("User %s updated with real ledger ID %s.", created_user.username, ledger_identity.identity_id)
+        logger.info(
+            "User %s updated with real ledger ID %s.",
+            created_user.username,
+            ledger_identity.identity_id,
+        )
 
         logger.debug("Creating wallet for user %s", created_user.username)
         _, err = await self.wallet_manager_usecase.create_user_wallet(created_user.id)

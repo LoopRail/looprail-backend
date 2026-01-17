@@ -11,6 +11,7 @@ from src.infrastructure.repositories import (
 )
 from src.infrastructure.db import get_session
 
+
 async def get_user_repository(
     session: AsyncSession = Depends(get_session),
 ) -> UserRepository:
