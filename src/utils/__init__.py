@@ -7,9 +7,9 @@ from src.utils.app_utils import (
     return_base_dir,
 )
 from src.utils.auth_utils import (
-    hash_password_argon2,
+    hash_password,
     validate_password_strength,
-    verify_password_argon2,
+    verify_password,
     verify_signature,
 )
 from src.utils.country_utils import get_country_info, is_valid_country_code
@@ -31,8 +31,8 @@ __all__ = [
     "is_valid_country_code",
     "get_country_info",
     "validate_and_format_phone_number",
-    "verify_password_argon2",
-    "hash_password_argon2",
+    "verify_password",
+    "hash_password",
     "validate_password_strength",
     "create_transaction_params_from_event",
 ]

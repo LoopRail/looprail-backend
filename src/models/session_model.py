@@ -14,6 +14,7 @@ class Session(Base, table=True):
     platform: str
     device_id: str
     ip_address: str
+    allow_notifications: bool = Field(default=False)
     revoked_at: Optional[datetime] = Field(default=None, index=True)
     last_seen_at: datetime = Field(default_factory=datetime.utcnow)
     refresh_tokens: list["RefreshToken"] = Relationship(back_populates="session")

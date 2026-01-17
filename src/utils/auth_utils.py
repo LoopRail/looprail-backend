@@ -1,58 +1,45 @@
 import hashlib
 import hmac
 import re
-import secrets
 from typing import Optional
 
-from argon2.low_level import Type, hash_secret_raw
+from argon2 import PasswordHasher, exceptions
 
 from src.infrastructure.security import Argon2Config
 from src.types.auth_types import HashedPassword
 from src.types.error import Error, error
 
 
-def hash_password_argon2(password: str, argon2_config: Argon2Config) -> HashedPassword:
-    """Hash password using Argon2 with custom configuration"""
-
-    pwd_bytes = password.encode("utf-8")
-
-    salt = secrets.token_bytes(argon2_config.salt_len)
-
-    hash_bytes = hash_secret_raw(
-        secret=pwd_bytes,
-        salt=salt,
-        time_cost=argon2_config.time_cost,
-        memory_cost=argon2_config.memory_cost,
-        parallelism=argon2_config.parallelism,
-        hash_len=argon2_config.hash_len,
-        type=Type.ID,
-    )
-
-    return HashedPassword(
-        password_hash=hash_bytes.hex(),
-        salt=salt.hex(),
+def get_password_hasher(config: Argon2Config) -> PasswordHasher:
+    return PasswordHasher(
+        time_cost=config.time_cost,
+        memory_cost=config.memory_cost,
+        parallelism=config.parallelism,
+        hash_len=config.hash_len,
     )
 
 
-def verify_password_argon2(
-    password: str, hashed_password_obj: HashedPassword, argon2_config: Argon2Config
+def hash_password(password: str, config: Argon2Config) -> HashedPassword:
+    """
+    Hash a password or PIN using Argon2 with your Argon2Config.
+    Returns a HashedPassword object containing the encoded hash string.
+    """
+    ph = get_password_hasher(config)
+    hashed = ph.hash(password)
+    return HashedPassword(password_hash=hashed)
+
+
+def verify_password(
+    password: str, hashed_obj: HashedPassword, config: Argon2Config
 ) -> bool:
-    """Verify password against stored Argon2 hash"""
-
-    pwd_bytes = password.encode("utf-8")
-    salt_bytes = bytes.fromhex(hashed_password_obj.salt)
-
-    new_hash = hash_secret_raw(
-        secret=pwd_bytes,
-        salt=salt_bytes,
-        time_cost=argon2_config.time_cost,
-        memory_cost=argon2_config.memory_cost,
-        parallelism=argon2_config.parallelism,
-        hash_len=argon2_config.hash_len,
-        type=Type.ID,
-    )
-
-    return new_hash.hex() == hashed_password_obj.password_hash
+    """
+    Verify a password or PIN against an Argon2 encoded hash.
+    """
+    ph = get_password_hasher(config)
+    try:
+        return ph.verify(hashed_obj.password_hash, password)
+    except exceptions.VerifyMismatchError:
+        return False
 
 
 def validate_password_strength(password: str) -> Optional[Error]:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
@@ -18,35 +18,89 @@ class User(Base, table=True):
     __tablename__ = "users"
     __id_prefix__ = "usr_"
 
-    first_name: str | None = None
-    last_name: str | None = None
-    email: EmailStr = Field(unique=True)
-    gender: Gender = Field(nullable=False)
-    password_hash: str = Field(nullable=False)
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+
+    email: EmailStr = Field(nullable=False, unique=True, index=True)
     username: str = Field(
         nullable=False,
-        max_length=16,
-        min_length=4,
         unique=True,
+        index=True,
+        max_length=16,
         regex=r"^[a-zA-Z0-9_-]{4,16}$",
     )
-    salt: str = Field(nullable=False)
+
+    gender: Gender = Field(nullable=False)
+
     is_active: bool = Field(default=True)
-    ledger_identiy_id: str = Field(nullable=False, unique=True)
     is_email_verified: bool = Field(default=False)
     has_completed_onboarding: bool = Field(default=False)
-    transaction_pin: Optional[str] = Field(default=None)
 
-    profile: UserProfile = Relationship(back_populates="user")
-    wallet: Wallet = Relationship(back_populates="user")
+    ledger_identity_id: str = Field(nullable=False, unique=True)
+
+    profile: UserProfile = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"uselist": False},
+    )
+
+    credentials: UserCredentials = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"uselist": False},
+    )
+
+    pin: UserPin = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"uselist": False},
+    )
+
+    wallet: Wallet = Relationship(
+        back_populates="user",
+    )
 
     @property
     def full_name(self) -> str:
-        """Returns the user's full name if first and last names are set."""
-        return f"{self.first_name} {self.last_name}"
+        return " ".join(filter(None, [self.first_name, self.last_name]))
 
     def on_delete(self):
         self.is_active = False
+
+
+class UserCredentials(Base, table=True):
+    __tablename__ = "user_credentials"
+    __id_prefix__ = "ucr_"
+
+    user_id: UUID = Field(
+        foreign_key="users.id",
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    password_hash: str = Field(nullable=False)
+
+    failed_attempts: int = Field(default=0)
+    locked_until: Optional[datetime] = Field(default=None)
+
+    user: User = Relationship(back_populates="credentials")
+
+
+class UserPin(Base, table=True):
+    __tablename__ = "user_pins"
+    __id_prefix__ = "upn_"
+
+    user_id: UUID = Field(
+        foreign_key="users.id",
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    pin_hash: str = Field(nullable=False)
+
+    locked_until: Optional[datetime] = Field(default=None)
+    last_used_at: Optional[datetime] = Field(default=None)
+
+    user: User = Relationship(back_populates="pin")
 
 
 class UserProfile(Base, table=True):
@@ -54,14 +108,13 @@ class UserProfile(Base, table=True):
     __id_prefix__ = "usp_"
 
     kyc_status: KYCStatus = Field(KYCStatus.NOT_STARTED)
-    street: str
-    city: str
-    state: str
-    postal_code: str
+    street: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
     country: str
-    phone_number: str
-    date_of_birth: date
-    # links: Optional[List[HttpUrl]] = Field(default_factory=list)
+    phone_number: str = Field(nullable=False, unique=True)
+    date_of_birth: Optional[date] = None
 
     user_id: UUID = Field(foreign_key="users.id")
     user: User = Relationship(back_populates="profile")

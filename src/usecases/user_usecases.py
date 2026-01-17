@@ -6,11 +6,11 @@ from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import UserRepository
 from src.infrastructure.security import Argon2Config
 from src.infrastructure.settings import BlockRaderConfig
-from src.models import User, UserProfile
+from src.models import User, UserCredentials, UserPin, UserProfile
 from src.types import Error, HashedPassword, InvalidCredentialsError
 from src.types.common_types import UserId
 from src.usecases.wallet_usecases import WalletManagerUsecase, WalletService
-from src.utils import hash_password_argon2, verify_password_argon2
+from src.utils import hash_password, verify_password
 
 logger = get_logger(__name__)
 
@@ -44,14 +44,15 @@ class UserUseCase:
                 "Authentication failed: User with email %s not found.", email
             )
             return None, InvalidCredentialsError
+        if not user.credentials:
+            logger.warning("Authentication failed: User %s has no credentials.", email)
+            return None, InvalidCredentialsError
         logger.debug("User %s found. Verifying password.", user.id)
 
         hashed_password_obj = HashedPassword(
-            password_hash=user.password_hash, salt=user.salt
+            password_hash=user.credentials.password_hash
         )
-        if not verify_password_argon2(
-            password, hashed_password_obj, self.argon2_config
-        ):
+        if not verify_password(password, hashed_password_obj, self.argon2_config):
             logger.warning(
                 "Authentication failed: Invalid credentials for user %s", email
             )
@@ -61,7 +62,7 @@ class UserUseCase:
 
     async def save(self, user: User) -> Tuple[Optional[User], Error]:
         logger.debug("Saving user with ID: %s", user.id)
-        user, err = await self.user_repository.save(user)
+        err = await self.user_repository.save(user)
         if err:
             logger.error("Failed to save user %s: %s", user.id, err.message)
         else:
@@ -103,18 +104,23 @@ class UserUseCase:
             "Generated temporary ledger identity ID: %s", temp_ledger_identity_id
         )
 
-        hashed_password_obj = hash_password_argon2(
-            user_create.password, self.argon2_config
+        hashed_password_obj = hash_password(user_create.password, self.argon2_config)
+
+        user_credentials = UserCredentials(
+            password_hash=hashed_password_obj.password_hash
+        )
+        user_profile = UserProfile(
+            phone_number=user_create.phone_number, country=user_create.country_code
         )
         user = User(
             email=user_create.email,
-            password_hash=hashed_password_obj.password_hash,
-            salt=hashed_password_obj.salt,
             first_name=user_create.first_name,
             last_name=user_create.last_name,
             gender=user_create.gender,
-            ledger_identiy_id=temp_ledger_identity_id,
+            ledger_identity_id=temp_ledger_identity_id,
             username=user_create.username,
+            credentials=user_credentials,
+            profile=user_profile,
         )
 
         created_user, err = await self.user_repository.create_user(user=user)
@@ -134,7 +140,7 @@ class UserUseCase:
 
         logger.debug("Creating ledger identity for user %s", created_user.username)
         ledger_identity, err = await self.wallet_service.create_ledger_identity(
-            created_user  # Changed from user_create to created_user to pass the User object
+            created_user
         )
         if err:
             logger.error(
@@ -164,7 +170,7 @@ class UserUseCase:
             ledger_identity.identity_id,
         )
         created_user, err = await self.user_repository.update_user(
-            user_id=created_user.id, ledger_identiy_id=ledger_identity.identity_id
+            user_id=created_user.id, ledger_identity_id=ledger_identity.identity_id
         )
         if err:
             logger.error(
@@ -215,3 +221,32 @@ class UserUseCase:
         else:
             logger.debug("User with email %s retrieved.", user_email)
         return user, err
+
+    async def update_transaction_pin(
+        self, user_id: UserId, pin: str
+    ) -> Tuple[Optional[User], Error]:
+        logger.debug("Updating transaction pin for user %s", user_id)
+
+        user, err = await self.get_user_by_id(user_id)
+        if err:
+            return None, err
+
+        hashed_pin = hash_password(pin, self.argon2_config)
+
+        if user.pin:
+            user.pin.pin_hash = hashed_pin.password_hash
+        else:
+            user.pin = UserPin(pin_hash=hashed_pin.password_hash)
+
+        updated_user, err = await self.save(user)
+        if err:
+            logger.error(
+                "Failed to update transaction pin for user %s: %s",
+                user_id,
+                err.message,
+                exc_info=True,
+            )
+            return None, err
+
+        logger.info("Transaction pin for user %s updated successfully.", user_id)
+        return updated_user, None
