@@ -57,7 +57,12 @@ class OTPError(error):
 
 
 class ValidationError(httpError):
-    def __init__(self, code: int = 400, message: str = None):
+    def __init__(
+        self,
+        message: str = None,
+        *,
+        code: int = 400,
+    ):
         super().__init__(code, message)
 
 
