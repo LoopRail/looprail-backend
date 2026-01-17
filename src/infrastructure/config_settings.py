@@ -187,7 +187,7 @@ class Config:
         logger.debug("Config class initialization complete.")
 
 
-def get_config() -> Config:
+def load_config() -> Config:
     config_obj = Config()
     logger.debug("Config loaded with ENVIRONMENT: %s", config_obj.app.environment)
     logger.debug("Database driver: %s", config_obj.database.db_driver)
