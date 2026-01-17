@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 
 from pydantic import EmailStr
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import selectinload
 from sqlmodel import select
 
 from src.infrastructure.repositories.base import Base
@@ -39,17 +40,26 @@ class UserRepository(Base):
             return await self.create(user)
 
     async def get_user_by_id(self, *, user_id: UserId) -> Tuple[Optional[User], Error]:
-        return await self.get(User, user_id)
+        # return await self.get(User, user_id)
+        query = select(User).options(selectinload("*")).where(User.id == user_id)
+        result = await self.session.execute(query)
+        return result.scalars().first(), None
 
     async def get_user_by_email(
         self, *, email: EmailStr
     ) -> Tuple[Optional[User], Error]:
-        return await self.find_one(User, email=email)
+        query = select(User).options(selectinload("*")).where(User.email == email)
+        result = await self.session.execute(query)
+        return result.scalars().first(), None
 
     async def get_user_by_username(
         self, *, username: str
     ) -> Tuple[Optional[User], Error]:
-        return await self.find_one(User, username=username)
+        query = (
+            select(User).options(selectinload("*")).where(User.username == username)
+        )
+        result = await self.session.execute(query)
+        return result.scalars().first(), None
 
     async def list_users(
         self, *, limit: int = 50, offset: int = 0
