@@ -1,14 +1,12 @@
 import hashlib
 
-from fastapi import (APIRouter, BackgroundTasks, Body, Depends, Header,
-                     Request, Response, status)
+from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import (BearerToken, get_app_environment, get_config,
                                   get_jwt_usecase, get_otp_usecase,
                                   get_resend_service, get_session_usecase,
-                                  get_user_usecases,
-                                  get_wallet_manager_usecase)
+                                  get_user_usecases)
 from src.api.internals import (send_otp_internal, set_send_otp_config,
                                set_user_create_config)
 from src.api.rate_limiter import limiter
@@ -22,9 +20,8 @@ from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
 from src.types import (AccessToken, OnBoardingToken, Platform, TokenType,
                        UserAlreadyExistsError)
-from src.usecases import (JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase,
-                          WalletManagerUsecase)
-from src.utils import validate_password_strength
+from src.usecases import JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase
+from src.utils import create_refresh_token, validate_password_strength
 
 logger = get_logger(__name__)
 
@@ -32,7 +29,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/create-user", response_model=CreateUserResponse)
-@limiter.limit("2/minute")
+@limiter.limit("5/minute")
 async def create_user(
     request: Request,
     _config_set: None = Depends(set_user_create_config),
@@ -84,7 +81,7 @@ async def create_user(
     response_model=AuthWithTokensAndUserResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
-@limiter.limit("2/minute")
+@limiter.limit("5/minute")
 async def complete_onboarding(
     request: Request,
     user_data: OnboardUserUpdate,
@@ -172,7 +169,7 @@ async def complete_onboarding(
 
 
 @router.post("/login", response_model=AuthWithTokensAndUserResponse)
-@limiter.limit("2/minute")
+@limiter.limit("5/minute")
 async def login(
     request: Request,
     login_request: LoginRequest,
@@ -189,7 +186,7 @@ async def login(
     )
     if err:
         logger.error(
-            "Authentication failed for user %s: %s", login_request.email, err.message
+            "Authentication failed for user %s: %s", login_request.email, err
         )
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -211,6 +208,7 @@ async def login(
 
     access_token_data = AccessToken(
         sub=user.get_prefixed_id(),
+        user_id=user.get_prefixed_id(),
         token_type=TokenType.ACCESS_TOKEN,
         session_id=session.id,
         platform=platform,
@@ -237,15 +235,15 @@ async def login(
 async def refresh_token(
     request: Request,
     refresh_token_request: RefreshTokenRequest,
-    session_usecase: SessionUseCase = Depends(get_session_usecase),
-    jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     device_id: str = Header(..., alias="X-Device-ID"),
     platform: Platform = Header(..., alias="X-Platform"),
+    session_usecase: SessionUseCase = Depends(get_session_usecase),
+    jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
 ):
     logger.info("Received refresh token request from device ID: %s", device_id)
     incoming_refresh_token_hash = hashlib.sha256(
-        refresh_token_request.refresh_token.encode()
+        refresh_token_request.get_clean_refresh_token().encode()
     ).hexdigest()
 
     refresh_token_db, err = await session_usecase.get_valid_refresh_token_by_hash(
@@ -280,7 +278,7 @@ async def refresh_token(
         )
 
     # Rotate the refresh token
-    new_raw_refresh_token = jwt_usecase.create_refresh_token()
+    new_raw_refresh_token = create_refresh_token()
     _, err = await session_usecase.rotate_refresh_token(
         old_refresh_token=refresh_token_db,
         new_refresh_token_string=new_raw_refresh_token,
@@ -315,10 +313,10 @@ async def refresh_token(
 @router.post(
     "/logout", summary="Logout from current session", response_model=MessageResponse
 )
-@limiter.limit("2/minute")
+@limiter.limit("5/minute")
 async def logout(
     request: Request,
-    current_token: AccessToken = Depends(BearerToken[AccessToken]),
+    current_token: AccessToken = Depends(BearerToken[AccessToken](AccessToken)),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
 ):
     logger.info("Received logout request for session ID: %s", current_token.session_id)
@@ -340,10 +338,10 @@ async def logout(
 @router.post(
     "/logout-all", summary="Logout from all sessions", response_model=MessageResponse
 )
-@limiter.limit("2/minute")
+@limiter.limit("5/minute")
 async def logout_all(
     request: Request,
-    current_token: AccessToken = Depends(BearerToken[AccessToken]),
+    current_token: AccessToken = Depends(BearerToken[AccessToken](AccessToken)),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
 ):
     logger.info(

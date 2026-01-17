@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, Request, status
 
-from src.api.dependencies import (get_config, get_jwt_usecase,
-                                  get_user_usecases, verify_otp_dep)
+from src.api.dependencies import (
+    get_config,
+    get_jwt_usecase,
+    get_user_usecases,
+    verify_otp_dep,
+)
 from src.api.rate_limiter import limiter
 from src.dtos import OTPSuccessResponse
 from src.infrastructure.config_settings import Config

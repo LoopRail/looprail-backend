@@ -59,12 +59,15 @@ async def test_db_session_fixture():
 
 
 import httpx
-from fastapi.testclient import TestClient # Add TestClient import
+from fastapi.testclient import TestClient  # Add TestClient import
+
 
 @pytest.fixture(name="client")
-def client_fixture(test_db_session: AsyncSession): # Keep test_db_session for now, will address later
+def client_fixture(
+    test_db_session: AsyncSession,
+):  # Keep test_db_session for now, will address later
     app.dependency_overrides[get_app_session] = lambda: test_db_session
-    with TestClient(app=app) as client: # Use TestClient for synchronous testing
+    with TestClient(app=app) as client:  # Use TestClient for synchronous testing
         yield client
     app.dependency_overrides.clear()
 

@@ -16,6 +16,7 @@ from src.types import (
     AccessToken,
     AuthError,
     Error,
+    ExpiredTokenError,
     InternaleServerError,
     OTPError,
     OtpStatus,
@@ -65,6 +66,8 @@ class BearerToken[T]:
             )
 
         response_token, err = jwt_usecase.verify_token(token, self.response_model)
+        if err == ExpiredTokenError:
+            raise AuthError(code=401, message="Token has expired. Please login again.")
         if err:
             raise AuthError(code=401, message="Invalid token")
 

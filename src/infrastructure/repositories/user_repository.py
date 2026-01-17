@@ -55,9 +55,7 @@ class UserRepository(Base):
     async def get_user_by_username(
         self, *, username: str
     ) -> Tuple[Optional[User], Error]:
-        query = (
-            select(User).options(selectinload("*")).where(User.username == username)
-        )
+        query = select(User).options(selectinload("*")).where(User.username == username)
         result = await self.session.execute(query)
         return result.scalars().first(), None
 

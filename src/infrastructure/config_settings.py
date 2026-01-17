@@ -45,6 +45,7 @@ def load_wallet_configs_into_config(
             logger.debug("File opened. Attempting to parse JSON.")
             raw_config = json.load(f)
             logger.debug("JSON parsed successfully.")
+            logger.debug("raw_config type: %s", type(raw_config))
 
         wallet_config = WalletConfig(**raw_config)
         logger.info("Successfully loaded wallet configs from %s", config_path)
@@ -170,7 +171,7 @@ class Config:
             self.app.environment
         )
         logger.debug("Ledger settings loaded.")
-        self.block_rader.wallets: List[WalletConfig] = load_wallet_configs_into_config(
+        self.block_rader.wallets: WalletConfig | None = load_wallet_configs_into_config(
             self.app.environment
         )
         logger.debug("BlockRader wallet configs loaded.")

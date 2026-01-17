@@ -5,7 +5,7 @@ from typing import List
 from pydantic import EmailStr, Field, field_validator
 
 from src.dtos.base import Base
-from src.types.common_types import PhoneNumber, UserId, UserProfileId
+from src.types.common_types import PhoneNumber, RefreshToken, UserId, UserProfileId
 from src.types.country_types import CountriesData
 from src.types.error import error
 from src.types.types import Gender, KYCStatus
@@ -105,4 +105,7 @@ class LoginRequest(Base):
 
 
 class RefreshTokenRequest(Base):
-    refresh_token: str
+    refresh_token: RefreshToken
+
+    def get_clean_refresh_token(self) -> str:
+        return self.refresh_token.removeprefix("ses_")

@@ -1,11 +1,15 @@
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from typing import ClassVar
 
-from src.types.common_types import SessionId, UserId
+from pydantic import (BaseModel, ConfigDict, Field, field_serializer,
+                      field_validator)
+
+from src.types.common_types import SessionId, TokenSub, UserId
 from src.types.types import TokenType
 from src.utils.app_utils import kebab_case
 
 
 class Token(BaseModel):
+    __sub_prefix__: ClassVar[str]
     model_config = ConfigDict(
         from_attributes=True,
         extra="allow",
@@ -13,7 +17,7 @@ class Token(BaseModel):
         alias_generator=kebab_case,
         populate_by_name=True,
     )
-    sub: str
+    sub: str 
     token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
 
     @field_serializer("sub")
@@ -22,6 +26,12 @@ class Token(BaseModel):
         if prefix:
             return f"{prefix}_{value}"
         return value
+
+    @field_validator("sub", mode="before")
+    @classmethod
+    def validate_sub(cls, v:str):
+        if not v.startswith()
+
 
 
 class OnBoardingToken(Token):
@@ -34,7 +44,7 @@ class OnBoardingToken(Token):
 
 class AccessToken(Token):
     __sub_prefix__ = "access"
-    sub: UserId
+    user_id: UserId
     session_id: SessionId
     platform: str
 

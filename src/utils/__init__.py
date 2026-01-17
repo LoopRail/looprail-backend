@@ -7,6 +7,7 @@ from src.utils.app_utils import (
     return_base_dir,
 )
 from src.utils.auth_utils import (
+    create_refresh_token,
     hash_password,
     validate_password_strength,
     verify_password,
@@ -35,4 +36,5 @@ __all__ = [
     "hash_password",
     "validate_password_strength",
     "create_transaction_params_from_event",
+    "create_refresh_token",
 ]

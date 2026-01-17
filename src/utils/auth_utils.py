@@ -1,4 +1,5 @@
 import hashlib
+from uuid import uuid4
 import hmac
 import re
 from typing import Optional
@@ -82,3 +83,11 @@ def verify_signature(
     ).hexdigest()
 
     return hmac.compare_digest(computed_signature, received_signature)
+
+
+def create_refresh_token() -> str:
+    """
+    Generates a random string for a refresh token.
+    """
+    refresh_token = str(uuid4())
+    return refresh_token

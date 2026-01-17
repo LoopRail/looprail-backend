@@ -4,16 +4,16 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
 from uuid import uuid4
 
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 
-from src.infrastructure.settings import JWTConfig
-from src.types import Error, error
 from src.infrastructure.logger import get_logger
+from src.infrastructure.settings import JWTConfig
+from src.types import Error, ExpiredTokenError, error
 
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from src.types.access_token_types import Token
+    from src.types.token_types import Token
 
 T = TypeVar("T", bound="Token")
 
@@ -63,16 +63,11 @@ class JWTUsecase:
                 },
             )
             logger.debug("Token successfully decoded.")
+        except ExpiredSignatureError:
+            logger.error("JWT token has expired")
+            return None, ExpiredTokenError
         except JWTError as e:
             logger.error("Failed to decode JWT: %s", e)
             return None, error(f"Could not decode JWT: {e}")
 
         return response_model(**payload), None
-
-    def create_refresh_token(self) -> str:
-        """
-        Generates a random string for a refresh token.
-        """
-        refresh_token = str(uuid4())
-        logger.debug("Generated new refresh token.")
-        return refresh_token

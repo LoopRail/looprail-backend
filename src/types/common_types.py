@@ -66,14 +66,6 @@ def _validate_id_with_prefix(v: str, expected_prefix: str) -> str:
         raise TypeError("string required")
     if not v.startswith(expected_prefix):
         raise ValueError(f"ID must start with '{expected_prefix}'")
-    try:
-        PyUUID(v[len(expected_prefix) :])
-    except ValueError as e:
-        print(v.removeprefix(expected_prefix))
-        print(v[len(expected_prefix) :])
-        raise error(
-            f"Invalid UUID format after prefix for ID with prefix '{expected_prefix}'"
-        ) from e
     return v
 
 
@@ -88,7 +80,7 @@ PaymentOrderId = Annotated[
 SessionId = Annotated[
     str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "ses_"))
 ]
-RefreshTokenId = Annotated[
+RefreshToken = Annotated[
     str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "rft_"))
 ]
 TransactionId = Annotated[

@@ -1,12 +1,13 @@
 import hashlib
 from typing import List, Optional, Tuple
-from uuid import uuid4
 
-from src.infrastructure.repositories import RefreshTokenRepository, SessionRepository
+from src.infrastructure.logger import get_logger
+from src.infrastructure.repositories import (RefreshTokenRepository,
+                                             SessionRepository)
 from src.models import RefreshToken, Session
 from src.types import Error
 from src.types.common_types import SessionId, UserId
-from src.infrastructure.logger import get_logger
+from src.utils.auth_utils import create_refresh_token
 
 logger = get_logger(__name__)
 
@@ -59,7 +60,7 @@ class SessionUseCase:
             return None, "", err
         logger.debug("Session created in repository: %s", session.id)
 
-        refresh_token_string = str(uuid4())
+        refresh_token_string = create_refresh_token()
         logger.debug("Creating refresh token for session %s", session.id)
         _, err = await self.refresh_token_repository.create_refresh_token(
             session_id=session.id,
@@ -76,7 +77,7 @@ class SessionUseCase:
         logger.info(
             "Session %s and refresh token created for user %s", session.id, user_id
         )
-        return session, refresh_token_string, None
+        return session, f"rft_{refresh_token_string}", None
 
     async def get_session(
         self, session_id: SessionId

@@ -1,4 +1,4 @@
-from src.types.access_token_types import AccessToken, OnBoardingToken, Token
+from src.types.token_types import AccessToken, OnBoardingToken, Token
 from src.types.auth_lock_types import LockedAccount
 from src.types.auth_types import HashedPassword, WebhookProvider
 from src.types.common_types import (
@@ -12,6 +12,7 @@ from src.types.country_types import CountriesData
 from src.types.error import (
     AuthError,
     Error,
+    ExpiredTokenError,
     FailedAttemptError,
     InternaleServerError,
     InvalidCredentialsError,
@@ -56,6 +57,7 @@ __all__ = [
     "DeletionFilter",
     "CountriesData",
     "Error",
+    "ExpiredTokenError",
     "FailedAttemptError",
     "InvalidCredentialsError",
     "ItemDoesNotExistError",

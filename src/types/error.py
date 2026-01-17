@@ -56,9 +56,16 @@ class OTPError(error):
         super().__init__(message)
 
 
+class ValidationError(httpError):
+    def __init__(self, code: int, message: str = None):
+        super().__init__(code, message)
+
+
 NotFoundError = error("not found")
 ProtectedModelError = error("protected model can't update")
 ItemDoesNotExistError = error("item does not exist")
 InternaleServerError = httpError(500, "Internal server error")
+
+ExpiredTokenError = error("Token has expired")
 
 type Error = error | httpError | None
