@@ -23,7 +23,6 @@ class Token(BaseModel):
 
     sub: str
     token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
-    exp: int
 
     @field_validator("sub", mode="before")
     @classmethod
@@ -33,7 +32,7 @@ class Token(BaseModel):
 
         # Check if sub has the expected prefix
         if hasattr(cls, "__sub_prefix__") and cls.__sub_prefix__:
-            expected_prefix = f"{cls.__sub_prefix__}_usr_"
+            expected_prefix = f"{cls.__sub_prefix__}"
             if not v.startswith(expected_prefix):
                 raise ValidationError(
                     f"Invalid sub format. Expected to start with '{expected_prefix}', got: '{v}'"
@@ -54,7 +53,7 @@ class Token(BaseModel):
         if hasattr(cls, "__expected_token_type__"):
             if v != cls.__expected_token_type__:
                 raise ValidationError(
-                    f"Invalid token type."
+                    message=f"Invalid token type."
                     f"Expected '{cls.__expected_token_type__.value}', got '{v.value}'"
                 )
 
@@ -63,17 +62,17 @@ class Token(BaseModel):
     @field_serializer("sub")
     def serialize_sub_prefix(self, value: str) -> str:
         prefix = getattr(self, "__sub_prefix__", None)
-        if prefix and not value.startswith(f"{prefix}_"):
-            return f"{prefix}_usr_{value}"
+        if prefix and not value.startswith(prefix):
+            return f"{prefix}{value}"
         return value
 
     def get_clean_sub(self) -> str:
         """Extract the UUID from the sub field"""
-        return self.sub.removeprefix(f"{self.__sub_prefix__}_usr_")
+        return self.sub.removeprefix(f"{self.__sub_prefix__}")
 
 
 class OnBoardingToken(Token):
-    __sub_prefix__: ClassVar[str] = "onboarding"
+    __sub_prefix__: ClassVar[str] = "onboarding_usr_"
     __expected_token_type__: ClassVar[TokenType] = TokenType.ONBOARDING_TOKEN
 
     token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
@@ -84,7 +83,7 @@ class OnBoardingToken(Token):
 
 
 class AccessToken(Token):
-    __sub_prefix__: ClassVar[str] = "access"
+    __sub_prefix__: ClassVar[str] = "access_ses_"
     __expected_token_type__: ClassVar[TokenType] = TokenType.ACCESS_TOKEN
 
     token_type: TokenType = Field(default=TokenType.ACCESS_TOKEN, alias="token")
@@ -97,3 +96,7 @@ class AccessToken(Token):
 
     def get_clean_user_id(self) -> str:
         return self.user_id.removeprefix("usr_")
+
+    def get_clean_sub(self) -> str:
+        """Extract the UUID from the sub field"""
+        return self.sub.removeprefix(f"{self.__sub_prefix__}")
