@@ -135,7 +135,6 @@ def test_refresh_token_success(
 
     new_access_token_value = "mock_new_access_token_string"
     mock_jwt_usecase.create_token.return_value = new_access_token_value
-    mock_jwt_usecase.create_refresh_token.return_value = new_raw_refresh_token_value
 
     response = client.post(
         "/api/v1/auth/token",
@@ -220,7 +219,6 @@ def test_refresh_token_reuse_detection(
 
     new_access_token_value = "mock_new_access_token_string_for_reuse"
     mock_jwt_usecase.create_token.return_value = new_access_token_value
-    mock_jwt_usecase.create_refresh_token.return_value = new_raw_refresh_token_value
 
     # First refresh - should be successful
     response1 = client.post(
@@ -259,7 +257,8 @@ def test_logout_success(
     mock_user_id = str(uuid4())
     mock_platform = "web"
     mock_access_token_obj = AccessToken(
-        sub=f"usr_{mock_user_id}",
+        sub=f"access_{mock_user_id}",
+        user_id=f"usr_{mock_user_id}",
         token_type=TokenType.ACCESS_TOKEN,
         session_id=mock_session_id,
         platform="android",
@@ -294,7 +293,8 @@ def test_logout_all_success(
     mock_session_id = f"ses_{uuid4()}"
     mock_platform = "web"
     mock_access_token_obj = AccessToken(
-        sub=user.get_prefixed_id(),
+        sub=f"access_{user.id}",
+        user_id=user.get_prefixed_id(),
         token_type=TokenType.ACCESS_TOKEN,
         session_id=mock_session_id,
         platform="android",

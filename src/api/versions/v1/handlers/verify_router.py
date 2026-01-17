@@ -45,7 +45,7 @@ async def verify_onboarding_otp(
         logger.error("Could not update user: Error: %s", err)
         raise AuthError(code=status.HTTP_404_NOT_FOUND, message="user not found")
 
-    data = OnBoardingToken(sub=user.get_prefixed_id(), user_id=user.get_prefixed_id())
+    data = OnBoardingToken(sub=f"onboarding_{user.id}", user_id=user.get_prefixed_id())
     access_token = jwt_usecase.create_token(
         data=data, exp_minutes=config.jwt.onboarding_token_expire_minutes
     )

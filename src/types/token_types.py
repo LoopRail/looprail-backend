@@ -1,5 +1,4 @@
 from typing import ClassVar
-from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
@@ -10,40 +9,74 @@ from src.utils.app_utils import kebab_case
 
 
 class Token(BaseModel):
-    __sub_prefix__: ClassVar[str]
+    __sub_prefix__: ClassVar[str] = ""
+    __expected_token_type__: ClassVar[TokenType]
+
     model_config = ConfigDict(
         from_attributes=True,
         extra="allow",
         arbitrary_types_allowed=True,
         alias_generator=kebab_case,
         populate_by_name=True,
+        use_enum_values=True,
     )
-    sub: str = Field(default_factory=lambda: str(uuid4()))
-    token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
 
-    @field_serializer("sub")
-    def serialize_sub_prefix(self, value: str) -> str:
-        prefix = getattr(self, "__sub_prefix__", None)
-        if prefix:
-            return f"{prefix}_{value}"
-        return value
+    sub: str
+    token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
+    exp: int
 
     @field_validator("sub", mode="before")
     @classmethod
     def validate_sub(cls, v: str) -> str:
         if not isinstance(v, str):
-            raise ValidationError(message="Sub field must be a string")
-        if hasattr(cls, "__sub_prefix__"):
-            expected_prefix = f"{cls.__sub_prefix__}_"
+            raise ValidationError("Sub field must be a string")
+
+        # Check if sub has the expected prefix
+        if hasattr(cls, "__sub_prefix__") and cls.__sub_prefix__:
+            expected_prefix = f"{cls.__sub_prefix__}_usr_"
             if not v.startswith(expected_prefix):
                 raise ValidationError(
-                    message=f"Sub ID must start with '{expected_prefix}'"
+                    f"Invalid sub format. Expected to start with '{expected_prefix}', got: '{v}'"
                 )
+
         return v
+
+    @field_validator("token_type", mode="before")
+    @classmethod
+    def validate_token_type(cls, v: str | TokenType) -> TokenType:
+        if isinstance(v, str):
+            try:
+                v = TokenType(v)
+            except ValueError as e:
+                raise ValidationError(f"Invalid token_type: '{v}'") from e
+
+        # Check if token type matches expected type for this class
+        if hasattr(cls, "__expected_token_type__"):
+            if v != cls.__expected_token_type__:
+                raise ValidationError(
+                    f"Invalid token type."
+                    f"Expected '{cls.__expected_token_type__.value}', got '{v.value}'"
+                )
+
+        return v
+
+    @field_serializer("sub")
+    def serialize_sub_prefix(self, value: str) -> str:
+        prefix = getattr(self, "__sub_prefix__", None)
+        if prefix and not value.startswith(f"{prefix}_"):
+            return f"{prefix}_usr_{value}"
+        return value
+
+    def get_clean_sub(self) -> str:
+        """Extract the UUID from the sub field"""
+        return self.sub.removeprefix(f"{self.__sub_prefix__}_usr_")
 
 
 class OnBoardingToken(Token):
-    __sub_prefix__ = "onboarding"
+    __sub_prefix__: ClassVar[str] = "onboarding"
+    __expected_token_type__: ClassVar[TokenType] = TokenType.ONBOARDING_TOKEN
+
+    token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
     user_id: UserId
 
     def get_clean_user_id(self) -> str:
@@ -51,10 +84,16 @@ class OnBoardingToken(Token):
 
 
 class AccessToken(Token):
-    __sub_prefix__ = "access"
+    __sub_prefix__: ClassVar[str] = "access"
+    __expected_token_type__: ClassVar[TokenType] = TokenType.ACCESS_TOKEN
+
+    token_type: TokenType = Field(default=TokenType.ACCESS_TOKEN, alias="token")
     user_id: UserId
     session_id: SessionId
     platform: str
 
     def get_clean_session_id(self) -> str:
         return self.session_id.removeprefix("ses_")
+
+    def get_clean_user_id(self) -> str:
+        return self.user_id.removeprefix("usr_")
