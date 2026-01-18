@@ -6,11 +6,17 @@ from src.api.dependencies.auth_deps import (
     verify_otp_dep,
 )
 from src.api.dependencies.extra_deps import get_app_environment, get_config
-from src.api.dependencies.repositories import get_user_repository, get_wallet_repository
+from src.api.dependencies.repositories import (
+    get_asset_repository,
+    get_transaction_repository,
+    get_user_repository,
+    get_wallet_repository,
+)
 from src.api.dependencies.services import (
     get_auth_lock_service,
     get_blockrader_config,
     get_ledger_config,
+    get_ledger_service,
     get_paycrest_service,
     get_paystack_service,
     get_redis_service,
@@ -35,6 +41,8 @@ __all__ = [
     "VerifyWebhookRequest",
     "get_user_repository",
     "get_wallet_repository",
+    "get_transaction_repository",
+    "get_asset_repository",
     "get_wallet_manager_usecase",
     "get_blockrader_wallet_service",
     "get_blockrader_config",
@@ -52,4 +60,5 @@ __all__ = [
     "get_current_user_token",
     "get_current_user",
     "get_ledger_config",
+    "get_ledger_service",
 ]

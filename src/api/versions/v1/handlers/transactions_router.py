@@ -82,15 +82,17 @@ async def list_transactions_by_wallet(
     transaction_status: Optional[TransactionStatus] = None,
     transaction_type: Optional[TransactionType] = None,
 ):
-    transactions, total, err = (
-        await transaction_usecase.list_transactions_by_wallet_id_for_user(
-            user_id=current_user.id,
-            wallet_id=wallet_id,
-            page=page,
-            page_size=page_size,
-            transaction_type=transaction_type,
-            status=transaction_status,
-        )
+    (
+        transactions,
+        total,
+        err,
+    ) = await transaction_usecase.list_transactions_by_wallet_id_for_user(
+        user_id=current_user.id,
+        wallet_id=wallet_id,
+        page=page,
+        page_size=page_size,
+        transaction_type=transaction_type,
+        status=transaction_status,
     )
 
     if err:
@@ -123,15 +125,17 @@ async def list_transactions_by_asset(
     transaction_status: Optional[TransactionStatus] = None,
     transaction_type: Optional[TransactionType] = None,
 ):
-    transactions, total, err = (
-        await transaction_usecase.list_transactions_by_asset_id_for_user(
-            user_id=current_user.id,
-            asset_id=asset_id,
-            page=page,
-            page_size=page_size,
-            transaction_type=transaction_type,
-            status=transaction_status,
-        )
+    (
+        transactions,
+        total,
+        err,
+    ) = await transaction_usecase.list_transactions_by_asset_id_for_user(
+        user_id=current_user.id,
+        asset_id=asset_id,
+        page=page,
+        page_size=page_size,
+        transaction_type=transaction_type,
+        status=transaction_status,
     )
 
     if err:

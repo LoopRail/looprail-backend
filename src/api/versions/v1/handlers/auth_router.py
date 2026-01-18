@@ -288,7 +288,6 @@ async def refresh_token(
             content={"message": "Refresh token reused. Please log in again."},
         )
 
-    # Get the session details
     session, err = await session_usecase.get_session(refresh_token_db.session_id)
     if err or not session:
         logger.error("Session not found for refresh token %s", refresh_token_db.id)
@@ -317,7 +316,7 @@ async def refresh_token(
         sub=f"access_{session.get_prefixed_id()}",
         token_type=TokenType.ACCESS_TOKEN,
         session_id=session.get_prefixed_id(),
-        user_id=session.user_id,
+        user_id=f"usr_{session.user_id}",
         platform=platform,
         device_id=device_id,
     )
@@ -327,7 +326,7 @@ async def refresh_token(
 
     return {
         "access-token": new_access_token,
-        "refresh-token": new_raw_refresh_token,
+        "refresh-token": f"rft_{new_raw_refresh_token}",
     }
 
 
