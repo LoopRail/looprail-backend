@@ -20,6 +20,7 @@ from src.api.dependencies.services import (
 )
 from src.infrastructure import CUSTOMER_WALLET_LEDGER, MASTER_BASE_WALLET
 from src.infrastructure.config_settings import Config
+from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RedisClient
 from src.infrastructure.repositories import (
     AssetRepository,
@@ -36,18 +37,19 @@ from src.usecases import (
     JWTUsecase,
     OtpUseCase,
     SecretsUsecase,
+    SecurityUseCase,
     SessionUseCase,
     TransactionUsecase,
     UserUseCase,
     WalletManagerUsecase,
     WalletService,
 )
-from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 async def get_session_usecase(
+    request: Request,
     session_repository: SessionRepository = Depends(get_session_repository),
     refresh_token_repository: RefreshTokenRepository = Depends(
         get_refresh_token_repository
@@ -55,10 +57,12 @@ async def get_session_usecase(
     config: Config = Depends(get_config),
 ) -> SessionUseCase:
     logger.debug("Entering get_session_usecase")
+    argon2_config = request.app.state.argon2_config
     yield SessionUseCase(
         config.jwt.refresh_token_expires_in_days,
         session_repository,
         refresh_token_repository,
+        argon2_config,
     )
 
 
@@ -75,6 +79,13 @@ async def get_secrets_usecase(
 ) -> SecretsUsecase:
     logger.debug("Entering get_secrets_usecase")
     yield SecretsUsecase(blockrader_config)
+
+
+async def get_security_usecase(
+    redis_client: RedisClient = Depends(get_redis_service),
+) -> SecurityUseCase:
+    logger.debug("Entering get_security_usecase")
+    yield SecurityUseCase(redis_client)
 
 
 async def get_otp_token(

@@ -1,6 +1,7 @@
 from src.api.dependencies.auth_deps import (
     BearerToken,
     VerifyWebhookRequest,
+    get_current_session,
     get_current_user,
     get_current_user_token,
     verify_otp_dep,
@@ -28,6 +29,7 @@ from src.api.dependencies.usecases import (
     get_otp_token,
     get_otp_usecase,
     get_secrets_usecase,
+    get_security_usecase,
     get_session_usecase,
     get_user_usecases,
     get_wallet_manager_usecase,
@@ -59,6 +61,8 @@ __all__ = [
     "get_secrets_usecase",
     "get_current_user_token",
     "get_current_user",
+    "get_current_session",
     "get_ledger_config",
     "get_ledger_service",
+    "get_security_usecase",
 ]

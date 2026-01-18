@@ -7,11 +7,12 @@ from src.api.dependencies.usecases import (
     get_jwt_usecase,
     get_otp_token,
     get_otp_usecase,
+    get_session_usecase,
     get_user_usecases,
 )
 from src.dtos import VerifyOtpRequest
 from src.infrastructure import get_logger
-from src.models import Otp, User
+from src.models import Otp, Session, User
 from src.types import (
     AccessToken,
     AuthError,
@@ -22,9 +23,15 @@ from src.types import (
     OtpStatus,
     TokenType,
     httpError,
+    WebhookProvider,
 )
-from src.usecases import JWTUsecase, OtpUseCase, UserUseCase
-from src.usecases.secrets_usecases import SecretsUsecase, WebhookProvider
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    SecretsUsecase,
+    SessionUseCase,
+    UserUseCase,
+)
 from src.utils import verify_signature
 
 logger = get_logger(__name__)
@@ -88,10 +95,23 @@ async def get_current_user(
     user_usecase: UserUseCase = Depends(get_user_usecases),
 ) -> User:
     logger.debug("Entering get_current_user for user ID: %s", access_token.sub)
-    user, err = await user_usecase.get_user_by_id(access_token.get_clean_user_id())
+    user, err = await user_usecase.get_user_by_id(access_token.user_id.clean())
     if err:
         raise AuthError(code=401, message="User not found")
     return user
+
+
+async def get_current_session(
+    access_token: AccessToken = Depends(get_current_user_token),
+    session_usecase: SessionUseCase = Depends(get_session_usecase),
+) -> Session:
+    logger.debug(
+        "Entering get_current_session for session ID: %s", access_token.session_id
+    )
+    session, err = await session_usecase.get_session(access_token.session_id.clean())
+    if err or not session:
+        raise AuthError(code=401, message="Session not found")
+    return session
 
 
 async def verify_otp_dep(
@@ -115,7 +135,7 @@ async def verify_otp_dep(
         raise OTPError("OTP expired")
 
     otp.attempts += 1
-    if otp.attempts > 30:
+    if otp.attempts > 3:
         otp.status = OtpStatus.ATTEMPT_EXCEEDED
         err = await otp_usecases.delete_otp(otp.user_email)
         if err:
