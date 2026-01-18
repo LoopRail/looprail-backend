@@ -1,3 +1,4 @@
+import json
 import os
 from contextlib import asynccontextmanager
 
@@ -39,6 +40,16 @@ async def lifespan(app_: FastAPI):
     app_.state.blockrader_config = config.block_rader
     app_.state.ledger_config = config.ledger
     app_.state.argon2_config = config.argon2
+
+    # Load banks data from JSON file
+    banks_json_path = os.path.join(os.path.dirname(__file__), "..", "public", "banks.json")
+    try:
+        with open(banks_json_path, "r", encoding="utf-8") as f:
+            app_.state.banks_data = json.load(f)
+        logger.info("Successfully loaded banks data from %s", banks_json_path)
+    except Exception as e:
+        logger.error("Failed to load banks data: %s", e)
+        app_.state.banks_data = {}
 
     yield
 
