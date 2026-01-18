@@ -35,7 +35,7 @@ async def handle_external_wallet_transfer(
         "Initiating external wallet transfer for user %s to %s with asset %s amount %s",
         user.id,
         external_wallet_transfer_data.address,
-        withdrawal_request.assetId,
+        withdrawal_request.asset_id,
         withdrawal_request.amount,
     )
     # Placeholder for actual transfer logic
