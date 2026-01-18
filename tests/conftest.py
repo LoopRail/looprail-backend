@@ -1,10 +1,16 @@
+import os
+os.environ["ENVIRONMENT"] = "test"
+
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
-import os
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
+
+from src.infrastructure.config_settings import load_config
+# Load the test config immediately to ensure it's used by subsequent imports
+_ = load_config()
 
 from src.api.dependencies import (
     get_config,
@@ -24,13 +30,7 @@ from src.main import app
 from src.models import Otp, User
 from src.types import OtpType
 from src.usecases import JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase
-from src.infrastructure.config_settings import load_config
 import time
-
-
-os.environ["ENVIRONMENT"] = "test"
-# Load the test config immediately to ensure it's used by subsequent imports
-_ = load_config()
 
 
 @pytest.fixture(name="test_db_session")
@@ -71,20 +71,18 @@ def client_fixture():
 
 
 @pytest.fixture(name="test_user")
-def test_user_fixture() -> tuple[User, str]:
+def test_user_fixture() -> User:
     user_id = uuid4()
     mock_user = User(
         id=user_id,
         email="test@example.com",
         first_name="Test",
         last_name="User",
-        is_email_verified=True,
+        is_email_verified=False,
         has_completed_onboarding=True,
         username="testuser",
-        wallet_address="0xMockWalletAddress",
     )
-    password = "testpassword"
-    return mock_user, password
+    return mock_user
 
 
 @pytest.fixture
@@ -98,6 +96,8 @@ def mock_user_usecases() -> MagicMock:
 @pytest.fixture
 def mock_otp_usecase() -> MagicMock:
     mock = AsyncMock(spec=OtpUseCase)
+    mock.update_otp.return_value = None
+    mock.delete_otp.return_value = None
     app.dependency_overrides[get_otp_usecase] = lambda: mock
     yield mock
     app.dependency_overrides.clear()

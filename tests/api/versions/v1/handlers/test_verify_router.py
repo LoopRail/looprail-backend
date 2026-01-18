@@ -39,7 +39,7 @@ class TestVerifyOnboardingOtp:
 
         assert response.status_code == 200
         assert response.json()["message"] == "OTP verified successfully"
-        assert response.json()["access_token"] == "mock_access_token"
+        assert response.json()["access-token"] == "mock_access_token"
 
         mock_otp_usecase.get_otp.assert_called_once()
         mock_otp_usecase.verify_code.assert_called_once()
@@ -59,7 +59,7 @@ class TestVerifyOnboardingOtp:
     ):
         # Mock OTP with a different type
         invalid_otp = test_otp_onboarding
-        invalid_otp.otp_type = OtpType.ONBOARDING_EMAIL_VERIFICATION
+        invalid_otp.otp_type = "invalid_type"
 
         mock_otp_usecase.get_otp.return_value = (invalid_otp, None)
 
@@ -91,7 +91,7 @@ class TestVerifyOnboardingOtp:
             headers={"X-OTP-Token": mock_get_otp_token.return_value},
         )
 
-        assert response.status_code == 429
+        assert response.status_code == 404
         assert response.json()["message"] == "user not found"
         mock_otp_usecase.get_otp.assert_called_once()
         mock_otp_usecase.verify_code.assert_called_once()

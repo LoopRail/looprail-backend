@@ -86,8 +86,8 @@ async def test_get_user_account_success(mock_deps):
 
     # Mock Ledger Balance
     balance_response = MagicMock()
-    balance_response.data.balance = 1000000000000000000  # 1 ETH
-    balance_response.data.available_balance = 1000000000000000000
+    balance_response.balance = 1000000000000000000  # 1 ETH
+    balance_response.available_balance = 1000000000000000000
     mock_deps["ledger_service"].balances.get_balance.return_value = (
         balance_response,
         None,
