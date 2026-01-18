@@ -152,10 +152,11 @@ async def complete_onboarding(
             content={"message": "Onboarding already completed"},
         )
 
+    pin_str = "".join(map(str, user_data.transaction_pin))
     current_user, err = await user_usecases.complete_user_onboarding(
         user_id=current_user.id,
-        transaction_pin=user_data.transaction_pin,
-        onboarding_responses=user_data.questioner,
+        transaction_pin=pin_str,
+        onboarding_responses=user_data.questionnaire,
     )
     if err:
         logger.error("Failed to complete user onboarding: %s", err.message)
