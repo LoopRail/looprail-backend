@@ -36,7 +36,8 @@ def mock_current_user() -> MagicMock:
     app.dependency_overrides.clear()
 
 
-def test_initiate_withdraw_bank_transfer_success(
+@pytest.mark.asyncio
+async def test_initiate_withdraw_bank_transfer_success(
     client: TestClient,
     mock_current_user: MagicMock,
     mock_wallet_manager_usecase: MagicMock,
@@ -63,7 +64,7 @@ def test_initiate_withdraw_bank_transfer_success(
     )
 
     # Act
-    response = client.post("/wallets/inititate-withdraw", json=withdrawal_data)
+    response = client.post("/api/v1/wallets/inititate-withdraw", json=withdrawal_data)
 
     # Assert
     assert response.status_code == status.HTTP_200_OK
