@@ -56,6 +56,11 @@ class User(Base, table=True):
     wallet: Wallet = Relationship(
         back_populates="user",
     )
+    
+    biometrics: list[UserBiometric] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
 
     @property
     def full_name(self) -> str:
@@ -118,6 +123,22 @@ class UserProfile(Base, table=True):
 
     user_id: UUID = Field(foreign_key="users.id")
     user: User = Relationship(back_populates="profile")
+
+
+class UserBiometric(Base, table=True):
+    __tablename__ = "user_biometrics"
+    __id_prefix__ = "ubm_"
+
+    user_id: UUID = Field(
+        foreign_key="users.id",
+        nullable=False,
+        index=True,
+    )
+    device_id: str = Field(nullable=False, index=True)
+    public_key: str = Field(nullable=False)
+    is_active: bool = Field(default=True)
+
+    user: User = Relationship(back_populates="biometrics")
 
 
 # TODO Add role management for admins
