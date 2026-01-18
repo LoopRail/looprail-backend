@@ -27,7 +27,7 @@ def authenticated_client_fixture(
     mock_session = MagicMock()
     mock_session.id = session_id
     mock_session.user_id = user.id
-    raw_refresh_token = "mock_refresh_token"
+    raw_refresh_token = f"rft_{uuid4()}"
     mock_session_usecase.create_session.return_value = (mock_session, raw_refresh_token)
 
     mock_access_token = "mock_access_token"
@@ -54,8 +54,12 @@ def test_login_success(
     mock_session = MagicMock()
     mock_session.id = session_id
     mock_session.user_id = user.id
-    raw_refresh_token = "mock_refresh_token_string"
-    mock_session_usecase.create_session.return_value = (mock_session, raw_refresh_token)
+    raw_refresh_token = f"rft_{uuid4()}"
+    mock_session_usecase.create_session.return_value = (
+        mock_session,
+        raw_refresh_token,
+        None,
+    )
 
     mock_jwt_usecase.create_token.return_value = "mock_access_token_string"
 
@@ -75,7 +79,7 @@ def test_login_success(
         email=login_data["email"], password=login_data["password"]
     )
     mock_session_usecase.create_session.assert_called_once_with(
-        user_id=user.get_prefixed_id(),
+        user_id=user.id,
         device_id=headers["X-Device-ID"],
         platform=headers["X-Platform"],
         ip_address="testclient",
@@ -251,21 +255,22 @@ def test_logout_success(
     client: TestClient,
     authenticated_client: tuple[TestClient, str, str],
     mock_session_usecase: MagicMock,
+    mock_jwt_usecase: MagicMock,
 ):
     _, access_token, _ = authenticated_client
     mock_session_id = f"ses_{uuid4()}"
     mock_user_id = str(uuid4())
     mock_platform = "web"
     mock_access_token_obj = AccessToken(
-        sub=f"access_{mock_user_id}",
+        sub=f"access_ses_{mock_session_id}",
         user_id=f"usr_{mock_user_id}",
         token_type=TokenType.ACCESS_TOKEN,
         session_id=mock_session_id,
         platform="android",
     )
 
-    # Override BearerToken dependency to return our mock AccessToken
-    app.dependency_overrides[BearerToken] = lambda: mock_access_token_obj
+    # Mock jwt_usecase.verify_token to return our mock AccessToken
+    mock_jwt_usecase.verify_token.return_value = (mock_access_token_obj, None)
 
     # Mock SessionUseCase.revoke_session
     mock_session_usecase.revoke_session.return_value = None
@@ -288,21 +293,21 @@ def test_logout_all_success(
     client: TestClient,
     test_user: tuple[User, str],
     mock_session_usecase: MagicMock,
+    mock_jwt_usecase: MagicMock,
 ):
     user, _ = test_user
     mock_session_id = f"ses_{uuid4()}"
     mock_platform = "web"
     mock_access_token_obj = AccessToken(
-        sub=f"access_{user.id}",
+        sub=f"access_ses_{mock_session_id}",
         user_id=user.get_prefixed_id(),
         token_type=TokenType.ACCESS_TOKEN,
         session_id=mock_session_id,
         platform="android",
     )
 
-    # Override BearerToken dependency to return our mock AccessToken
-    app.dependency_overrides[BearerToken] = lambda: mock_access_token_obj
-
+    # Mock jwt_usecase.verify_token to return our mock AccessToken
+    mock_jwt_usecase.verify_token.return_value = (mock_access_token_obj, None)
     # Mock SessionUseCase.revoke_all_user_sessions
     mock_session_usecase.revoke_all_user_sessions.return_value = None
 

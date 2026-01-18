@@ -1,0 +1,6 @@
+[[ledgers]]
+name = "Customer Wallets Ledger"
+ledger_id = "ldg_test_uuid_customer_wallets"
+[ledgers.meta_data]
+description = "Default ledger for customer wallets"
+application = "looprail_backend"
