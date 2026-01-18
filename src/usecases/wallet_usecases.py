@@ -431,7 +431,7 @@ class WalletManagerUsecase:
         logger.debug("User wallet %s retrieved for user %s.", user_wallet.id, user.id)
 
         asset, err = await self._get_asset_by_id(
-            wallet_id=user_wallet.id, asset_id=withdrawal_request.get_clean_asset_id()
+            wallet_id=user_wallet.id, asset_id=withdrawal_request.asset_id.clean()
         )
         if err:
             logger.error(
@@ -534,7 +534,7 @@ class WalletManagerUsecase:
         logger.debug("Paycrest rate fetched: %s", paycrest_rate.data)
 
         network_fee_request = NetworkFeeRequest(
-            assetId=withdrawal_request.get_clean_asset_id(),
+            assetId=withdrawal_request.asset_id.clean(),
             amount=withdrawal_request.amount,
         )
         logger.debug(

@@ -12,6 +12,7 @@ from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.models import Otp
 from src.types import AuthError, NotFoundError, OnBoardingToken, OtpType
+from src.types.common_types import OnBoardingTokenSub
 from src.usecases import JWTUsecase, UserUseCase
 
 logger = get_logger(__name__)
@@ -46,7 +47,7 @@ async def verify_onboarding_otp(
         raise AuthError(code=status.HTTP_404_NOT_FOUND, message="user not found")
 
     data = OnBoardingToken(
-        sub=f"onboarding_usr_{user.id}", user_id=user.get_prefixed_id()
+        sub=OnBoardingTokenSub.new(user.id), user_id=user.get_prefixed_id()
     )
     access_token = jwt_usecase.create_token(
         data=data, exp_minutes=config.jwt.onboarding_token_expire_minutes

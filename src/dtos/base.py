@@ -7,5 +7,8 @@ from src.utils import kebab_case
 class Base(BaseModel):
     dto_config: ClassVar[Any] = None
     model_config = ConfigDict(
-        alias_generator=kebab_case, populate_by_name=True, use_enum_values=True
+        alias_generator=kebab_case,
+        populate_by_name=True,
+        use_enum_values=True,
+        arbitrary_types_allowed=True,
     )

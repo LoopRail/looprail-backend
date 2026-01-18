@@ -42,7 +42,7 @@ async def get_user_account(
     asset_repo: AssetRepository = Depends(get_asset_repository),
     ledger_service: LedgerService = Depends(get_ledger_service),
 ):
-    user, err = await user_usecases.get_user_by_id(user_id=token.get_clean_user_id())
+    user, err = await user_usecases.get_user_by_id(user_id=token.user_id.clean())
     if err:
         return JSONResponse(status_code=404, content={"message": "User not found"})
 

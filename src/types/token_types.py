@@ -1,10 +1,10 @@
-from typing import ClassVar
+from typing import ClassVar, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
-from src.types.common_types import SessionId, UserId
+from src.types.common_types import AccessTokenSub, OnBoardingTokenSub, SessionId, UserId
 from src.types.error import ValidationError
-from src.types.types import TokenType
+from src.types.types import Platform, TokenType
 from src.utils.app_utils import kebab_case
 
 
@@ -21,7 +21,7 @@ class Token(BaseModel):
         use_enum_values=True,
     )
 
-    sub: str
+    sub: Union[OnBoardingTokenSub, AccessTokenSub]
     token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
 
     @field_validator("sub", mode="before")
@@ -78,9 +78,6 @@ class OnBoardingToken(Token):
     token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
     user_id: UserId
 
-    def get_clean_user_id(self) -> str:
-        return self.user_id.removeprefix("usr_")
-
 
 class AccessToken(Token):
     __sub_prefix__: ClassVar[str] = "access_ses_"
@@ -89,14 +86,4 @@ class AccessToken(Token):
     token_type: TokenType = Field(default=TokenType.ACCESS_TOKEN, alias="token")
     user_id: UserId
     session_id: SessionId
-    platform: str
-
-    def get_clean_session_id(self) -> str:
-        return self.session_id.removeprefix("ses_")
-
-    def get_clean_user_id(self) -> str:
-        return self.user_id.removeprefix("usr_")
-
-    def get_clean_sub(self) -> str:
-        """Extract the UUID from the sub field"""
-        return self.sub.removeprefix(f"{self.__sub_prefix__}")
+    platform: Platform
