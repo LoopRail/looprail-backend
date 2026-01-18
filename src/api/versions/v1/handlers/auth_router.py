@@ -7,9 +7,11 @@ from src.api.dependencies import (
     BearerToken,
     get_app_environment,
     get_config,
+    get_current_session,
     get_jwt_usecase,
     get_otp_usecase,
     get_resend_service,
+    get_security_usecase,
     get_session_usecase,
     get_user_usecases,
 )
@@ -22,11 +24,14 @@ from src.api.rate_limiter import limiter
 from src.dtos import (
     AuthTokensResponse,
     AuthWithTokensAndUserResponse,
+    ChallengeResponse,
     CreateUserResponse,
     LoginRequest,
     MessageResponse,
     OnboardUserUpdate,
     OtpCreate,
+    PasscodeLoginRequest,
+    PasscodeSetRequest,
     RefreshTokenRequest,
     UserCreate,
     UserPublic,
@@ -35,14 +40,18 @@ from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
+from src.models import Session
 from src.types import (
     AccessToken,
+    AccessTokenSub,
     OnBoardingToken,
     Platform,
+    RefreshTokenId,
     TokenType,
     UserAlreadyExistsError,
+    UserId,
 )
-from src.usecases import JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase
+from src.usecases import JWTUsecase, OtpUseCase, SecurityUseCase, SessionUseCase, UserUseCase
 from src.utils import create_refresh_token
 
 logger = get_logger(__name__)
@@ -123,7 +132,7 @@ async def complete_onboarding(
         )
 
     current_user, err = await user_usecases.get_user_by_id(
-        user_id=token.get_clean_user_id()
+        user_id=token.user_id.clean()
     )
     if err:
         return JSONResponse(
@@ -171,7 +180,7 @@ async def complete_onboarding(
             content={"message": "Internal server error"},
         )
     access_token_data = AccessToken(
-        sub=f"access_{session.get_prefixed_id()}",
+        sub=AccessTokenSub.new(session.id),
         user_id=current_user.get_prefixed_id(),
         token_type=TokenType.ACCESS_TOKEN,
         session_id=session.get_prefixed_id(),
@@ -227,7 +236,7 @@ async def login(
         )
 
     access_token_data = AccessToken(
-        sub=f"access_{session.get_prefixed_id()}",
+        sub=AccessTokenSub.new(session.id),
         user_id=user.get_prefixed_id(),
         token_type=TokenType.ACCESS_TOKEN,
         session_id=session.get_prefixed_id(),
@@ -263,7 +272,7 @@ async def refresh_token(
 ):
     logger.info("Received refresh token request from device ID: %s", device_id)
     incoming_refresh_token_hash = hashlib.sha256(
-        refresh_token_request.get_clean_refresh_token().encode()
+        refresh_token_request.refresh_token.clean().encode()
     ).hexdigest()
 
     refresh_token_db, err = await session_usecase.get_valid_refresh_token_by_hash(
@@ -296,27 +305,15 @@ async def refresh_token(
             content={"message": "Session not found."},
         )
 
-    # Rotate the refresh token
-    new_raw_refresh_token = create_refresh_token()
-    _, err = await session_usecase.rotate_refresh_token(
-        old_refresh_token=refresh_token_db,
-        new_refresh_token_string=new_raw_refresh_token,
-    )
-    if err:
-        logger.error(
-            "Failed to rotate refresh token for session %s: %s", session.id, err.message
-        )
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"message": "Internal server error during token rotation"},
-        )
+    # REUSE the refresh token instead of rotating it
+    new_raw_refresh_token = req.refresh_token
 
     # Issue a new access token
     access_token_data = AccessToken(
-        sub=f"access_{session.get_prefixed_id()}",
+        sub=AccessTokenSub.new(session.id),
         token_type=TokenType.ACCESS_TOKEN,
         session_id=session.get_prefixed_id(),
-        user_id=f"usr_{session.user_id}",
+        user_id=UserId.new(session.user_id),
         platform=platform,
         device_id=device_id,
     )
@@ -326,7 +323,101 @@ async def refresh_token(
 
     return {
         "access-token": new_access_token,
-        "refresh-token": f"rft_{new_raw_refresh_token}",
+        "refresh-token": new_raw_refresh_token,
+    }
+
+
+@router.post("/challenge", response_model=ChallengeResponse)
+@limiter.limit("10/minute")
+async def create_challenge(
+    request: Request,
+    code_challenge: str = Body(..., embed=True),
+    security_usecase: SecurityUseCase = Depends(get_security_usecase),
+):
+    """Generate a PKCE challenge and nonce."""
+    challenge, err = await security_usecase.create_challenge(code_challenge)
+    if err:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Failed to create challenge"},
+        )
+    return challenge
+
+
+@router.post("/passcode/set", response_model=MessageResponse)
+@limiter.limit("5/minute")
+async def set_passcode(
+    request: Request,
+    req: PasscodeSetRequest,
+    session: Session = Depends(get_current_session),
+    session_usecase: SessionUseCase = Depends(get_session_usecase),
+):
+    """Set a session-bound 6-digit passcode."""
+    err = await session_usecase.set_passcode(session.get_prefixed_id(), req.passcode)
+    if err:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Failed to set passcode"},
+        )
+    return {"message": "Passcode set successfully"}
+
+
+@router.post("/passcode-login", response_model=AuthTokensResponse)
+@limiter.limit("5/minute")
+async def passcode_login(
+    request: Request,
+    req: PasscodeLoginRequest,
+    config: Config = Depends(get_config),
+    jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
+    session_usecase: SessionUseCase = Depends(get_session_usecase),
+    security_usecase: SecurityUseCase = Depends(get_security_usecase),
+    platform: Platform = Header(...),
+    device_id: str = Header(...),
+):
+    """Login using session passcode + PKCE."""
+    # 1. Verify PKCE
+    verified, err = await security_usecase.verify_pkce(req.challenge_id, req.code_verifier)
+    if err or not verified:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"message": "Invalid PKCE challenge or verifier"},
+        )
+
+    # 2. Identify session
+    session_id = request.headers.get("X-Session-Id")
+    if not session_id:
+        return JSONResponse(status_code=400, content={"message": "X-Session-Id header required"})
+
+    # 3. Verify Passcode
+    valid, err = await session_usecase.verify_passcode(session_id, req.passcode)
+    if err or not valid:
+        return JSONResponse(status_code=401, content={"message": "Invalid passcode"})
+
+    # 4. Fetch the session and issue new tokens
+    session, err = await session_usecase.get_session(session_id)
+    if err or not session:
+        return JSONResponse(status_code=401, content={"message": "Session not found"})
+
+    access_token_data = AccessToken(
+        sub=AccessTokenSub.new(session.id),
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id=session.get_prefixed_id(),
+        user_id=UserId.new(session.user_id),
+        platform=platform,
+        device_id=device_id,
+    )
+    access_token = jwt_usecase.create_token(
+        data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
+    )
+
+    # 5. Get the current valid refresh token for this session
+    refresh_token_id, err = await session_usecase.get_valid_refresh_token(session_id)
+    if err or not refresh_token_id:
+        return JSONResponse(status_code=401, content={"message": "No valid refresh token for session"})
+    
+    return {
+        "access-token": access_token,
+        "refresh-token": refresh_token_id,
     }
 
 
