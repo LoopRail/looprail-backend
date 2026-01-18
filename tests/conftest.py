@@ -10,26 +10,32 @@ from sqlmodel import SQLModel
 
 from src.infrastructure.config_settings import load_config
 # Load the test config immediately to ensure it's used by subsequent imports
-_ = load_config()
+test_config = load_config()
+
+from src.dtos.base import Base as DTOBase
+DTOBase.dto_config = {
+    "disposable_email_domains": test_config.disposable_email_domains,
+    "allowed_countries": test_config.countries
+}
 
 from src.api.dependencies import (
     get_config,
     get_jwt_usecase,
     get_otp_usecase,
     get_otp_token,
-    get_session_usecase,  # Re-added this import
-    get_user_usecases,
+    get_security_usecase,
+    get_session_usecase,
     get_user_usecases,
     get_wallet_manager_usecase,
 )
 from src.api.dependencies.services import get_redis_service
 from src.infrastructure.config_settings import Config
-from src.infrastructure.settings import JWTConfig
+from src.infrastructure.settings import ENVIRONMENT, JWTConfig
 from src.infrastructure.db import get_session as get_app_session
 from src.main import app
 from src.models import Otp, User
 from src.types import OtpType
-from src.usecases import JWTUsecase, OtpUseCase, SessionUseCase, UserUseCase
+from src.usecases import JWTUsecase, OtpUseCase, SecurityUseCase, SessionUseCase, UserUseCase
 import time
 
 
@@ -71,7 +77,7 @@ def client_fixture():
 
 
 @pytest.fixture(name="test_user")
-def test_user_fixture() -> User:
+def test_user_fixture() -> tuple[User, str]:
     user_id = uuid4()
     mock_user = User(
         id=user_id,
@@ -82,15 +88,23 @@ def test_user_fixture() -> User:
         has_completed_onboarding=True,
         username="testuser",
     )
-    return mock_user
+    password = "testpassword123"
+    return mock_user, password
+
+
+@pytest.fixture(name="test_user_obj")
+def test_user_obj_fixture(test_user: tuple[User, str]) -> User:
+    return test_user[0]
 
 
 @pytest.fixture
-def mock_user_usecases() -> MagicMock:
+def mock_user_usecases(test_user_obj: User) -> MagicMock:
     mock = AsyncMock(spec=UserUseCase)
+    mock.get_user_by_email.return_value = (test_user_obj, None)
     app.dependency_overrides[get_user_usecases] = lambda: mock
     yield mock
-    app.dependency_overrides.clear()
+    if get_user_usecases in app.dependency_overrides:
+        del app.dependency_overrides[get_user_usecases]
 
 
 @pytest.fixture
@@ -100,7 +114,8 @@ def mock_otp_usecase() -> MagicMock:
     mock.delete_otp.return_value = None
     app.dependency_overrides[get_otp_usecase] = lambda: mock
     yield mock
-    app.dependency_overrides.clear()
+    if get_otp_usecase in app.dependency_overrides:
+        del app.dependency_overrides[get_otp_usecase]
 
 
 @pytest.fixture
@@ -108,7 +123,8 @@ def mock_session_usecase() -> MagicMock:
     mock = AsyncMock(spec=SessionUseCase)
     app.dependency_overrides[get_session_usecase] = lambda: mock
     yield mock
-    app.dependency_overrides.clear()
+    if get_session_usecase in app.dependency_overrides:
+        del app.dependency_overrides[get_session_usecase]
 
 
 @pytest.fixture
@@ -116,7 +132,17 @@ def mock_jwt_usecase() -> MagicMock:
     mock = MagicMock(spec=JWTUsecase)
     app.dependency_overrides[get_jwt_usecase] = lambda: mock
     yield mock
-    app.dependency_overrides.clear()
+    if get_jwt_usecase in app.dependency_overrides:
+        del app.dependency_overrides[get_jwt_usecase]
+
+
+@pytest.fixture
+def mock_security_usecase() -> MagicMock:
+    mock = AsyncMock(spec=SecurityUseCase)
+    app.dependency_overrides[get_security_usecase] = lambda: mock
+    yield mock
+    if get_security_usecase in app.dependency_overrides:
+        del app.dependency_overrides[get_security_usecase]
 
 
 @pytest.fixture
@@ -124,20 +150,29 @@ def mock_wallet_manager_factory() -> MagicMock:
     mock = AsyncMock()  # WalletManager probably async
     app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock
     yield mock
-    app.dependency_overrides.clear()
+    if get_wallet_manager_usecase in app.dependency_overrides:
+        del app.dependency_overrides[get_wallet_manager_usecase]
 
 
 @pytest.fixture(autouse=True)
 def mock_config() -> MagicMock:
     mock_jwt_settings = MagicMock(spec=JWTConfig)
     mock_jwt_settings.onboarding_token_expire_minutes = 15
+    mock_jwt_settings.access_token_expire_minutes = 60
+    mock_jwt_settings.secret_key = "test_secret_key"
+    mock_jwt_settings.algorithm = "HS256"
 
-    mock = MagicMock(spec=Config)
+    mock = MagicMock()
     mock.jwt = mock_jwt_settings
+    mock.disposable_email_domains = []
+    mock.countries = MagicMock()
+    mock.app = MagicMock()
+    mock.app.environment = ENVIRONMENT.TEST
 
     app.dependency_overrides[get_config] = lambda: mock
     yield mock
-    app.dependency_overrides.clear()
+    if get_config in app.dependency_overrides:
+        del app.dependency_overrides[get_config]
 
 
 @pytest.fixture
@@ -145,7 +180,8 @@ def mock_get_otp_token() -> MagicMock:
     mock = MagicMock(return_value="dummy_otp_token")
     app.dependency_overrides[get_otp_token] = lambda: mock
     yield mock
-    app.dependency_overrides.clear()
+    if get_otp_token in app.dependency_overrides:
+        del app.dependency_overrides[get_otp_token]
 
 
 @pytest.fixture(autouse=True)
@@ -153,7 +189,8 @@ def mock_redis_service() -> MagicMock:
     mock = MagicMock()
     app.dependency_overrides[get_redis_service] = lambda: mock
     yield mock
-    app.dependency_overrides.clear()
+    if get_redis_service in app.dependency_overrides:
+        del app.dependency_overrides[get_redis_service]
 
 
 @pytest.fixture
