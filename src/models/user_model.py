@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 from uuid import UUID
 
 from pydantic import EmailStr
-from sqlmodel import Field, Relationship
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlmodel import Column, Field, Relationship
 
 from src.models.base import Base
 from src.types.types import Gender, KYCStatus
@@ -37,27 +36,30 @@ class User(Base, table=True):
     has_completed_onboarding: bool = Field(default=False)
 
     ledger_identity_id: str = Field(nullable=False, unique=True)
+    onboarding_responses: List[str] = Field(
+        default=[], sa_column=Column(JSONB, nullable=False, server_default="[]")
+    )
 
-    profile: UserProfile = Relationship(
+    profile: "UserProfile" = Relationship(
         back_populates="user",
         sa_relationship_kwargs={"uselist": False},
     )
 
-    credentials: UserCredentials = Relationship(
+    credentials: "UserCredentials" = Relationship(
         back_populates="user",
         sa_relationship_kwargs={"uselist": False},
     )
 
-    pin: UserPin = Relationship(
+    pin: "UserPin" = Relationship(
         back_populates="user",
         sa_relationship_kwargs={"uselist": False},
     )
 
-    wallet: Wallet = Relationship(
+    wallet: "Wallet" = Relationship(
         back_populates="user",
     )
-    
-    biometrics: list[UserBiometric] = Relationship(
+
+    biometrics: List["UserBiometric"] = Relationship(
         back_populates="user",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )

@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from src.dtos.user_dtos import UserCreate
 from src.infrastructure.logger import get_logger
@@ -160,71 +160,78 @@ class UserUseCase:
             temp_ledger_identity_id,
         )
 
-        logger.debug("Creating ledger identity for user %s", created_user.username)
-        ledger_identity, err = await self.wallet_service.create_ledger_identity(
-            created_user
+        created_user, err = await self.user_repository.create_user(user=user)
+        if err:
+            logger.error(
+                "Failed to create user in repository for email %s: %s",
+                user_create.email,
+                err.message,
+                exc_info=True,
+            )
+            return None, err
+        logger.info(
+            "User %s created successfully in repository with temporary ledger ID %s.",
+            created_user.username,
+            temp_ledger_identity_id,
         )
+
+        return created_user, None
+
+    async def complete_user_onboarding(
+        self,
+        user_id: UserId,
+        transaction_pin: str,
+        onboarding_responses: List[str],
+    ) -> Tuple[Optional[User], Error]:
+        logger.info("Completing onboarding for user %s", user_id)
+
+        user, err = await self.get_user_by_id(user_id)
+        if err or not user:
+            return None, err
+
+        # 1. Update transaction pin
+        _, err = await self.update_transaction_pin(user_id, transaction_pin)
+        if err:
+            return None, err
+
+        # 2. Store onboarding responses
+        user.onboarding_responses = onboarding_responses
+
+        # 3. Create ledger identity
+        logger.debug("Creating ledger identity for user %s", user.username)
+        ledger_identity, err = await self.wallet_service.create_ledger_identity(user)
         if err:
             logger.error(
                 "Failed to create ledger identity for user %s: %s",
-                created_user.username,
-                err.message,
-                exc_info=True,
-            )
-            rollback_err = await self.user_repository.rollback()
-            if rollback_err:
-                logger.error(
-                    "Failed to rollback user creation for user %s after ledger identity failure: %s",
-                    created_user.username,
-                    rollback_err.message,
-                    exc_info=True,
-                )
-            return None, err
-        logger.info(
-            "Ledger identity %s created for user %s.",
-            ledger_identity.identity_id,
-            created_user.username,
-        )
-
-        logger.debug(
-            "Updating user %s with real ledger ID: %s",
-            created_user.username,
-            ledger_identity.identity_id,
-        )
-        created_user, err = await self.user_repository.update_user(
-            user_id=created_user.id, ledger_identity_id=ledger_identity.identity_id
-        )
-        if err:
-            logger.error(
-                "Failed to update user %s with real ledger ID %s: %s",
-                created_user.username,
-                ledger_identity.identity_id,
+                user.username,
                 err.message,
                 exc_info=True,
             )
             return None, err
-        logger.info(
-            "User %s updated with real ledger ID %s.",
-            created_user.username,
-            ledger_identity.identity_id,
-        )
 
-        logger.debug("Creating wallet for user %s", created_user.username)
-        _, err = await self.wallet_manager_usecase.create_user_wallet(created_user.id)
+        user.ledger_identity_id = ledger_identity.identity_id
+
+        # 4. Create wallet
+        logger.debug("Creating wallet for user %s", user.username)
+        _, err = await self.wallet_manager_usecase.create_user_wallet(user.id)
         if err:
             logger.error(
                 "Failed to create wallet for user %s: %s",
-                created_user.username,
+                user.username,
                 err.message,
                 exc_info=True,
             )
             return None, err
-        logger.info("Wallet created for user %s.", created_user.username)
 
-        logger.info(
-            "User %s and associated wallet created successfully.", created_user.username
-        )
-        return created_user, None
+        # 5. Mark as completed
+        user.has_completed_onboarding = True
+
+        updated_user, err = await self.save(user)
+        if err:
+            return None, err
+
+        logger.info("Onboarding completed successfully for user %s", user.username)
+        return updated_user, None
 
     async def get_user_by_id(self, user_id: UserId) -> Tuple[Optional[User], Error]:
         logger.debug("Getting user by ID: %s", user_id)

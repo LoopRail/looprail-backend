@@ -151,22 +151,16 @@ async def complete_onboarding(
         )
 
     pin_str = "".join(map(str, user_data.transaction_pin))
-    _, err = await user_usecases.update_transaction_pin(current_user.id, pin_str)
-    if err:
-        logger.error("Could not set transaction pin: %s", err.message)
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"message": "Internal server error"},
-        )
-
-    _, err = await user_usecases.update_user(
-        current_user.id, has_completed_onboarding=True
+    current_user, err = await user_usecases.complete_user_onboarding(
+        user_id=current_user.id,
+        transaction_pin=pin_str,
+        onboarding_responses=user_data.questioner,
     )
     if err:
-        logger.error("Could not update user: %s", err.message)
+        logger.error("Failed to complete user onboarding: %s", err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"message": "Internal server error"},
+            content={"message": err.message},
         )
 
     session, raw_refresh_token, err = await session_usecase.create_session(
@@ -393,11 +387,11 @@ async def passcode_login(
             status_code=400, content={"message": "X-Session-Id header required"}
         )
 
-    valid, err = await session_usecase.verify_passcode(session_id, req.passcode)
+    valid, err = await session_usecase.verify_passcode(session_id.clean(), req.passcode)
     if err or not valid:
         return JSONResponse(status_code=401, content={"message": "Invalid passcode"})
 
-    session, err = await session_usecase.get_session(session_id)
+    session, err = await session_usecase.get_session(session_id.clean())
     if err or not session:
         return JSONResponse(status_code=401, content={"message": "Session not found"})
 
