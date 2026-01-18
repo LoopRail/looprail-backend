@@ -1,18 +1,19 @@
+import base64
 import hashlib
 import secrets
-import base64
 from typing import Optional, Tuple
+
 from pydantic import BaseModel
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RedisClient
-from src.types import Error, error, ChallengeId
+from src.types import ChallengeId, Error, error
 
 logger = get_logger(__name__)
 
 
 class AuthChallenge(BaseModel):
-    challenge_id: str
+    challenge_id: ChallengeId
     code_challenge: str
     nonce: str
 
