@@ -14,7 +14,7 @@ class AuthTokensResponse(Base):
 
 class AuthWithTokensAndUserResponse(MessageResponse, AuthTokensResponse):
     user: UserPublic
-    session_id: str | None = None
+    session_id: str
 
 
 class CreateUserResponse(Base):
