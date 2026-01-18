@@ -16,9 +16,9 @@ USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]{4,16}$")
 
 
 class OnboardUserUpdate(Base):
-    transaction_pin: int = Field(max_length=4, min_length=4, pattern=r"^\d{6}$")
+    transaction_pin: str = Field(pattern=r"^\d{4}$")
     allow_notifications: bool
-    questionnaire: list[str]
+    questioner: list[str]
 
 
 class UserCreate(Base):
