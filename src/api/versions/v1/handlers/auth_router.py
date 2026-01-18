@@ -46,13 +46,18 @@ from src.types import (
     AccessTokenSub,
     OnBoardingToken,
     Platform,
-    RefreshTokenId,
     TokenType,
     UserAlreadyExistsError,
     UserId,
 )
-from src.usecases import JWTUsecase, OtpUseCase, SecurityUseCase, SessionUseCase, UserUseCase
-from src.utils import create_refresh_token
+from src.types.common_types import SessionId
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    SecurityUseCase,
+    SessionUseCase,
+    UserUseCase,
+)
 
 logger = get_logger(__name__)
 
@@ -196,6 +201,7 @@ async def complete_onboarding(
         ),
         "access-token": access_token,
         "refresh-token": raw_refresh_token,
+        "session_id": session.get_prefixed_id(),
     }
 
 
@@ -254,6 +260,7 @@ async def login(
         ),
         "access-token": access_token,
         "refresh-token": raw_refresh_token,
+        "session_id": session.get_prefixed_id(),
     }
 
 
@@ -305,9 +312,6 @@ async def refresh_token(
             content={"message": "Session not found."},
         )
 
-    # REUSE the refresh token instead of rotating it
-    new_raw_refresh_token = req.refresh_token
-
     # Issue a new access token
     access_token_data = AccessToken(
         sub=AccessTokenSub.new(session.id),
@@ -323,7 +327,7 @@ async def refresh_token(
 
     return {
         "access-token": new_access_token,
-        "refresh-token": new_raw_refresh_token,
+        "refresh-token": refresh_token_request.refresh_token,
     }
 
 
@@ -353,7 +357,7 @@ async def set_passcode(
     session_usecase: SessionUseCase = Depends(get_session_usecase),
 ):
     """Set a session-bound 6-digit passcode."""
-    err = await session_usecase.set_passcode(session.get_prefixed_id(), req.passcode)
+    err = await session_usecase.set_passcode(session.id, req.passcode)
     if err:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -373,27 +377,26 @@ async def passcode_login(
     security_usecase: SecurityUseCase = Depends(get_security_usecase),
     platform: Platform = Header(...),
     device_id: str = Header(...),
+    session_id: SessionId = Header(alias="X-Session-Id"),
 ):
-    """Login using session passcode + PKCE."""
-    # 1. Verify PKCE
-    verified, err = await security_usecase.verify_pkce(req.challenge_id, req.code_verifier)
+    verified, err = await security_usecase.verify_pkce(
+        req.challenge_id, req.code_verifier
+    )
     if err or not verified:
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"message": "Invalid PKCE challenge or verifier"},
         )
 
-    # 2. Identify session
-    session_id = request.headers.get("X-Session-Id")
     if not session_id:
-        return JSONResponse(status_code=400, content={"message": "X-Session-Id header required"})
+        return JSONResponse(
+            status_code=400, content={"message": "X-Session-Id header required"}
+        )
 
-    # 3. Verify Passcode
     valid, err = await session_usecase.verify_passcode(session_id, req.passcode)
     if err or not valid:
         return JSONResponse(status_code=401, content={"message": "Invalid passcode"})
 
-    # 4. Fetch the session and issue new tokens
     session, err = await session_usecase.get_session(session_id)
     if err or not session:
         return JSONResponse(status_code=401, content={"message": "Session not found"})
@@ -410,11 +413,12 @@ async def passcode_login(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
-    # 5. Get the current valid refresh token for this session
     refresh_token_id, err = await session_usecase.get_valid_refresh_token(session_id)
     if err or not refresh_token_id:
-        return JSONResponse(status_code=401, content={"message": "No valid refresh token for session"})
-    
+        return JSONResponse(
+            status_code=401, content={"message": "No valid refresh token for session"}
+        )
+
     return {
         "access-token": access_token,
         "refresh-token": refresh_token_id,
