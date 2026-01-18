@@ -69,4 +69,4 @@ class Asset(Base, table=True):
     )
 
     def get_id_prefix(self) -> str:
-        return f"{self.__id_prefix__}{self.asset_type.value}_"
+        return f"{self.__id_prefix__}{self.asset_type}_"
