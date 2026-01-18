@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RedisClient
 from src.types import ChallengeId, Error, error
+from src.utils.auth_utils import compute_pkce_challenge
 
 logger = get_logger(__name__)
 
@@ -30,6 +31,7 @@ class SecurityUseCase:
         """Create a new PKCE challenge and nonce, stored in Redis."""
         challenge_id = ChallengeId.new(secrets.token_hex(16))
         nonce = secrets.token_hex(16)
+        code_challenge = compute_pkce_challenge(code_challenge)
 
         challenge = AuthChallenge(
             challenge_id=challenge_id, code_challenge=code_challenge, nonce=nonce
@@ -59,21 +61,13 @@ class SecurityUseCase:
             logger.warning("Challenge not found or expired: %s", challenge_id)
             return False, error("Challenge expired or invalid")
 
-        # S256: BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))
-        # For simplicity in this implementation, we might use a standard SHA256 hex or base64 if the client provides it similarly.
-        # But PKCE spec says Base64Url(SHA256(verifier))
-
-        # Calculate SHA256
-        hashed = hashlib.sha256(code_verifier.encode("ascii")).digest()
-        # Base64Url encode (remove padding and replace +/ with -_)
-        encoded = base64.urlsafe_b64encode(hashed).decode("ascii").rstrip("=")
+        encoded = compute_pkce_challenge(code_verifier)
 
         if encoded != challenge_data.code_challenge:
             logger.warning("PKCE verification failed for challenge %s", challenge_id)
             return False, None
 
-        # Delete the challenge after successful use to prevent replay
-        await self.redis_client.delete(key)
+        await self.redis_client.delete([key])
 
         logger.info("PKCE verification successful for challenge %s", challenge_id)
         return True, None

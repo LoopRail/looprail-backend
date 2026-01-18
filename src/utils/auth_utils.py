@@ -1,4 +1,5 @@
 import hashlib
+import base64
 from uuid import uuid4
 import hmac
 import re
@@ -8,6 +9,7 @@ from argon2 import PasswordHasher, exceptions
 
 from src.infrastructure.security import Argon2Config
 from src.types.auth_types import HashedPassword
+from src.types.common_types import RefreshTokenId
 from src.types.error import Error, error
 
 
@@ -85,9 +87,19 @@ def verify_signature(
     return hmac.compare_digest(computed_signature, received_signature)
 
 
-def create_refresh_token() -> str:
+def create_refresh_token() -> RefreshTokenId:
     """
     Generates a random string for a refresh token.
     """
-    refresh_token = str(uuid4())
+    refresh_token = RefreshTokenId.new(str(uuid4()))
     return refresh_token
+
+
+def compute_pkce_challenge(code_verifier: str) -> str:
+    """
+    Compute S256 code challenge from code verifier.
+    """
+    code_verifier_clean = code_verifier.strip()
+    hashed = hashlib.sha256(code_verifier_clean.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(hashed).decode("ascii").rstrip("=")
+
