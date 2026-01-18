@@ -160,15 +160,6 @@ class UserUseCase:
             temp_ledger_identity_id,
         )
 
-        created_user, err = await self.user_repository.create_user(user=user)
-        if err:
-            logger.error(
-                "Failed to create user in repository for email %s: %s",
-                user_create.email,
-                err.message,
-                exc_info=True,
-            )
-            return None, err
         logger.info(
             "User %s created successfully in repository with temporary ledger ID %s.",
             created_user.username,
