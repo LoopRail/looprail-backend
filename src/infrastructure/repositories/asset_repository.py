@@ -1,7 +1,5 @@
 from typing import Optional, Tuple
 
-from sqlmodel import select
-
 from src.infrastructure.repositories.base import Base
 from src.models.wallet_model import Asset
 from src.types import AssetType
@@ -14,18 +12,14 @@ class AssetRepository(Base):
     Concrete implementation of the asset repository using SQLModel.
     """
 
-    async def get_asset_by_wallet_id_and_asset_type(
-        self, *, wallet_id: WalletId, asset_type: AssetType
+    async def get_asset_by_wallet_id_and_asset_id(
+        self, *, wallet_id: WalletId, asset_id: AssetType
     ) -> Tuple[Optional[Asset], Error]:
-        asset = await self.session.execute(
-            select(Asset)
-            .where(Asset.wallet_id == wallet_id)
-            .where(Asset.asset_id == asset_type)
-        )
-        found_asset = asset.first()
-        if not found_asset:
+        found_asset, err = await self.find_one(Asset, wallet_id=wallet_id, id=asset_id)
+
+        if err:
             return None, error(
-                f"Asset with type {asset_type} not found for wallet {wallet_id}"
+                f"Asset with ID {asset_id} not found for wallet {wallet_id}, Error {err.message}"
             )
         return found_asset, None
 

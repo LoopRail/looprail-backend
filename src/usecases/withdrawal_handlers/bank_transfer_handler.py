@@ -1,16 +1,14 @@
-from __future__ import annotations
+from typing import TYPE_CHECKING, Optional, Tuple
 
-from typing import TYPE_CHECKING, Optional
-
-from src.dtos.transaction_dtos import CreateTransactionParams
+from src.dtos.transaction_dtos import BankTransferParams, CreateTransactionParams
 from src.dtos.wallet_dtos import BankTransferData, WithdrawalRequest
 from src.infrastructure.logger import get_logger
-from src.models import Asset, User
+from src.models import Asset, Transaction, User
 from src.types.blnk import RecordTransactionRequest
 from src.types.common_types import WorldLedger
 from src.types.error import Error, error
 from src.types.types import TransactionType, WithdrawalMethod
-from src.usecases.withdrawal_handlers.registry import register_withdrawal_handler
+from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry
 
 if TYPE_CHECKING:
     from src.usecases.wallet_usecases import WalletManagerUsecase
@@ -19,14 +17,15 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@register_withdrawal_handler(method=WithdrawalMethod.BANK_TRANSFER)
+@WithdrawalHandlerRegistry.register_handler(method=WithdrawalMethod.BANK_TRANSFER)
 async def handle_bank_transfer(
-    wallet_manager: WalletManagerUsecase,
+    wallet_manager: "WalletManagerUsecase",
     user: User,
     withdrawal_request: WithdrawalRequest,
     bank_transfer_data: BankTransferData,
     asset: Asset,
-) -> Optional[Error]:
+    create_transaction_params: CreateTransactionParams,
+) -> Tuple[Optional[Transaction], Optional[Error]]:
     logger.info(
         "Handling bank transfer for user %s to account %s",
         user.id,
@@ -53,53 +52,51 @@ async def handle_bank_transfer(
             user.id,
             err.message,
         )
-        return error("Bank transfer failed")
+        return None, error("Bank transfer failed")
     logger.info(
         "Paystack transfer initiated successfully with transfer code: %s for user %s",
         transfer_code,
         user.id,
     )
 
-    create_transaction_params = CreateTransactionParams(
-        wallet_id=asset.wallet_id,
-        transaction_type=TransactionType.DEBIT,
-        method=WithdrawalMethod.BANK_TRANSFER,
-        currency=asset.symbol,
-        sender=user.id,
-        receiver=bank_transfer_data.account_number,
-        amount=withdrawal_request.amount,
-        status="pending",
-        transaction_hash=transfer_code,
-        provider_id=transfer_code,
-        network="N/A",
-        confirmations=0,
-        confirmed=False,
-        reference=withdrawal_request.narration,
-        note=f"Bank transfer to {bank_transfer_data.account_name}",
+    # Populate the existing CreateTransactionParams with method-specific details
+    bank_transfer_specific_params = BankTransferParams(
+        **create_transaction_params.model_dump(),  # Start with common params
+        external_reference=transfer_code,
+        bank_code=bank_transfer_data.bank_code,
+        bank_name=bank_transfer_data.bank_name,  # Assuming bank name is available or can be fetched
+        account_number=bank_transfer_data.account_number,
+        account_name=bank_transfer_data.account_name,
+        provider="Paystack",  # Assuming Paystack is the provider for bank transfers
+        session_id=None,  # Session ID might come from a higher level, setting to None for now
     )
+
     logger.debug(
         "Creating local transaction record for user %s with params: %s",
         user.id,
-        create_transaction_params.model_dump(),
+        bank_transfer_specific_params.model_dump(),
     )
-    _, err = await wallet_manager.service.transaction_usecase.create_transaction(
-        create_transaction_params
+    (
+        transaction,
+        err,
+    ) = await wallet_manager.service.transaction_usecase.create_transaction(
+        bank_transfer_specific_params
     )
     if err:
         logger.error(
             "Failed to record local transaction for user %s: %s", user.id, err.message
         )
-        return error("Failed to record transaction")
+        return None, error("Failed to record transaction")
     logger.info(
         "Local transaction record created for user %s with ID: %s",
         user.id,
-        create_transaction_params.id,
+        transaction.id,
     )
 
     # Record transaction in ledger
     transaction_request = RecordTransactionRequest(
         amount=int(withdrawal_request.amount * 100),  # Convert to minor units
-        reference=transfer_code,
+        reference=transaction.get_prefixed_id(),  # Use internal transaction ID as reference for ledger
         source=asset.ledger_balance_id,
         destination=WorldLedger.WORLD,  # To external world
         description=withdrawal_request.narration,
@@ -119,11 +116,17 @@ async def handle_bank_transfer(
         logger.error(
             "Failed to record ledger transaction for user %s: %s", user.id, err.message
         )
-        return error("Failed to record ledger transaction")
+        # Attempt to mark the local transaction as failed if ledger recording fails
+        await wallet_manager.service.transaction_usecase.update_transaction_status(
+            transaction_id=transaction.id,
+            new_status="FAILED",
+            message="Ledger record failed",
+        )
+        return None, error("Failed to record ledger transaction")
     logger.info(
-        "Ledger transaction recorded for user %s, transfer code: %s",
+        "Ledger transaction recorded for user %s, transaction ID: %s",
         user.id,
-        transfer_code,
+        transaction.id,
     )
 
-    return None
+    return transaction, None

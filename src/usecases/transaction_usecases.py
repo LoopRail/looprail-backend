@@ -1,13 +1,18 @@
 from decimal import Decimal
 from typing import List, Optional, Tuple, Union
 
-from src.dtos import CreateTransactionParams
+from src.dtos import (
+    BankTransferParams,
+    CreateTransactionParams,
+    CryptoTransactionParams,
+)
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import TransactionRepository
-from src.models import Transaction
-from src.types import Error
+from src.models import BankTransferDetail, Transaction, WalletTransferDetail
+from src.types import Error, TransactionStatus, error
 from src.types.blockrader import WithdrawCancelledData, WithdrawFailedData
 from src.types.common_types import TransactionId, WalletId
+from src.types.types import TransactionType
 
 logger = get_logger(__name__)
 
@@ -17,21 +22,155 @@ class TransactionUsecase:
         self._transaction_repo = transaction_repo
         logger.debug("TransactionUsecase initialized.")
 
-    async def create_transaction(self, params: CreateTransactionParams) -> Error:
-        logger.debug("Creating transaction with reference: %s", params.reference)
-        transaction = Transaction(**params.model_dump())
-        _, err = await self._transaction_repo.create_transaction(
+    async def create_transaction(
+        self,
+        params: CreateTransactionParams,
+    ) -> tuple[Optional[Transaction], Optional[Error]]:
+        """
+        Create a transaction with type-specific handling
+        """
+        logger.debug("Creating transaction of type: %s", params.transaction_type)
+
+        # Step 1: Create the main transaction record
+        transaction_data = self._prepare_transaction_data(params)
+        transaction = Transaction(**transaction_data)
+
+        created_txn, err = await self._transaction_repo.create_transaction(
             transaction=transaction
         )
         if err:
-            logger.error(
-                "Failed to create transaction record for reference %s: %s",
-                params.reference,
-                err.message,
+            logger.error("Failed to create transaction: %s", err.message)
+            return None, err
+
+        logger.info("Transaction created with ID: %s", created_txn.id)
+
+        # Step 2: Create type-specific detail record
+        detail_err = await self._create_transaction_details(params, created_txn.id)
+        if detail_err:
+            logger.error("Failed to create transaction details: %s", detail_err.message)
+            await self._transaction_repo.update_status(
+                created_txn.id, TransactionStatus.FAILED
             )
-            return err
-        logger.info("Transaction record created for reference: %s", params.reference)
-        return None
+            return None, detail_err
+
+        return created_txn, None
+
+    def _prepare_transaction_data(
+        self,
+        params: CreateTransactionParams,
+    ) -> dict:
+        """
+        Prepare transaction data based on param type
+        """
+        base_data = {
+            "wallet_id": params.wallet_id,
+            "asset_id": params.asset_id,
+            "transaction_type": params.transaction_type,
+            "method": params.method,
+            "currency": params.currency,
+            "sender": params.sender,
+            "receiver": params.receiver,
+            "amount": params.amount,
+            "note": params.narration,
+            "fee": params.fee,
+            "status": TransactionStatus.PENDING,
+            "metadata": params.metadata,
+        }
+
+        # Add type-specific fields
+        if isinstance(params, CryptoTransactionParams):
+            base_data.update(
+                {
+                    "transaction_hash": params.transaction_hash,
+                    "network": params.network,
+                    "block_hash": params.block_hash,
+                    "block_number": params.block_number,
+                    "gas_price": params.gas_price,
+                    "gas_fee": params.gas_fee,
+                    "gas_used": params.gas_used,
+                    "chain_id": params.chain_id,
+                    "confirmations": params.confirmations,
+                    "destination_data": {
+                        "wallet_address": params.destination_wallet_address,
+                        "memo": params.memo,
+                    }
+                    if params.destination_wallet_address
+                    else {},
+                }
+            )
+
+        elif isinstance(params, BankTransferParams):
+            base_data.update(
+                {
+                    "external_reference": params.external_reference,
+                    "destination_data": {
+                        "bank_code": params.bank_code,
+                        "bank_name": params.bank_name,
+                        "account_number": params.account_number,
+                        "account_name": params.account_name,
+                        "provider": params.provider,
+                    },
+                }
+            )
+
+        return base_data
+
+    async def _create_transaction_details(
+        self,
+        params: CreateTransactionParams,
+        transaction_id: TransactionId,
+    ) -> Optional[Error]:
+        """
+        Create type-specific detail records
+        """
+        try:
+            if isinstance(params, BankTransferParams):
+                return await self._create_bank_transfer_detail(params, transaction_id)
+
+            if (
+                isinstance(params, CryptoTransactionParams)
+                and params.destination_wallet_address
+            ):
+                return await self._create_wallet_transfer_detail(params, transaction_id)
+
+            return None
+
+        except Exception as e:
+            logger.error("Error creating transaction details: %s", str(e))
+            return error(f"Failed to create transaction details: {str(e)}")
+
+    async def _create_bank_transfer_detail(
+        self, params: BankTransferParams, transaction_id: TransactionId
+    ) -> Optional[Error]:
+        """Create bank transfer detail record"""
+
+        detail = BankTransferDetail(
+            transaction_id=transaction_id,
+            bank_code=params.bank_code,
+            bank_name=params.bank_name,
+            account_number=params.account_number,
+            account_name=params.account_name,
+            provider=params.provider,
+            session_id=params.session_id,
+            provider_reference=params.external_reference,
+        )
+
+        _, err = await self._transaction_repo.create(detail)
+        return err
+
+    async def _create_wallet_transfer_detail(
+        self, params: CryptoTransactionParams, transaction_id: TransactionId
+    ) -> Optional[Error]:
+        """Create wallet transfer detail record"""
+        detail = WalletTransferDetail(
+            transaction_id=transaction_id,
+            wallet_address=params.destination_wallet_address,
+            network=params.network,
+            memo=params.memo,
+        )
+
+        _, err = await self._transaction_repo.create(detail)
+        return err
 
     async def get_transactions_by_wallet_id(
         self, *, wallet_id: WalletId, limit: int = 20, offset: int = 0
@@ -182,3 +321,133 @@ class TransactionUsecase:
             return err
         logger.info("Transaction %s fee updated to %s.", transaction_id, fee)
         return None
+
+    async def list_user_transactions(
+        self,
+        user_id: str,
+        page: int = 1,
+        page_size: int = 20,
+        transaction_type: Optional[TransactionType] = None,
+        status: Optional[TransactionStatus] = None,
+    ) -> Tuple[List[Transaction], int, Optional[Error]]:
+        logger.debug(
+            "Getting all transactions for user %s with filters - type: %s, status: %s, page: %s, page_size: %s",
+            user_id,
+            transaction_type,
+            status,
+            page,
+            page_size,
+        )
+        transactions, total, err = await self._transaction_repo.list_user_transactions(
+            user_id=user_id,
+            page=page,
+            page_size=page_size,
+            transaction_type=transaction_type,
+            status=status,
+        )
+        if err:
+            logger.error(
+                "Failed to get transactions for user %s: %s", user_id, err.message
+            )
+            return [], 0, err
+        logger.debug(
+            "Retrieved %s transactions (total %s) for user %s.",
+            len(transactions),
+            total,
+            user_id,
+        )
+        return transactions, total, None
+
+    async def list_transactions_by_wallet_id_for_user(
+        self,
+        user_id: str,
+        wallet_id: WalletId,
+        page: int = 1,
+        page_size: int = 20,
+        transaction_type: Optional[TransactionType] = None,
+        status: Optional[TransactionStatus] = None,
+    ) -> Tuple[List[Transaction], int, Optional[Error]]:
+        logger.debug(
+            "Getting transactions for wallet %s owned by user %s with filters - type: %s, status: %s, page: %s, page_size: %s",
+            wallet_id,
+            user_id,
+            transaction_type,
+            status,
+            page,
+            page_size,
+        )
+        (
+            transactions,
+            total,
+            err,
+        ) = await self._transaction_repo.list_transactions_by_wallet_id_for_user(
+            user_id=user_id,
+            wallet_id=wallet_id,
+            page=page,
+            page_size=page_size,
+            transaction_type=transaction_type,
+            status=status,
+        )
+        if err:
+            logger.error(
+                "Failed to get transactions for wallet %s for user %s: %s",
+                wallet_id,
+                user_id,
+                err.message,
+            )
+            return [], 0, err
+        logger.debug(
+            "Retrieved %s transactions (total %s) for wallet %s owned by user %s.",
+            len(transactions),
+            total,
+            wallet_id,
+            user_id,
+        )
+        return transactions, total, None
+
+    async def list_transactions_by_asset_id_for_user(
+        self,
+        user_id: str,
+        asset_id: str,
+        page: int = 1,
+        page_size: int = 20,
+        transaction_type: Optional[TransactionType] = None,
+        status: Optional[TransactionStatus] = None,
+    ) -> Tuple[List[Transaction], int, Optional[Error]]:
+        logger.debug(
+            "Getting transactions for asset %s owned by user %s with filters - type: %s, status: %s, page: %s, page_size: %s",
+            asset_id,
+            user_id,
+            transaction_type,
+            status,
+            page,
+            page_size,
+        )
+        (
+            transactions,
+            total,
+            err,
+        ) = await self._transaction_repo.list_transactions_by_asset_id_for_user(
+            user_id=user_id,
+            asset_id=asset_id,
+            page=page,
+            page_size=page_size,
+            transaction_type=transaction_type,
+            status=status,
+        )
+        if err:
+            logger.error(
+                "Failed to get transactions for asset %s for user %s: %s",
+                asset_id,
+                user_id,
+                err.message,
+            )
+            return [], 0, err
+        logger.debug(
+            "Retrieved %s transactions (total %s) for asset %s owned by user %s.",
+            len(transactions),
+            total,
+            asset_id,
+            user_id,
+        )
+        return transactions, total, None

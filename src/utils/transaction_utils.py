@@ -1,10 +1,17 @@
+from __future__ import annotations
 from decimal import Decimal
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
+
 
 from src.dtos.transaction_dtos import CreateTransactionParams
-from src.models import Wallet
+
+
 from src.types.blockrader import DepositSuccessData, WithdrawSuccessData
+from src.types.common_types import ReferenceId
 from src.types.types import PaymentMethod, TransactionType
+
+if TYPE_CHECKING:
+    from src.models import Wallet
 
 
 def create_transaction_params_from_event(

@@ -1,10 +1,12 @@
 import os
 from typing import Optional, Tuple
+from uuid import uuid4
 
 from email_validator import EmailNotValidError, validate_email
 from jinja2 import Environment, FileSystemLoader
 
 from src.types.error import Error, error
+from src.types.common_types import ReferenceId
 
 
 def get_dir_at_level(level=1, file: str = __file__):
@@ -60,3 +62,8 @@ def is_valid_email(
 
     except EmailNotValidError:
         return False
+
+
+def generate_transaction_reference() -> ReferenceId:
+    """Generates a unique transaction reference with a 'ref_' prefix."""
+    return f"ref_{uuid4().hex}"

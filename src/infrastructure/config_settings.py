@@ -47,7 +47,7 @@ def load_wallet_configs_into_config(
             logger.debug("JSON parsed successfully.")
             logger.debug("raw_config type: %s", type(raw_config))
 
-        wallet_config = WalletConfig(**raw_config)
+        wallet_config = WalletConfig(wallets=raw_config["wallets"])
         logger.info("Successfully loaded wallet configs from %s", config_path)
         return wallet_config
 

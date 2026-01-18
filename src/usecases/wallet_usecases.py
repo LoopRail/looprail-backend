@@ -1,5 +1,5 @@
 from typing import Any, Dict, Optional, Self, Tuple
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from src.dtos import CreateTransactionParams
 from src.dtos.wallet_dtos import (
@@ -16,13 +16,14 @@ from src.infrastructure.repositories import (
 )
 from src.infrastructure.services import LedgerService, PaycrestService, WalletManager
 from src.infrastructure.settings import BlockRaderConfig
-from src.models import Asset, User, Wallet
+from src.models import Asset, Transaction, User, Wallet
 from src.types import (
     AssetType,
     Error,
     IdentiyType,
     PaymentMethod,
     Provider,
+    TransactionStatus,
     TransactionType,
     WalletConfig,
     error,
@@ -35,8 +36,9 @@ from src.types.blockrader import (
 )
 from src.types.common_types import AssetId, UserId
 from src.types.ledger_types import Ledger
-from src.types.types import WithdrawalMethod  # Added this import
+from src.types.types import WithdrawalMethod
 from src.usecases.transaction_usecases import TransactionUsecase
+from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry
 
 logger = get_logger(__name__)
 
@@ -186,8 +188,8 @@ class WalletManagerUsecase:
         (
             asset,
             err,
-        ) = await self.service.asset_repository.get_asset_by_wallet_id_and_asset_type(
-            wallet_id=wallet_id, asset_type=asset_id
+        ) = await self.service.asset_repository.get_asset_by_wallet_id_and_asset_id(
+            wallet_id=wallet_id, asset_id=asset_id
         )
         if err:
             logger.error(
@@ -416,7 +418,7 @@ class WalletManagerUsecase:
         logger.info(
             "Initiating withdrawal for user %s, asset ID: %s, amount: %s",
             user.id,
-            withdrawal_request.assetId,
+            withdrawal_request.asset_id,
             withdrawal_request.amount,
         )
         # Fetch user's wallet and asset
@@ -429,96 +431,83 @@ class WalletManagerUsecase:
         logger.debug("User wallet %s retrieved for user %s.", user_wallet.id, user.id)
 
         asset, err = await self._get_asset_by_id(
-            wallet_id=user_wallet.id, asset_id=withdrawal_request.assetId
+            wallet_id=user_wallet.id, asset_id=withdrawal_request.get_clean_asset_id()
         )
         if err:
             logger.error(
                 "Could not get asset %s for user %s, wallet %s: %s",
-                withdrawal_request.assetId,
+                withdrawal_request.asset_id,
                 user.id,
                 user_wallet.id,
                 err.message,
             )
-            return None, error("Could not get asset")
+            return None, error("Could not get asset") # TODO we need to get a 404 here 
         logger.debug("Asset %s retrieved for user %s.", asset.id, user.id)
 
-        # Determine receiver based on withdrawal type
-        receiver_address: str
-        payment_method: PaymentMethod
-        network: str = ""  # Default network, will be set based on specific withdrawal
-        if specific_withdrawal.event == WithdrawalMethod.BANK_TRANSFER:
-            bank_transfer_data = BankTransferData.model_validate(
-                specific_withdrawal.data
-            )
-            receiver_address = bank_transfer_data.account_number
-            payment_method = PaymentMethod.BANK_TRANSFER
-            network = "fiat"  # Assuming fiat for bank transfers
-            logger.debug("Withdrawal method: Bank Transfer to %s", receiver_address)
-        elif specific_withdrawal.event == WithdrawalMethod.EXTERNAL_WALLET:
-            external_wallet_data = ExternalWalletTransferData.model_validate(
-                specific_withdrawal.data
-            )
-            receiver_address = external_wallet_data.address
-            payment_method = PaymentMethod.EXTERNAL_WALLET
-            network = external_wallet_data.chain.value  # Using chain as network
-            logger.debug(
-                "Withdrawal method: External Wallet to %s on network %s",
-                receiver_address,
-                network,
-            )
-        else:
+        withdrawal_method = specific_withdrawal.event
+        withdrawal_handler = WithdrawalHandlerRegistry.get_handler(withdrawal_method)
+
+        if not withdrawal_handler:
             logger.error(
                 "Unsupported withdrawal method: %s for user %s",
-                specific_withdrawal.event,
+                withdrawal_method,
                 user.id,
             )
-            return None, error(
-                f"Unsupported withdrawal method: {specific_withdrawal.event}"
-            )
+            return None, error(f"Unsupported withdrawal method: {withdrawal_method}")
 
-        # Create transaction record
-        transaction_params = CreateTransactionParams(
+        common_transaction_params = CreateTransactionParams(
             wallet_id=user_wallet.id,
             asset_id=asset.id,
-            transaction_type=TransactionType.WITHDRAWAL,
-            method=payment_method,
-            currency=withdrawal_request.assetId.value.lower(),
-            sender=str(user.id),  # Sender is the user's ID
-            receiver=receiver_address,
+            transaction_type=TransactionType.DEBIT,
+            method=PaymentMethod(withdrawal_method.value),
+            currency=asset.symbol,
+            sender=user.get_prefixed_id(),
+            receiver="N/A",
             amount=withdrawal_request.amount,
-            status="pending",  # Initial status
-            transaction_hash="pending",  # Placeholder, will be updated later
-            provider_id=str(uuid4()),  # Unique ID for this transaction attempt
-            network=network,
-            confirmations=0,
-            confirmed=False,
-            reference=str(uuid4()),  # Unique reference for the transaction
+            status=TransactionStatus.PENDING,
+            transaction_hash="pending",
+            network="N/A",
             note=withdrawal_request.narration,
-            chain_id=None,  # To be determined
-            reason=None,
-            fee=None,  # Will be calculated by blockrader, update transaction later
+            chain_id=None,
+            fee=None,
+            name=f"{withdrawal_method.value.replace('_', ' ').title()} Withdrawal",
         )
-        logger.debug(
-            "Creating transaction record with params: %s",
-            transaction_params.model_dump(),
-        )
-        err = await self.service.transaction_usecase.create_transaction(
-            transaction_params
+
+        specific_data: BankTransferData | ExternalWalletTransferData
+        if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
+            specific_data = BankTransferData.model_validate(specific_withdrawal.data)
+        elif withdrawal_method == WithdrawalMethod.EXTERNAL_WALLET:
+            specific_data = ExternalWalletTransferData.model_validate(
+                specific_withdrawal.data
+            )
+        else:
+            return None, error(
+                f"Invalid specific withdrawal data for method: {withdrawal_method}"
+            )
+
+        # Call the specific handler
+        transaction, err = await withdrawal_handler(
+            wallet_manager=self,
+            user=user,
+            withdrawal_request=withdrawal_request,
+            specific_data=specific_data,
+            asset=asset,
+            create_transaction_params=common_transaction_params,
         )
         if err:
             logger.error(
-                "Failed to create transaction record for withdrawal for user %s: %s",
+                "Handler failed for withdrawal method %s for user %s: %s",
+                withdrawal_method,
                 user.id,
                 err.message,
             )
-            return None, error("Failed to create withdrawal transaction record")
+            return None, err
         logger.info(
-            "Transaction record %s created for withdrawal for user %s",
-            transaction_params.id,
+            "Transaction record %s created by handler for withdrawal for user %s",
+            transaction.id,
             user.id,
         )
 
-        # Now fetch rates and fees, these might be updated in the transaction later
         logger.debug(
             "Fetching paycrest rate for user %s, amount %s",
             user.id,
@@ -537,15 +526,15 @@ class WalletManagerUsecase:
             )
             # Update transaction status to failed due to rate fetch error
             await self.service.transaction_usecase.update_transaction_status(
-                transaction_id=transaction_params.id,
-                new_status="failed",
+                transaction_id=transaction.id,
+                new_status=TransactionStatus.FAILED.value,
                 message=f"Failed to fetch paycrest rate: {err.message}",
             )
             return None, error("Could not fetch paycrest rate")
         logger.debug("Paycrest rate fetched: %s", paycrest_rate.data)
 
         network_fee_request = NetworkFeeRequest(
-            assetId=withdrawal_request.assetId,
+            assetId=withdrawal_request.get_clean_asset_id(),
             amount=withdrawal_request.amount,
         )
         logger.debug(
@@ -564,8 +553,8 @@ class WalletManagerUsecase:
             )
             # Update transaction status to failed due to network fee fetch error
             await self.service.transaction_usecase.update_transaction_status(
-                transaction_id=transaction_params.id,
-                new_status="failed",
+                transaction_id=transaction.id,
+                new_status=TransactionStatus.FAILED.value,
                 message="Failed to fetch blockrader network fee",
             )
             return None, error("Could not fetch blockrader network fee")
@@ -575,41 +564,38 @@ class WalletManagerUsecase:
         if blockrader_fee and blockrader_fee.fee:
             logger.debug(
                 "Updating transaction %s with fee: %s",
-                transaction_params.id,
+                transaction.id,
                 blockrader_fee.fee,
             )
             update_err = await self.service.transaction_usecase.update_transaction_fee(
-                transaction_id=transaction_params.id, fee=blockrader_fee.fee
+                transaction_id=transaction.id, fee=blockrader_fee.fee
             )
             if update_err:
                 logger.warning(
                     "Failed to update transaction fee for transaction %s: %s",
-                    transaction_params.id,
+                    transaction.id,
                     update_err.message,
                 )
             else:
                 logger.info(
                     "Transaction %s fee updated to %s.",
-                    transaction_params.id,
+                    transaction.id,
                     blockrader_fee.fee,
                 )
 
         return {
-            "transaction_id": transaction_params.id,
+            "transaction_id": transaction.get_prefixed_id(),
             "paycrest_rate": paycrest_rate.model_dump(),
             "blockrader_fee": blockrader_fee.model_dump(),
         }, None
 
-    async def execute_withdrawal_processing(
-        self,
-        user_id: UserId,
-        pin: str,
-        transaction_id: str,
-    ) -> Optional[Error]:
-        logger.info(
-            "Executing withdrawal processing for user %s, transaction %s",
-            user_id,
+    async def _retrieve_withdrawal_transaction_and_user(
+        self, user_id: UserId, transaction_id: str
+    ) -> Tuple[Optional[Tuple[Transaction, User]], Optional[Error]]:
+        logger.debug(
+            "Retrieving transaction %s and user %s for withdrawal processing",
             transaction_id,
+            user_id,
         )
         transaction, err = await self.service.transaction_usecase.get_transaction_by_id(
             transaction_id=transaction_id
@@ -620,10 +606,8 @@ class WalletManagerUsecase:
                 transaction_id,
                 err.message,
             )
-            return error(f"Failed to retrieve transaction: {err.message}")
-        logger.debug("Transaction %s retrieved for processing.", transaction_id)
+            return None, error(f"Failed to retrieve transaction: {err.message}")
 
-        # 1. Retrieve User
         user, err = await self._get_user_data(user_id)
         if err:
             logger.error(
@@ -631,30 +615,25 @@ class WalletManagerUsecase:
                 user_id,
                 err.message,
             )
-            return error(f"Failed to retrieve user: {err.message}")
-        logger.debug("User %s data retrieved for withdrawal processing.", user_id)
+            return None, error(f"Failed to retrieve user: {err.message}")
+        logger.debug(
+            "Transaction %s and user %s retrieved for processing.",
+            transaction_id,
+            user_id,
+        )
+        return (transaction, user), None
 
-        if not await self.service.user_repository.verify_user_pin(
-            user_id=user.id, pin=pin
-        ):
-            logger.error(
-                "Invalid PIN for user %s during withdrawal processing for transaction %s",
-                user_id,
-                transaction_id,
-            )
-            # TODO move the pin verificaition out of here
-            await self.service.transaction_usecase.update_transaction_status(
-                transaction_id=transaction_id,
-                new_status="failed",
-                message="Invalid PIN",
-            )
-            return error("Invalid PIN")
-        logger.debug("PIN verified for user %s.", user_id)
+    async def _perform_ledger_debit(
+        self, transaction: Transaction, user: User
+    ) -> Optional[Error]:
+        logger.debug(
+            "Performing ledger debit for user %s, transaction %s, amount %s %s",
+            user.id,
+            transaction.id,
+            transaction.amount,
+            transaction.currency.value,
+        )
 
-        # 3. Extract Withdrawal Details from Transaction
-        # Assuming transaction fields map directly or can be reconstructed
-        # from the stored transaction details.
-        # For assetId, we convert from UUID stored in transaction.asset_id to AssetId enum
         try:
             asset_id_enum = AssetId(str(transaction.asset_id))
             logger.debug(
@@ -665,66 +644,97 @@ class WalletManagerUsecase:
         except ValueError:
             logger.error(
                 "Invalid Asset ID in transaction %s: %s",
-                transaction_id,
+                transaction.id,
                 transaction.asset_id,
             )
             await self.service.transaction_usecase.update_transaction_status(
-                transaction_id=transaction_id,
-                new_status="failed",
+                transaction_id=transaction.id,
+                new_status=TransactionStatus.FAILED.value,
                 message="Invalid asset ID in transaction",
             )
             return error("Invalid asset ID in transaction")
 
-        # 4. Perform Ledger Debit
-        logger.debug(
-            "Performing ledger debit for user %s, transaction %s, amount %s %s",
-            user_id,
-            transaction_id,
-            transaction.amount,
-            transaction.currency.value,
-        )
         debit_result, err = await self.service.ledger_service.balances.debit_balance(
             identity_id=user.ledger_identity_id,
             currency=transaction.currency.value.lower(),
             amount=transaction.amount,
-            # Pass other necessary details from transaction like reference, etc.
-            reference=str(transaction.id),  # Use transaction ID as reference
-            narration=transaction.note,  # Assuming note can be used for narration
+            reference=str(transaction.id),
+            narration=transaction.note,
         )
         if err:
             logger.error(
                 "Failed to debit ledger for user %s, transaction %s: %s",
-                user_id,
-                transaction_id,
+                user.id,
+                transaction.id,
                 err.message,
             )
             await self.service.transaction_usecase.update_transaction_status(
-                transaction_id=transaction_id,
-                new_status="failed",
+                transaction_id=transaction.id,
+                new_status=TransactionStatus.FAILED.value,
                 message=f"Ledger debit failed: {err.message}",
             )
             return error(f"Ledger debit failed: {err.message}")
         logger.info(
             "Ledger debited for user %s, transaction %s. Debit result: %s",
-            user_id,
-            transaction_id,
+            user.id,
+            transaction.id,
             debit_result,
         )
+        return None
 
-        # 5. Update Transaction Status to completed
-        logger.debug("Updating transaction %s status to 'completed'", transaction_id)
+    async def _update_withdrawal_transaction_status(
+        self, transaction_id: str, new_status: TransactionStatus, message: str
+    ) -> Optional[Error]:
+        logger.debug(
+            "Updating transaction %s status to '%s'", transaction_id, new_status.value
+        )
         err = await self.service.transaction_usecase.update_transaction_status(
             transaction_id=transaction_id,
-            new_status="completed",
-            message="Withdrawal processed successfully",
+            new_status=new_status.value,
+            message=message,
         )
         if err:
             logger.error(
-                "Failed to update transaction status to completed for transaction %s: %s",
+                "Failed to update transaction status to %s for transaction %s: %s",
+                new_status.value,
                 transaction_id,
                 err.message,
             )
             return error(f"Failed to update transaction status: {err.message}")
+        logger.info(
+            "Transaction %s status updated to %s.", transaction_id, new_status.value
+        )
+        return None
+
+    async def process_withdrawal_execution(
+        self,
+        user_id: UserId,
+        transaction_id: str,
+    ) -> Optional[Error]:
+        logger.info(
+            "Processing withdrawal execution for user %s, transaction %s",
+            user_id,
+            transaction_id,
+        )
+
+        data, err = await self._retrieve_withdrawal_transaction_and_user(
+            user_id, transaction_id
+        )
+        if err:
+            return err
+        transaction, user = data
+
+        err = await self._perform_ledger_debit(transaction, user)
+        if err:
+            return err
+
+        err = await self._update_withdrawal_transaction_status(
+            transaction_id,
+            TransactionStatus.COMPLETED,
+            "Withdrawal processed successfully",
+        )
+        if err:
+            return err
 
         logger.info(
             "Withdrawal for user %s, transaction %s processed successfully",
