@@ -60,6 +60,8 @@ from src.usecases import (
     UserUseCase,
 )
 
+from src.utils.auth_utils import create_refresh_token
+
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -319,7 +321,7 @@ async def refresh_token(
     # Issues a new refresh token
     new_raw_refresh_token, err = await session_usecase.rotate_refresh_token(
         old_refresh_token=refresh_token_db,
-        new_refresh_token_string=f"rft_{uuid4()}",
+        new_refresh_token_string=create_refresh_token().clean(),
     )
     if err:
         logger.error("Could not rotate refresh token: %s", err.message)
@@ -376,6 +378,7 @@ async def passcode_login(
     req: PasscodeLoginRequest,
     config: Config = Depends(get_config),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
+    user_usecases: UserUseCase = Depends(get_user_usecases),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
     security_usecase: SecurityUseCase = Depends(get_security_usecase),
     platform: Platform = Header(...),
