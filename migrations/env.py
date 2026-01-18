@@ -5,6 +5,7 @@ from sqlmodel import SQLModel
 
 from src.infrastructure import load_config
 from src.infrastructure.db import get_engine
+from src.models import *
 
 db_uri = load_config().database.get_uri()
 engine = get_engine(db_uri)
