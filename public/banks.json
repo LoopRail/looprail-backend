@@ -1,0 +1,407 @@
+{
+  "NG": [
+    {
+      "name": "Access Bank",
+      "code": "ABNGNGLA",
+      "type": "bank",
+      "logo": "access-bank.svg",
+      "id": "044"
+    },
+    {
+      "name": "Access Diamond Bank",
+      "code": "DBLNNGLA",
+      "type": "bank",
+      "logo": "access-bank.svg",
+      "id": "063"
+    },
+    {
+      "name": "Fidelity Bank",
+      "code": "FIDTNGLA",
+      "type": "bank",
+      "logo": "fidelity-bank.svg",
+      "id": "070"
+    },
+    {
+      "name": "FCMB",
+      "code": "FCMBNGLA",
+      "type": "bank",
+      "logo": "fcmb.svg",
+      "id": "214"
+    },
+    {
+      "name": "First Bank Of Nigeria",
+      "code": "FBNINGLA",
+      "type": "bank",
+      "logo": "first-bank-of-nigeria.svg",
+      "id": "011"
+    },
+    {
+      "name": "Guaranty Trust Bank",
+      "code": "GTBINGLA",
+      "type": "bank",
+      "logo": "guaranty-trust-bank.svg",
+      "id": "058"
+    },
+    {
+      "name": "Polaris Bank",
+      "code": "PRDTNGLA",
+      "type": "bank",
+      "logo": "polaris-bank.svg",
+      "id": "076"
+    },
+    {
+      "name": "Union Bank",
+      "code": "UBNINGLA",
+      "type": "bank",
+      "logo": "union-bank.svg",
+      "id": "032"
+    },
+    {
+      "name": "United Bank for Africa",
+      "code": "UNAFNGLA",
+      "type": "bank",
+      "logo": "united-bank-for-africa.svg",
+      "id": "033"
+    },
+    {
+      "name": "Citibank",
+      "code": "CITINGLA",
+      "type": "bank",
+      "logo": "citibank-nigeria.svg",
+      "id": "023"
+    },
+    {
+      "name": "Ecobank Bank",
+      "code": "ECOCNGLA",
+      "type": "bank",
+      "logo": "ecobank-bank.svg",
+      "id": "050"
+    },
+    {
+      "name": "Keystone Bank",
+      "code": "PLNINGLA",
+      "type": "bank",
+      "logo": "keystone-bank.svg",
+      "id": "082"
+    },
+    {
+      "name": "Stanbic IBTC Bank",
+      "code": "SBICNGLA",
+      "type": "bank",
+      "logo": "stanbic-ibtc-bank.svg",
+      "id": "221"
+    },
+    {
+      "name": "Standard Chartered Bank",
+      "code": "SCBLNGLA",
+      "type": "bank",
+      "logo": "standard-chartered-bank.svg",
+      "id": "068"
+    },
+    {
+      "name": "Sterling Bank",
+      "code": "NAMENGLA",
+      "type": "bank",
+      "logo": "sterling-bank.svg",
+      "id": "232"
+    },
+    {
+      "name": "Unity Bank",
+      "code": "ICITNGLA",
+      "type": "bank",
+      "logo": "unity-bank.svg",
+      "id": "215"
+    },
+    {
+      "name": "Suntrust Bank",
+      "code": "SUTGNGLA",
+      "type": "bank",
+      "logo": "suntrust-bank.svg",
+      "id": "100"
+    },
+    {
+      "name": "Providus Bank ",
+      "code": "PROVNGLA",
+      "type": "bank",
+      "logo": "providus-bank.svg",
+      "id": "101"
+    },
+    {
+      "name": "FBNQuest Merchant Bank",
+      "code": "KDHLNGLA",
+      "type": "bank",
+      "logo": "fbnquest-merchant-bank.svg"
+    },
+    {
+      "name": "Greenwich Merchant Bank",
+      "code": "GMBLNGLA",
+      "type": "bank",
+      "logo": "greenwich-merchant-bank.png",
+      "id": "562"
+    },
+    {
+      "name": "FSDH Merchant Bank",
+      "code": "FSDHNGLA",
+      "type": "bank",
+      "logo": "fsdh-merchant-bank.svg",
+      "id": "501"
+    },
+    {
+      "name": "Rand Merchant Bank",
+      "code": "FIRNNGLA",
+      "type": "bank",
+      "id": "502"
+    },
+    {
+      "name": "Jaiz Bank",
+      "code": "JAIZNGLA",
+      "type": "bank",
+      "logo": "jaiz-bank.svg",
+      "id": "301"
+    },
+    {
+      "name": "Zenith Bank",
+      "code": "ZEIBNGLA",
+      "type": "bank",
+      "logo": "zenith-bank.svg",
+      "id": "057"
+    },
+    {
+      "name": "Wema Bank",
+      "code": "WEMANGLA",
+      "type": "bank",
+      "logo": "wema-bank.svg",
+      "id": "035"
+    },
+    {
+      "name": "Kuda Microfinance Bank",
+      "code": "KUDANGPC",
+      "type": "bank",
+      "logo": "kuda-bank.svg",
+      "id": "50211"
+    },
+    {
+      "name": "OPay",
+      "code": "OPAYNGPC",
+      "type": "bank",
+      "logo": "opay.svg",
+      "id": "999992"
+    },
+    {
+      "name": "PalmPay",
+      "code": "PALMNGPC",
+      "type": "bank",
+      "logo": "palmpay.svg",
+      "id": "999991"
+    },
+    {
+      "name": "Paystack-Titan MFB",
+      "code": "PAYTNGPC",
+      "type": "bank",
+      "logo": "paystack-titan-mfb.svg",
+      "id": "100039"
+    },
+    {
+      "name": "Moniepoint MFB",
+      "code": "MONINGPC",
+      "type": "bank",
+      "logo": "moniepoint-mfb.svg",
+      "id": "50515"
+    },
+    {
+      "name": "Safe Haven MFB",
+      "code": "SAHVNGPC",
+      "type": "bank",
+      "logo": "safe-haven-mfb.svg",
+      "id": "51113"
+    }
+  ],
+  "GH": [
+    {
+      "name": "REPUBLIC BANK",
+      "code": "HFCAGHAC",
+      "type": "bank",
+      "logo": "republic-bank.png"
+    },
+    {
+      "name": "BANK OF GHANA",
+      "code": "BAGHGHAC",
+      "type": "bank",
+      "logo": "bank-of-ghana.png"
+    },
+    {
+      "name": "UBA GHANA",
+      "code": "STBGGHAC",
+      "type": "bank",
+      "logo": "united-bank-for-africa.svg"
+    },
+    {
+      "name": "FIDELITY BANK GHANA",
+      "code": "FBLIGHAC",
+      "type": "bank",
+      "logo": "fidelity-bank.svg"
+    },
+    {
+      "name": "Consolidated Bank Ghana",
+      "code": "CBGHGHAC",
+      "type": "bank",
+      "logo": "consolidated-bank-ghana.png"
+    },
+    {
+      "name": "Universal Merchant Bank",
+      "code": "MBGHGHAC",
+      "type": "bank",
+      "logo": "universal-merchant-bank.png"
+    },
+    {
+      "name": "APEX BANK",
+      "code": "AREXGHAC",
+      "type": "bank",
+      "logo": "apex-bank.png"
+    },
+    {
+      "name": "OMNI BANK",
+      "code": "OMBLGHAC",
+      "type": "bank",
+      "logo": "omni-bank.png"
+    },
+    {
+      "name": "National Investment Bank Limited",
+      "code": "NIBGGHAC",
+      "type": "bank",
+      "logo": "national-investment-bank-limited.png"
+    },
+    {
+      "name": "Agricultural Development Bank",
+      "code": "ADNTGHAC",
+      "type": "bank",
+      "logo": "agricultural-development-bank.png"
+    },
+    {
+      "name": "ZENITH BANK GHANA",
+      "code": "ZEBLGHAC",
+      "type": "bank",
+      "logo": "zenith-bank.svg"
+    },
+    {
+      "name": "ZEEPAY GHANA",
+      "code": "ZEEPGHPC",
+      "type": "bank",
+      "logo": "zeepay-ghana.png"
+    },
+    {
+      "name": "STANBIC BANK GHANA",
+      "code": "SBICGHAC",
+      "type": "bank",
+      "logo": "stanbic-ibtc-bank.svg"
+    },
+    {
+      "name": "STANDARD CHARTERED GHANA",
+      "code": "SCBLGHAC",
+      "type": "bank",
+      "logo": "standard-chartered-bank.svg"
+    },
+    {
+      "name": "SERVICES INTEGRITY SAVINGS & LOANS",
+      "code": "SISLGHPC",
+      "type": "bank",
+      "logo": "services-integrity-savings-&-loans.png"
+    },
+    {
+      "name": "ABSA BANK GHANA",
+      "code": "BARCGHAC",
+      "type": "bank",
+      "logo": "absa-bank-ghana.svg"
+    },
+    {
+      "name": "First Atlantic Bank GHANA",
+      "code": "FAMCGHAC",
+      "type": "bank",
+      "logo": "first-atlantic-bank-ghana.jpg"
+    },
+    {
+      "name": "ACCESS BANK GHANA",
+      "code": "ABNGGHAC",
+      "type": "bank",
+      "logo": "access-bank.svg"
+    },
+    {
+      "name": "First National Bank",
+      "code": "FIRNGHAC",
+      "type": "bank",
+      "logo": "first-national-bank.svg"
+    },
+    {
+      "name": "G-MONEY",
+      "code": "GMONGHPC",
+      "type": "bank",
+      "logo": "g-money.png"
+    },
+    {
+      "name": "GCB Bank Limited",
+      "code": "GHCBGHAC",
+      "type": "bank",
+      "logo": "gcb-bank-limited.png"
+    },
+    {
+      "name": "Bank of Africa Ghana Limited",
+      "code": "AMMAGHAC",
+      "type": "bank",
+      "logo": "bank-of-africa-ghana-limited.webp"
+    },
+    {
+      "name": "Prudential Bank Limited",
+      "code": "PUBKGHAC",
+      "type": "bank",
+      "logo": "prudential-bank-limited.png"
+    },
+    {
+      "name": "FBNBank Ghana Limited",
+      "code": "INCEGHAC",
+      "type": "bank",
+      "logo": "first-bank-of-nigeria.svg"
+    },
+    {
+      "name": "ECOBANK GHANA",
+      "code": "ECOCGHAC",
+      "type": "bank",
+      "logo": "ecobank-bank.svg"
+    },
+    {
+      "name": "CAL BANK",
+      "code": "ACCCGHAC",
+      "type": "bank",
+      "logo": "cal-bank.png"
+    },
+    {
+      "name": "Societe Generale Ghana Limited",
+      "code": "SSEBGHAC",
+      "type": "bank",
+      "logo": "societe-generale-ghana-limited.svg"
+    },
+    {
+      "name": "GT BANK GHANA",
+      "code": "GTBIGHAC",
+      "type": "bank",
+      "logo": "guaranty-trust-bank.svg"
+    },
+    {
+      "name": "MTN Mobile Money",
+      "code": "MOMOGHPC",
+      "type": "mobile_money",
+      "logo": "mtn-mobile-money.webp"
+    },
+    {
+      "name": "Vodafone Cash",
+      "code": "VODAGHPC",
+      "type": "mobile_money",
+      "logo": "vodafone-cash.svg"
+    },
+    {
+      "name": "AirtelTigo Money",
+      "code": "AIRTGHPC",
+      "type": "mobile_money",
+      "logo": "airteltigo-money.png"
+    }
+  ]
+}
