@@ -1,5 +1,4 @@
 import hashlib
-from uuid import uuid4
 
 from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -153,10 +152,9 @@ async def complete_onboarding(
             content={"message": "Onboarding already completed"},
         )
 
-    pin_str = "".join(map(str, user_data.transaction_pin))
     current_user, err = await user_usecases.complete_user_onboarding(
         user_id=current_user.id,
-        transaction_pin=pin_str,
+        transaction_pin=user_data.transaction_pin,
         onboarding_responses=user_data.questioner,
     )
     if err:
@@ -419,12 +417,6 @@ async def passcode_login(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
-    refresh_token_id, err = await session_usecase.get_valid_refresh_token(session_id)
-    if err or not refresh_token_id:
-        return JSONResponse(
-            status_code=401, content={"message": "No valid refresh token for session"}
-        )
-
     user, err = await user_usecases.get_user_by_id(session.user_id)
     if err or not user:
         return JSONResponse(status_code=401, content={"message": "User not found"})
@@ -433,7 +425,6 @@ async def passcode_login(
         "message": "Passcode login successful",
         "user": UserPublic.model_validate(user).model_dump(exclude_none=True),
         "access-token": access_token,
-        "refresh-token": refresh_token_id,
         "session_id": session.get_prefixed_id(),
     }
 

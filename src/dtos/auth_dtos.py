@@ -9,7 +9,7 @@ class MessageResponse(Base):
 
 class AuthTokensResponse(Base):
     access_token: str
-    refresh_token: str
+    refresh_token: str | None = None
 
 
 class AuthWithTokensAndUserResponse(MessageResponse, AuthTokensResponse):
