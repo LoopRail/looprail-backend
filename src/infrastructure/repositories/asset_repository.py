@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from src.infrastructure.repositories.base import Base
 from src.models.wallet_model import Asset
@@ -22,6 +22,12 @@ class AssetRepository(Base):
                 f"Asset with ID {asset_id} not found for wallet {wallet_id}, Error {err.message}"
             )
         return found_asset, None
+
+    async def get_assets_by_wallet_id(
+        self, wallet_id: WalletId
+    ) -> Tuple[List[Asset], Error]:
+        assets = await self.find_all(Asset, wallet_id=wallet_id)
+        return assets, None
 
     async def create_asset(self, *, asset: Asset) -> Tuple[Optional[Asset], Error]:
         return await self.create(asset)

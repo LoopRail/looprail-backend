@@ -39,7 +39,7 @@ class RefreshTokenRepository(Base):
             RefreshToken.replaced_by_hash.is_(None),
         )
         result = await self.session.execute(statement)
-        refresh_token = result.first()
+        refresh_token = result.scalars().first()
         if not refresh_token:
             return None, error("Invalid or expired refresh token")
         return refresh_token, None

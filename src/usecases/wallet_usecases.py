@@ -441,7 +441,7 @@ class WalletManagerUsecase:
                 user_wallet.id,
                 err.message,
             )
-            return None, error("Could not get asset") # TODO we need to get a 404 here 
+            return None, error("Could not get asset")  # TODO we need to get a 404 here
         logger.debug("Asset %s retrieved for user %s.", asset.id, user.id)
 
         withdrawal_method = specific_withdrawal.event
