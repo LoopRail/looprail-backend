@@ -299,3 +299,22 @@ class UserUseCase:
 
         logger.info("Transaction pin for user %s updated successfully.", user_id)
         return updated_user, None
+
+    async def verify_transaction_pin(
+        self, user_id: UserId, pin: str
+    ) -> Tuple[bool, Error]:
+        logger.debug("Verifying transaction pin for user %s", user_id)
+        user, err = await self.get_user_by_id(user_id)
+        if err or not user:
+            return False, err
+        
+        if not user.pin:
+            logger.warning("Transaction pin not set for user %s", user_id)
+            return False, None
+        
+        is_valid = verify_password(
+            pin, 
+            HashedPassword(password_hash=user.pin.pin_hash), 
+            self.argon2_config
+        )
+        return is_valid, None
