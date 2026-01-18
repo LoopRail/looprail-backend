@@ -63,7 +63,7 @@ async def create_user(
 ) -> dict:
     logger.info("Received create user request for email: %s", user_data.email)
     created_user, err = await user_usecases.create_user(user_create=user_data)
-    if type(err) is type(UserAlreadyExistsError()):
+    if isinstance(err, UserAlreadyExistsError):
         logger.error("Failed to create user: %s", err.message)
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -316,7 +316,7 @@ async def refresh_token(
     access_token_data = AccessToken(
         sub=f"access_{session.get_prefixed_id()}",
         token_type=TokenType.ACCESS_TOKEN,
-        session_id=session.id,
+        session_id=session.get_prefixed_id(),
         user_id=session.user_id,
         platform=platform,
         device_id=device_id,
@@ -368,7 +368,7 @@ async def logout_all(
     logger.info(
         "Received logout all sessions request for user ID: %s", current_token.sub
     )
-    err = await session_usecase.revoke_all_user_sessions(current_token.sub)
+    err = await session_usecase.revoke_all_user_sessions(current_token.user_id)
     if err:
         logger.error(
             "Failed to revoke all sessions for user %s: %s",

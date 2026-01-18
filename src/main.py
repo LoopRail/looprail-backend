@@ -82,7 +82,13 @@ async def custom_error_handler(request: Request, exc: Error):
 
 @app.exception_handler(HTTPException)
 async def custom_http_error_handler(request: Request, exc: HTTPException):
-    logger.error(exc)
+    # Log the HTTPException details
+    logger.error(
+        "HTTPException caught: Status Code: %s, Detail: %s, Headers: %s",
+        exc.status_code,
+        exc.detail,
+        exc.headers,
+    )
     return JSONResponse(
         status_code=exc.status_code,
         content={"message": InternaleServerError.message},

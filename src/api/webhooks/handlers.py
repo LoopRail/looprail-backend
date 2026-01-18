@@ -46,8 +46,8 @@ async def handle_deposit_success(
     logger.debug(
         "Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id
     )
-    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
-        wallet_id=wallet.id, asset_type=event.data.asset.asset_id
+    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_id(
+        wallet_id=wallet.id, asset_id=event.data.asset.asset_id
     )
     if err:
         logger.error(
@@ -141,8 +141,8 @@ async def handle_withdraw_success(
     logger.debug(
         "Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id
     )
-    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
-        wallet_id=wallet.id, asset_type=event.data.asset.asset_id
+    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_id(
+        wallet_id=wallet.id, asset_id=event.data.asset.asset_id
     )
     if err:
         logger.error(
@@ -252,8 +252,8 @@ async def handle_withdraw_failed(
     logger.debug(
         "Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id
     )
-    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
-        wallet_id=wallet.id, asset_type=event.data.asset.asset_id
+    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_id(
+        wallet_id=wallet.id, asset_id=event.data.asset.asset_id
     )
     if err:
         logger.error(
@@ -336,8 +336,8 @@ async def handle_withdraw_cancelled(
     logger.debug(
         "Attempting to get asset %s for wallet %s", event.data.asset.asset_id, wallet.id
     )
-    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_type(
-        wallet_id=wallet.id, asset_type=event.data.asset.asset_id
+    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_id(
+        wallet_id=wallet.id, asset_id=event.data.asset.asset_id
     )
     if err:
         logger.error(

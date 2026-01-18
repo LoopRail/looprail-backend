@@ -11,12 +11,15 @@ logger = get_logger(__name__)
 
 router = APIRouter(prefix="/account", tags=["Auth"])
 
+@router.get("/me")
+async def get_user_account():
+    pass
 
 @router.post("/verify", response_model=VerifyAccountResponse)
 async def verify_account(
     verify_request: VerifyAccountRequest,
     paystack_service: PaystackService = Depends(get_paystack_service),
-    paycrest_service: PaycrestService = Depends(get_paycrest_service),
+    # paycrest_service: PaycrestService = Depends(get_paycrest_service),
 ):
     logger.info(
         "Verifying account for account identifier: %s",

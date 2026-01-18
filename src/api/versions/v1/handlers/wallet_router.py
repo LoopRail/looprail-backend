@@ -29,7 +29,7 @@ async def initiate_withdraw(
     logger.info(
         "Initiating withdrawal for user %s, asset ID: %s, amount: %s",
         user.id,
-        req.assetId,
+        req.asset_id,
         req.amount,
     )
     specific_withdrawal, err = req.destination.to_specific_event()
