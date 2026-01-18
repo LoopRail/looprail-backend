@@ -1,4 +1,10 @@
-from src.dtos.account_dtos import VerifyAccountRequest, VerifyAccountResponse
+from src.dtos.account_dtos import (
+    AssetBalance,
+    UserAccountResponse,
+    VerifyAccountRequest,
+    VerifyAccountResponse,
+    WalletWithAssets,
+)
 from src.dtos.auth_dtos import (
     AuthTokensResponse,
     AuthWithTokensAndUserResponse,
@@ -32,6 +38,9 @@ __all__ = [
     "UserPublic",
     "OTPSuccessResponse",
     "VerifyAccountResponse",
+    "AssetBalance",
+    "UserAccountResponse",
+    "WalletWithAssets",
     "CreateTransactionParams",
     "BankTransferParams",
     "CryptoTransactionParams",
