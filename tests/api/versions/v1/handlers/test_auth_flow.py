@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -27,6 +27,7 @@ def authenticated_client_fixture(
     mock_session = MagicMock()
     mock_session.id = session_id
     mock_session.user_id = user.id
+    mock_session.get_prefixed_id.return_value = session_id
     raw_refresh_token = f"rft_{uuid4()}"
     mock_session_usecase.create_session.return_value = (mock_session, raw_refresh_token)
 
@@ -54,6 +55,7 @@ def test_login_success(
     mock_session = MagicMock()
     mock_session.id = session_id
     mock_session.user_id = user.id
+    mock_session.get_prefixed_id.return_value = session_id
     raw_refresh_token = f"rft_{uuid4()}"
     mock_session_usecase.create_session.return_value = (
         mock_session,
@@ -129,6 +131,7 @@ def test_refresh_token_success(
     mock_session = MagicMock()
     mock_session.id = mock_refresh_token_db.session_id
     mock_session.user_id = f"usr_{uuid4()}"
+    mock_session.get_prefixed_id.return_value = str(mock_session.id)
     mock_session_usecase.get_session.return_value = (mock_session, None)
 
     new_raw_refresh_token_value = "mock_new_raw_refresh_token_string"
@@ -159,7 +162,7 @@ def test_refresh_token_success(
     )
     mock_session_usecase.rotate_refresh_token.assert_called_once_with(
         old_refresh_token=mock_refresh_token_db,
-        new_refresh_token_string=new_raw_refresh_token_value,
+        new_refresh_token_string=ANY,
     )
     assert mock_jwt_usecase.create_token.call_count == 1
 
@@ -213,6 +216,7 @@ def test_refresh_token_reuse_detection(
     mock_session = MagicMock()
     mock_session.id = mock_refresh_token_db_first_call.session_id
     mock_session.user_id = f"usr_{uuid4()}"
+    mock_session.get_prefixed_id.return_value = str(mock_session.id)
     mock_session_usecase.get_session.return_value = (mock_session, None)
 
     new_raw_refresh_token_value = "mock_new_raw_refresh_token_string_for_reuse"

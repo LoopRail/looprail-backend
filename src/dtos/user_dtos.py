@@ -1,10 +1,11 @@
 import re
 from datetime import date
-from typing import List
+from typing import List, Optional
 
 from pydantic import EmailStr, Field, field_validator
 
 from src.dtos.base import Base
+from src.dtos.wallet_dtos import WalletPublic
 from src.types.common_types import PhoneNumber, RefreshTokenId, UserId, UserProfileId
 from src.types.country_types import CountriesData
 from src.types.error import error
@@ -73,6 +74,12 @@ class UserPublic(Base):
     email: EmailStr
     first_name: str | None = Field(default=None)
     last_name: str | None = Field(default=None)
+    username: str
+    gender: Gender
+    has_completed_onboarding: bool
+    onboarding_responses: List[str] = []
+    profile: Optional["UserProfilePublic"] = None
+    wallets: List[WalletPublic] = []
 
 
 class UserProfileCreate(Base):

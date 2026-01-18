@@ -87,6 +87,7 @@ def test_user_fixture() -> tuple[User, str]:
         is_email_verified=False,
         has_completed_onboarding=True,
         username="testuser",
+        gender="male",
     )
     password = "testpassword123"
     return mock_user, password
@@ -161,6 +162,7 @@ def mock_config() -> MagicMock:
     mock_jwt_settings.access_token_expire_minutes = 60
     mock_jwt_settings.secret_key = "test_secret_key"
     mock_jwt_settings.algorithm = "HS256"
+    mock_jwt_settings.refresh_token_expires_in_days = 7
 
     mock = MagicMock()
     mock.jwt = mock_jwt_settings

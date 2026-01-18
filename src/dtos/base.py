@@ -11,4 +11,5 @@ class Base(BaseModel):
         populate_by_name=True,
         use_enum_values=True,
         arbitrary_types_allowed=True,
+        from_attributes=True,
     )

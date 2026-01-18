@@ -110,6 +110,7 @@ class TokenType(StrEnum):
 class Platform(StrEnum):
     ANDROID = "android"
     IOS = "ios"
+    WEB = "web"
 
 
 class InstitutionCountry(StrEnum):

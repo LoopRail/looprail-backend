@@ -1,4 +1,5 @@
 import hashlib
+from uuid import uuid4
 
 from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -190,9 +191,7 @@ async def complete_onboarding(
     )
     return {
         "message": "User onboarded successfully",
-        "user": UserPublic.model_validate(current_user.model_dump()).model_dump(
-            exclude_none=True
-        ),
+        "user": UserPublic.model_validate(current_user).model_dump(exclude_none=True),
         "access-token": access_token,
         "refresh-token": raw_refresh_token,
         "session_id": session.get_prefixed_id(),
@@ -249,9 +248,7 @@ async def login(
 
     return {
         "message": "Login successful.",
-        "user": UserPublic.model_validate(user.model_dump()).model_dump(
-            exclude_none=True
-        ),
+        "user": UserPublic.model_validate(user).model_dump(exclude_none=True),
         "access-token": access_token,
         "refresh-token": raw_refresh_token,
         "session_id": session.get_prefixed_id(),
@@ -295,7 +292,7 @@ async def refresh_token(
         await session_usecase.revoke_session(refresh_token_db.session_id)
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"message": "Refresh token reused. Please log in again."},
+            content={"error": "Refresh token reused. Please log in again."},
         )
 
     session, err = await session_usecase.get_session(refresh_token_db.session_id)
@@ -319,9 +316,21 @@ async def refresh_token(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
+    # Issues a new refresh token
+    new_raw_refresh_token, err = await session_usecase.rotate_refresh_token(
+        old_refresh_token=refresh_token_db,
+        new_refresh_token_string=f"rft_{uuid4()}",
+    )
+    if err:
+        logger.error("Could not rotate refresh token: %s", err.message)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Internal server error"},
+        )
+
     return {
         "access-token": new_access_token,
-        "refresh-token": refresh_token_request.refresh_token,
+        "refresh-token": new_raw_refresh_token,
     }
 
 
@@ -360,7 +369,7 @@ async def set_passcode(
     return {"message": "Passcode set successfully"}
 
 
-@router.post("/passcode-login", response_model=AuthTokensResponse)
+@router.post("/passcode-login", response_model=AuthWithTokensAndUserResponse)
 @limiter.limit("5/minute")
 async def passcode_login(
     request: Request,
@@ -413,9 +422,16 @@ async def passcode_login(
             status_code=401, content={"message": "No valid refresh token for session"}
         )
 
+    user, err = await user_usecases.get_user_by_id(session.user_id)
+    if err or not user:
+        return JSONResponse(status_code=401, content={"message": "User not found"})
+
     return {
+        "message": "Passcode login successful",
+        "user": UserPublic.model_validate(user).model_dump(exclude_none=True),
         "access-token": access_token,
         "refresh-token": refresh_token_id,
+        "session_id": session.get_prefixed_id(),
     }
 
 

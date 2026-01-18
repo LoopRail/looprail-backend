@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from pydantic import field_validator
 
@@ -75,3 +75,21 @@ class ProcessWithdrawalRequest(Base):
     transation_pin: str
     challenge_id: str
     code_verifier: str
+
+
+class AssetPublic(Base):
+    id: str
+    name: str
+    symbol: str
+    decimals: int
+    asset_type: str
+    network: str
+    address: str
+
+
+class WalletPublic(Base):
+    id: str
+    address: str
+    chain: str
+    name: str | None = None
+    assets: List[AssetPublic] = []

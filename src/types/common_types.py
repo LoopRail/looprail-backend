@@ -108,7 +108,12 @@ class PrefixedId(str):
     ) -> core_schema.CoreSchema:
         return core_schema.no_info_after_validator_function(
             cls,
-            core_schema.str_schema(),
+            core_schema.union_schema(
+                [
+                    core_schema.str_schema(),
+                    core_schema.is_instance_schema(UUID),
+                ]
+            ),
         )
 
 
