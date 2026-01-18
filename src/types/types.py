@@ -53,23 +53,32 @@ class Provider(StrEnum):
     BLOCKRADER = "blockrader"
 
 
+# Add to your existing TransactionType enum
 class TransactionType(StrEnum):
-    DEBIT = "debit"
-    CREDIT = "credit"
+    # Existing crypto types
+    CRYPTO_SEND = "crypto:send"
+    CRYPTO_RECEIVE = "crypto:receive"
+    CRYPTO_SWAP = "crypto:swap"
 
+    # New bank/fiat types
+    BANK_WITHDRAWAL = "withdraw:bank-transfer"
+    BANK_DEPOSIT = "deposit:bank"
+    CARD_DEPOSIT = "deposit:card"
 
-class PaymentType(StrEnum):
-    FIAT = "fiat"
-    CRYPTO = "crypto"
+    # Internal transfers
+    INTERNAL_TRANSFER = "transfer:internal"
+
+    # Other
+    FEE = "fee"
+    REFUND = "refund"
 
 
 class PaymentMethod(StrEnum):
-    CARD = "card"
-    APPLE_PAY = "apple-pay"
-    GOOGLE_PAY = "google_pay"
+    BLOCKCHAIN = "blockchain"
     BANK_TRANSFER = "bank-transfer"
-    MOBILE_MONEY = "mobile-money"
-    WALLET_TRANSFER = "wallet-transfer"
+    CARD = "card"
+    INTERNAL = "internal"
+    WALLET = "wallet"
 
 
 class KYCStatus(StrEnum):

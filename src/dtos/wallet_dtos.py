@@ -6,7 +6,7 @@ from pydantic import field_validator
 from src.dtos.base import Base
 from src.types.common_types import Address, AssetId, Chain
 from src.types.error import Error, error
-from src.types.types import WithdrawalMethod
+from src.types.types import PaymentMethod, WithdrawalMethod
 
 
 class TransferType(Base):
@@ -23,7 +23,6 @@ class BankTransferData(Base):
     bank_code: str
     account_number: str
     account_name: str
-    institution: str
 
     @field_validator("account_number", mode="before")
     @classmethod
@@ -58,17 +57,20 @@ class GenericWithdrawalRequest(Base):
             "withdraw:external-wallet": ExtranalWalletTransferRequest,
         }
 
-        event_class = WITHDRAWAL_REQUEST_MAP.get(self.transfer_type)
+        event_class = WITHDRAWAL_REQUEST_MAP.get(self.event)
         if event_class is None:
             return None, ValueError(f"{self.event} is not a supported event")
         return event_class(event=self.event, data=self.data), None
 
 
 class WithdrawalRequest(Base):
-    assetId: AssetId
+    asset_id: AssetId
     amount: Decimal
     narration: str
     destination: GenericWithdrawalRequest
+
+    def get_clean_asset_id(self):
+        return self.asset_id.removeprefix("ast_")
 
 
 class ProcessWithdrawalRequest(Base):

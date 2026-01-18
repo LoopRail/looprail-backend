@@ -5,7 +5,7 @@ from src.types.types import InstitutionCountry
 
 
 class VerifyAccountRequest(Base):
-    institution: str
+    # institution: str
     account_identifier: str
     institution_code: str | None = Field(
         default=None,

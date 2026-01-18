@@ -6,7 +6,11 @@ from src.dtos.auth_dtos import (
     MessageResponse,
 )
 from src.dtos.otp_dtos import OtpCreate, OTPSuccessResponse, VerifyOtpRequest
-from src.dtos.transaction_dtos import CreateTransactionParams
+from src.dtos.transaction_dtos import (
+    BankTransferParams,
+    CreateTransactionParams,
+    CryptoTransactionParams,
+)
 from src.dtos.user_dtos import (
     LoginRequest,
     OnboardUserUpdate,
@@ -29,6 +33,8 @@ __all__ = [
     "OTPSuccessResponse",
     "VerifyAccountResponse",
     "CreateTransactionParams",
+    "BankTransferParams",
+    "CryptoTransactionParams",
     "WithdrawalRequest",
     "BankTransferRequest",
     "AuthTokensResponse",

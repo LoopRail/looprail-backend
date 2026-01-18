@@ -90,3 +90,6 @@ UserProfileId = Annotated[
     str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "usp_"))
 ]
 OtpId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "otp_"))]
+ReferenceId = Annotated[
+    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "ref_"))
+]

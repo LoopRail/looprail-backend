@@ -108,4 +108,4 @@ class RefreshTokenRequest(Base):
     refresh_token: RefreshToken
 
     def get_clean_refresh_token(self) -> str:
-        return self.refresh_token.removeprefix("ses_")
+        return self.refresh_token.removeprefix("rft_")

@@ -1,4 +1,3 @@
-from src.types.token_types import AccessToken, OnBoardingToken, Token
 from src.types.auth_lock_types import LockedAccount
 from src.types.auth_types import HashedPassword, WebhookProvider
 from src.types.common_types import (
@@ -27,6 +26,7 @@ from src.types.error import (
 )
 from src.types.http_types import HTTPMethod
 from src.types.ledger_types import LedgerConfig
+from src.types.token_types import AccessToken, OnBoardingToken, Token
 from src.types.types import (
     AssetType,
     Chain,
@@ -36,7 +36,6 @@ from src.types.types import (
     OtpStatus,
     OtpType,
     PaymentMethod,
-    PaymentType,
     Platform,
     Provider,
     TokenStandard,
@@ -78,7 +77,6 @@ __all__ = [
     "OtpStatus",
     "OtpType",
     "PaymentMethod",
-    "PaymentType",
     "Platform",
     "Provider",
     "TokenStandard",
