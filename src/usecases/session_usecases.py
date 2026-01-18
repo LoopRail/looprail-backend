@@ -1,9 +1,10 @@
 import hashlib
 from typing import List, Optional, Tuple
+from uuid import UUID
 
 from src.infrastructure.logger import get_logger
-from src.infrastructure.security import Argon2Config
 from src.infrastructure.repositories import RefreshTokenRepository, SessionRepository
+from src.infrastructure.security import Argon2Config
 from src.models import RefreshToken, Session
 from src.types import Error
 from src.types.common_types import RefreshTokenId, SessionId, UserId
@@ -88,7 +89,7 @@ class SessionUseCase:
         logger.debug("Creating refresh token for session %s", session.id)
         _, err = await self.refresh_token_repository.create_refresh_token(
             session_id=session.id,
-            new_refresh_token_string=refresh_token_string,
+            new_refresh_token_string=refresh_token_string.clean(),
             expires_in_days=self.refresh_token_expires_in_days,
         )
         if err:
@@ -103,7 +104,7 @@ class SessionUseCase:
         )
         return session, RefreshTokenId.new(refresh_token_string), None
 
-    async def set_passcode(self, session_id: SessionId, passcode: str) -> Error:
+    async def set_passcode(self, session_id: UUID, passcode: str) -> Error:
         """Set a 6-digit passcode for a specific session."""
         logger.info("Setting passcode for session %s", session_id)
         session, err = await self.get_session(session_id)
@@ -115,13 +116,17 @@ class SessionUseCase:
 
         _, err = await self.session_repository.update(session)
         if err:
-            logger.error("Failed to save passcode for session %s: %s", session_id, err.message)
+            logger.error(
+                "Failed to save passcode for session %s: %s", session_id, err.message
+            )
             return err
 
         logger.info("Passcode set successfully for session %s", session_id)
         return None
 
-    async def verify_passcode(self, session_id: SessionId, passcode: str) -> Tuple[bool, Error]:
+    async def verify_passcode(
+        self, session_id: SessionId, passcode: str
+    ) -> Tuple[bool, Error]:
         """Verify a 6-digit passcode for a specific session."""
         logger.debug("Verifying passcode for session %s", session_id)
         session, err = await self.get_session(session_id)
@@ -133,16 +138,24 @@ class SessionUseCase:
             return False, None
 
         from src.types import HashedPassword
+
         is_valid = verify_password(
-            passcode, 
-            HashedPassword(password_hash=session.passcode_hash), 
-            self.argon2_config
+            passcode,
+            HashedPassword(password_hash=session.passcode_hash),
+            self.argon2_config,
         )
         return is_valid, None
 
-    async def get_valid_refresh_token(self, session_id: SessionId) -> Tuple[Optional[str], Error]:
+    async def get_valid_refresh_token(
+        self, session_id: SessionId
+    ) -> Tuple[Optional[str], Error]:
         """Get the valid refresh token string for a specific session."""
-        refresh_token, err = await self.refresh_token_repository.get_valid_refresh_token_for_session(session_id)
+        (
+            refresh_token,
+            err,
+        ) = await self.refresh_token_repository.get_valid_refresh_token_for_session(
+            session_id
+        )
         if err or not refresh_token:
             return None, err
         # Note: The repository stores hashes. This is a problem if we need the raw token.
