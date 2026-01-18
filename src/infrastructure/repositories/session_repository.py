@@ -47,6 +47,13 @@ class SessionRepository(Base):
     async def get_user_sessions(self, user_id: UserId) -> List[Session]:
         return await self.find_all(Session, user_id=user_id, revoked_at=None)
 
+    async def get_active_sessions_ordered(self, user_id: UserId) -> List[Session]:
+        """Get active sessions for a user, ordered by last_seen_at ascending (oldest first)."""
+        # Note: find_all doesn't support ordering yet, we might need a custom query if find_all is too limited.
+        # However, for 3-4 sessions, sorting in memory is fine if repository doesn't support it directly.
+        sessions = await self.get_user_sessions(user_id)
+        return sorted(sessions, key=lambda s: s.last_seen_at)
+
     async def revoke_all_user_sessions(self, user_id: UserId) -> Error:
         sessions = await self.get_user_sessions(user_id)
         for session_instance in sessions:

@@ -44,6 +44,21 @@ class RefreshTokenRepository(Base):
             return None, error("Invalid or expired refresh token")
         return refresh_token, None
 
+    async def get_valid_refresh_token_for_session(
+        self, session_id: SessionId
+    ) -> Tuple[Optional[RefreshToken], Error]:
+        statement = select(RefreshToken).where(
+            RefreshToken.session_id == session_id,
+            RefreshToken.revoked_at.is_(None),
+            RefreshToken.expires_at > datetime.utcnow(),
+            RefreshToken.replaced_by_hash.is_(None),
+        )
+        result = await self.session.execute(statement)
+        refresh_token = result.scalars().first()
+        if not refresh_token:
+            return None, error("No valid refresh token found for session")
+        return refresh_token, None
+
     async def mark_refresh_token_as_replaced(
         self, old_refresh_token: RefreshToken, new_refresh_token_hash: str
     ) -> Error:
