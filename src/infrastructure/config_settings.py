@@ -19,7 +19,9 @@ from src.infrastructure.settings import (
     RedisConfig,
     ResendConfig,
 )
-from src.types import CountriesData, LedgerConfig, WalletConfig
+from src.types.country_types import CountriesData
+from src.types.ledger_types import LedgerConfig
+from src.types.types import WalletConfig
 from src.utils import return_base_dir
 
 logger = get_logger(__name__)

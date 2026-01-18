@@ -9,7 +9,8 @@ from src.infrastructure.constants import (
     ONBOARDING_TOKEN_EXP_MINS,
     REFRESH_TOKEN_EXP_DAYS,
 )
-from src.types import LedgerConfig, WalletConfig
+from src.types.ledger_types import LedgerConfig
+from src.types.types import WalletConfig
 from src.utils import return_base_dir
 
 
