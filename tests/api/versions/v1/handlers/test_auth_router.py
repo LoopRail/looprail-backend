@@ -5,14 +5,18 @@ import httpx
 
 
 from src.models.otp_model import Otp
+from src.models.user_model import User
 
 
 import pytest
 
 
-def test_verify_otp_expired_email_otp(
-    client: httpx.AsyncClient, mock_otp_usecase: MagicMock
+@pytest.mark.asyncio
+async def test_verify_otp_expired_email_otp(
+    client: httpx.AsyncClient, mock_otp_usecase: MagicMock, mock_user_usecases: MagicMock, test_user_obj: User
 ):
+    mock_user_usecases.get_user_by_email.return_value = (test_user_obj, None)
+    mock_user_usecases.save.return_value = (test_user_obj, None)
     # Arrange
     otp = Otp(
         code_hash="hashed_code",
@@ -33,9 +37,12 @@ def test_verify_otp_expired_email_otp(
     assert response.status_code == 400
 
 
-def test_verify_otp_max_attempts_exceeded_email_otp(
-    client: httpx.AsyncClient, mock_otp_usecase: MagicMock
+@pytest.mark.asyncio
+async def test_verify_otp_max_attempts_exceeded_email_otp(
+    client: httpx.AsyncClient, mock_otp_usecase: MagicMock, mock_user_usecases: MagicMock, test_user_obj: User
 ):
+    mock_user_usecases.get_user_by_email.return_value = (test_user_obj, None)
+    mock_user_usecases.save.return_value = (test_user_obj, None)
     # Arrange
     otp = Otp(
         code_hash="hashed_code",
@@ -57,9 +64,11 @@ def test_verify_otp_max_attempts_exceeded_email_otp(
     assert response.status_code == 400
 
 
-def test_verify_otp_invalid_code(
-    client: httpx.AsyncClient, mock_otp_usecase: MagicMock
+@pytest.mark.asyncio
+async def test_verify_otp_invalid_code(
+    client: httpx.AsyncClient, mock_otp_usecase: MagicMock, mock_user_usecases: MagicMock, test_user_obj: User
 ):
+    mock_user_usecases.get_user_by_email.return_value = (test_user_obj, None)
     # Arrange
     otp = Otp(
         code_hash="hashed_code",

@@ -20,15 +20,15 @@ class TestVerifyOnboardingOtp:
         mock_user_usecases: MagicMock,
         mock_otp_usecase: MagicMock,
         test_otp_onboarding: Otp,
-        test_user: User,
+        test_user_obj: User,
     ):
         # Mock dependencies
         mock_otp_usecase.get_otp.return_value = (test_otp_onboarding, None)
         mock_otp_usecase.update_otp.return_value = None
         mock_otp_usecase.delete_otp.return_value = None
         mock_otp_usecase.verify_code.return_value = True
-        mock_user_usecases.get_user_by_email.return_value = (test_user, None)
-        mock_user_usecases.save.return_value = (test_user, None)
+        mock_user_usecases.get_user_by_email.return_value = (test_user_obj, None)
+        mock_user_usecases.save.return_value = (test_user_obj, None)
         mock_jwt_usecase.create_token.return_value = "mock_access_token"
 
         response = client.post(
@@ -46,8 +46,8 @@ class TestVerifyOnboardingOtp:
         mock_user_usecases.get_user_by_email.assert_called_once_with(
             user_email=test_otp_onboarding.user_email
         )
-        assert test_user.is_email_verified is True
-        mock_user_usecases.save.assert_called_once_with(test_user)
+        assert test_user_obj.is_email_verified is True
+        mock_user_usecases.save.assert_called_once_with(test_user_obj)
         mock_jwt_usecase.create_token.assert_called_once()
 
     async def test_verify_onboarding_otp_invalid_otp_type(
@@ -106,11 +106,11 @@ class TestVerifyOnboardingOtp:
         mock_otp_usecase: MagicMock,
         mock_user_usecases: MagicMock,
         test_otp_onboarding: Otp,
-        test_user: User,
+        test_user_obj: User,
     ):
         mock_otp_usecase.get_otp.return_value = (test_otp_onboarding, None)
         mock_otp_usecase.verify_code.return_value = True
-        mock_user_usecases.get_user_by_email.return_value = (test_user, None)
+        mock_user_usecases.get_user_by_email.return_value = (test_user_obj, None)
         mock_user_usecases.save.return_value = (None, error("Database error"))
 
         response = client.post(
@@ -126,5 +126,5 @@ class TestVerifyOnboardingOtp:
         mock_user_usecases.get_user_by_email.assert_called_once_with(
             user_email=test_otp_onboarding.user_email
         )
-        assert test_user.is_email_verified is True
-        mock_user_usecases.save.assert_called_once_with(test_user)
+        assert test_user_obj.is_email_verified is True
+        mock_user_usecases.save.assert_called_once_with(test_user_obj)
