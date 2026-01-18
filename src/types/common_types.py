@@ -1,14 +1,14 @@
 import re
+import typing
 from enum import StrEnum
-from typing import Annotated, Literal, Union
-from uuid import UUID as PyUUID
+from typing import Annotated, Any, Literal, Union
+from uuid import UUID
 
 import phonenumbers
-from pydantic import BeforeValidator
+from pydantic import BeforeValidator, GetCoreSchemaHandler
+from pydantic_core import core_schema
 from pydantic_extra_types.phone_numbers import PhoneNumberValidator
 from solders.pubkey import Pubkey
-
-from src.types.error import error
 
 # from src.infrastructure import config
 # from src.utils.country_utils import get_all_country_codes
@@ -69,27 +69,96 @@ def _validate_id_with_prefix(v: str, expected_prefix: str) -> str:
     return v
 
 
-UserId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "usr_"))]
-WalletId = Annotated[
-    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "wlt_"))
-]
-AssetId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "ast_"))]
-PaymentOrderId = Annotated[
-    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "pmt_"))
-]
-SessionId = Annotated[
-    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "ses_"))
-]
-RefreshToken = Annotated[
-    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "rft_"))
-]
-TransactionId = Annotated[
-    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "txn_"))
-]
-UserProfileId = Annotated[
-    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "usp_"))
-]
-OtpId = Annotated[str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "otp_"))]
-ReferenceId = Annotated[
-    str, BeforeValidator(lambda v: _validate_id_with_prefix(v, "ref_"))
-]
+class PrefixedId(str):
+    prefix: typing.ClassVar[str]
+
+    def __new__(cls, value: str | UUID):
+        if isinstance(value, UUID):
+            value = str(value)
+
+        if not isinstance(value, str):
+            raise TypeError("ID must be a string or UUID")
+
+        if not value.startswith(cls.prefix):
+            value = f"{cls.prefix}{value}"
+
+        return super().__new__(cls, value)
+
+        # clean = value[len(cls.prefix) :]
+
+        # # UUID validation
+        # try:
+        #     uuid.UUID(clean)
+        # except ValueError:
+        #     raise ValueError("ID suffix must be a valid UUID")
+
+    def clean(self) -> str:
+        return self[len(self.prefix) :]
+
+    @classmethod
+    def new[T](cls: T, value: str | UUID) -> T:
+        """
+        Create a prefixed ID from a raw or already-prefixed value
+        """
+        return cls(value)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, _source_type: Any, _handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls,
+            core_schema.str_schema(),
+        )
+
+
+class UserId(PrefixedId):
+    prefix = "usr_"
+
+
+class WalletId(PrefixedId):
+    prefix = "wlt_"
+
+
+class AssetId(PrefixedId):
+    prefix = "ast_"
+
+
+class PaymentOrderId(PrefixedId):
+    prefix = "pmt_"
+
+
+class SessionId(PrefixedId):
+    prefix = "ses_"
+
+
+class RefreshTokenId(PrefixedId):
+    prefix = "rft_"
+
+
+class TransactionId(PrefixedId):
+    prefix = "txn_"
+
+
+class UserProfileId(PrefixedId):
+    prefix = "usp_"
+
+
+class OtpId(PrefixedId):
+    prefix = "otp_"
+
+
+class ReferenceId(PrefixedId):
+    prefix = "ref_"
+
+
+class OnBoardingTokenSub(PrefixedId):
+    prefix = "onboarding_usr_"
+
+
+class AccessTokenSub(PrefixedId):
+    prefix = "access_ses_"
+
+
+class ChallengeId(PrefixedId):
+    prefix = "chl_"

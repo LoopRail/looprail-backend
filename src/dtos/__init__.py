@@ -8,8 +8,11 @@ from src.dtos.account_dtos import (
 from src.dtos.auth_dtos import (
     AuthTokensResponse,
     AuthWithTokensAndUserResponse,
+    ChallengeResponse,
     CreateUserResponse,
     MessageResponse,
+    PasscodeLoginRequest,
+    PasscodeSetRequest,
 )
 from src.dtos.otp_dtos import OtpCreate, OTPSuccessResponse, VerifyOtpRequest
 from src.dtos.transaction_dtos import (
@@ -50,4 +53,7 @@ __all__ = [
     "AuthWithTokensAndUserResponse",
     "CreateUserResponse",
     "MessageResponse",
+    "ChallengeResponse",
+    "PasscodeSetRequest",
+    "PasscodeLoginRequest",
 ]

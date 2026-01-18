@@ -69,10 +69,9 @@ class WithdrawalRequest(Base):
     narration: str
     destination: GenericWithdrawalRequest
 
-    def get_clean_asset_id(self):
-        return self.asset_id.removeprefix("ast_")
-
 
 class ProcessWithdrawalRequest(Base):
     transaction_id: str
     transation_pin: str
+    challenge_id: str
+    code_verifier: str
