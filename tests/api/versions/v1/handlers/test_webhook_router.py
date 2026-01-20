@@ -5,8 +5,10 @@ from uuid import uuid4
 import pytest
 
 from src.api.dependencies import get_config
-from src.api.dependencies.repositories import (get_asset_repository,
-                                               get_wallet_repository)
+from src.api.dependencies.repositories import (
+    get_asset_repository,
+    get_wallet_repository,
+)
 from src.api.dependencies.services import get_ledger_service
 from src.api.dependencies.usecases import get_transaction_usecase
 from src.infrastructure.repositories import AssetRepository, WalletRepository
