@@ -172,5 +172,5 @@ class Base(SQLModel, DatabaseMixin):
         return f"{prefix}{self.id}"
 
     @field_serializer("id")
-    def serialize_id(self, v: UUID) -> str:
+    def serialize_id(self, _: UUID) -> str:
         return self.get_prefixed_id()
