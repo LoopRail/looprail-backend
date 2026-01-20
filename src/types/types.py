@@ -35,6 +35,7 @@ class TransactionStatus(StrEnum):
 
 class Currency(StrEnum):
     NAIRA = "ngn"
+    US_Dollar = "usd"
 
 
 class AssetType(StrEnum):
@@ -71,6 +72,10 @@ class TransactionType(StrEnum):
     # Other
     FEE = "fee"
     REFUND = "refund"
+
+    # Payment types
+    DEBIT = "debit"
+    CREDIT = "credit"
 
 
 class PaymentMethod(StrEnum):
