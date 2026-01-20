@@ -1,18 +1,18 @@
 {
   "wallets": [
     {
-      "chain": "base",
-      "wallet_id": "65aa982b-e356-40c9-a8fb-3131692ad1ce",
+      "chain": "ethereum",
+      "wallet_id": "41a16225-11ca-45c8-9ce2-b8c606df0168",
       "wallet_address": "0xEa16b5109A51bBC42D725e24BEA750AD9708C1ec",
-      "wallet_name": "master_base_wallet",
+      "wallet_name": "master_eth_wallet",
       "active": true,
       "assets": [
         {
-          "id": "bcf86097-014c-4a9e-bd3b-eb416a814534",
+          "id": "ff8a28d1-2454-4a1d-ba77-21e08a67d78b",
           "name": "USDC Coin",
           "symbol": "usdc",
           "decimals": 6,
-          "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+          "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
           "standard": "erc20",
           "isActive": true,
           "logoUrl": "https://res.cloudinary.com/blockradar/image/upload/v1716800083/crypto-assets/usd-coin-usdc-logo_fs9mhv.png",
