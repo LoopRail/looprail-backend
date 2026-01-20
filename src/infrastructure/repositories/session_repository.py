@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Tuple
 
-
 from src.infrastructure.repositories.base import Base
 from src.models import Session
 from src.types import Error
@@ -9,6 +8,8 @@ from src.types.common_types import SessionId, UserId
 
 
 class SessionRepository(Base):
+    _model = Session
+
     async def create_session(
         self,
         user_id: UserId,
@@ -34,7 +35,7 @@ class SessionRepository(Base):
     async def get_session(
         self, session_id: SessionId
     ) -> Tuple[Optional[Session], Error]:
-        return await self.find_one(Session, id=session_id, revoked_at=None)
+        return await self.find_one(id=session_id, revoked_at=None)
 
     async def revoke_session(self, session_id: SessionId) -> Error:
         session, err = await self.get_session(session_id)
@@ -45,7 +46,7 @@ class SessionRepository(Base):
         return err
 
     async def get_user_sessions(self, user_id: UserId) -> List[Session]:
-        return await self.find_all(Session, user_id=user_id, revoked_at=None)
+        return await self.find_all(user_id=user_id, revoked_at=None)
 
     async def get_active_sessions_ordered(self, user_id: UserId) -> List[Session]:
         """Get active sessions for a user, ordered by last_seen_at ascending (oldest first)."""
