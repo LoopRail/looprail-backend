@@ -179,7 +179,6 @@ def upgrade() -> None:
     op.drop_column("transactions", "provider_id")
     op.drop_column("transactions", "reason")
 
-
     # ### end Alembic commands ###
 
 
@@ -229,7 +228,7 @@ def downgrade() -> None:
     op.drop_column("transactions", "destination_data")
     op.drop_column("transactions", "narration")
     op.drop_column("transactions", "external_reference")
-    
+
     op.drop_index(
         op.f("ix_wallet_transfer_details_wallet_address"),
         table_name="wallet_transfer_details",
