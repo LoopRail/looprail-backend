@@ -58,7 +58,6 @@ from src.usecases import (
     SessionUseCase,
     UserUseCase,
 )
-
 from src.utils.auth_utils import create_refresh_token
 
 logger = get_logger(__name__)
@@ -100,10 +99,15 @@ async def create_user(
 
     logger.info("User %s registered successfully.", created_user.email)
 
+    public_user, err = await user_usecases.load_public_user(created_user.id)
+    if err:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Failed to load user data"},
+        )
+
     return {
-        "user": UserPublic.model_validate(created_user.model_dump()).model_dump(
-            exclude_none=True
-        ),
+        "user": public_user,
         "otp_token": token,
     }
 
@@ -189,12 +193,19 @@ async def complete_onboarding(
     access_token = jwt_usecase.create_token(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
+    public_user, err = await user_usecases.load_public_user(current_user.id)
+    if err:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Failed to load user data"},
+        )
+
     return {
         "message": "User onboarded successfully",
-        "user": UserPublic.model_validate(current_user).model_dump(exclude_none=True),
-        "access-token": access_token,
-        "refresh-token": raw_refresh_token,
         "session_id": session.get_prefixed_id(),
+        "refresh-token": raw_refresh_token,
+        "access-token": access_token,
+        "user": public_user,
     }
 
 
@@ -206,7 +217,7 @@ async def login(
     user_usecases: UserUseCase = Depends(get_user_usecases),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
     device_id: str = Header(..., alias="X-Device-ID"),
-    platform: str = Header(..., alias="X-Platform"),
+    platform: Platform = Header(..., alias="X-Platform"),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
 ):
@@ -246,12 +257,19 @@ async def login(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
+    public_user, err = await user_usecases.load_public_user(user.id)
+    if err:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Failed to load user data"},
+        )
+
     return {
         "message": "Login successful.",
-        "user": UserPublic.model_validate(user).model_dump(exclude_none=True),
+        "session_id": session.get_prefixed_id(),
         "access-token": access_token,
         "refresh-token": raw_refresh_token,
-        "session_id": session.get_prefixed_id(),
+        "user": public_user,
     }
 
 
@@ -421,11 +439,18 @@ async def passcode_login(
     if err or not user:
         return JSONResponse(status_code=401, content={"message": "User not found"})
 
+    public_user, err = await user_usecases.load_public_user(user.id)
+    if err:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Failed to load user data"},
+        )
+
     return {
         "message": "Passcode login successful",
-        "user": UserPublic.model_validate(user).model_dump(exclude_none=True),
-        "access-token": access_token,
         "session_id": session.get_prefixed_id(),
+        "access-token": access_token,
+        "user": public_user,
     }
 
 
