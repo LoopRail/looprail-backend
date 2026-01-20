@@ -12,10 +12,12 @@ class AssetRepository(Base):
     Concrete implementation of the asset repository using SQLModel.
     """
 
+    _model = Asset
+
     async def get_asset_by_wallet_id_and_asset_id(
         self, *, wallet_id: WalletId, asset_id: AssetType
     ) -> Tuple[Optional[Asset], Error]:
-        found_asset, err = await self.find_one(Asset, wallet_id=wallet_id, id=asset_id)
+        found_asset, err = await self.find_one(wallet_id=wallet_id, asset_id=asset_id)
 
         if err:
             return None, error(
@@ -26,7 +28,7 @@ class AssetRepository(Base):
     async def get_assets_by_wallet_id(
         self, wallet_id: WalletId
     ) -> Tuple[List[Asset], Error]:
-        assets = await self.find_all(Asset, wallet_id=wallet_id)
+        assets = await self.find_all(wallet_id=wallet_id)
         return assets, None
 
     async def create_asset(self, *, asset: Asset) -> Tuple[Optional[Asset], Error]:
