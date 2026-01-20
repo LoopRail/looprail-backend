@@ -5,6 +5,7 @@ Revises: 611b0b7b1ba3
 Create Date: 2026-01-20 04:30:24.268773
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -13,10 +14,11 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = '944f1c5a53bf'
-down_revision: Union[str, None] = '611b0b7b1ba3'
+revision: str = "944f1c5a53bf"
+down_revision: Union[str, None] = "611b0b7b1ba3"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
 
 def upgrade() -> None:
     # Create new enum with all values from PaymentMethod
