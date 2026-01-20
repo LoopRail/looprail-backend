@@ -3,16 +3,13 @@ from decimal import Decimal
 from typing import List, Optional, Union
 from uuid import UUID
 
-from pydantic import (BaseModel, ConfigDict, Field, computed_field,
-                      field_validator)
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 from pydantic_extra_types.country import CountryShortName
 
 from src.dtos.base import Base
 from src.models.tranaction_model import Transaction
-from src.types.common_types import (Address, AssetId, TransactionId, UserId,
-                                    WalletId)
-from src.types.types import (Currency, PaymentMethod, TransactionStatus,
-                             TransactionType)
+from src.types.common_types import Address, AssetId, TransactionId, UserId, WalletId
+from src.types.types import Currency, PaymentMethod, TransactionStatus, TransactionType
 
 
 class BaseTransactionParams(Base):
