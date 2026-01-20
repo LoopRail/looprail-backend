@@ -58,7 +58,7 @@ class SessionUseCase:
                 user_id,
                 oldest_session.id,
             )
-            err = await self.revoke_session(oldest_session.get_prefixed_id())
+            err = await self.revoke_session(oldest_session.id)
             if err:
                 logger.error(
                     "Failed to revoke oldest session %s for user %s: %s",
@@ -66,7 +66,7 @@ class SessionUseCase:
                     user_id,
                     err.message,
                 )
-                # We continue even if revocation fails, though ideally it shouldn't.
+                # TODO look into this: We continue even if revocation fails, though ideally it shouldn't.
 
         session, err = await self.session_repository.create_session(
             user_id=user_id,
