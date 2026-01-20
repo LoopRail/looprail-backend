@@ -42,7 +42,9 @@ async def lifespan(app_: FastAPI):
     app_.state.argon2_config = config.argon2
 
     # Load banks data from JSON file
-    banks_json_path = os.path.join(os.path.dirname(__file__), "..", "public", "banks.json")
+    banks_json_path = os.path.join(
+        os.path.dirname(__file__), "..", "public", "banks.json"
+    )
     try:
         with open(banks_json_path, "r", encoding="utf-8") as f:
             app_.state.banks_data = json.load(f)
