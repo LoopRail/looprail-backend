@@ -102,4 +102,3 @@ def compute_pkce_challenge(code_verifier: str) -> str:
     code_verifier_clean = code_verifier.strip()
     hashed = hashlib.sha256(code_verifier_clean.encode("ascii")).digest()
     return base64.urlsafe_b64encode(hashed).decode("ascii").rstrip("=")
-
