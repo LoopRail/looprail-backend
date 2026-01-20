@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import EmailStr
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship
+from pydantic_extra_types.country import CountryShortName
 
 from src.models.base import Base
 from src.types.types import Gender, KYCStatus
@@ -119,7 +120,7 @@ class UserProfile(Base, table=True):
     city: Optional[str] = None
     state: Optional[str] = None
     postal_code: Optional[str] = None
-    country: str
+    country: CountryShortName
     phone_number: str = Field(nullable=False, unique=True)
     date_of_birth: Optional[date] = None
 
