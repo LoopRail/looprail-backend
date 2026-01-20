@@ -151,6 +151,7 @@ async def get_wallet_manager_usecase(
     base_master_wallet, err = wallet_service.blockrader_config.wallets.get_wallet(
         MASTER_BASE_WALLET
     )
+
     if err:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
