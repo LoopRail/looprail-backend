@@ -102,7 +102,7 @@ async def handle_external_wallet_transfer(
         amount=int(withdrawal_request.amount * 100),
         reference=transfer_response.transaction_id,
         source=asset.ledger_balance_id,
-        destination=WorldLedger.WORLD,
+        destination=WorldLedger.WORLD_OUT,
         description=withdrawal_request.narration,
     )
     logger.debug(
