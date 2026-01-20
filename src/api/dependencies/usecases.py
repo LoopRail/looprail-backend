@@ -113,6 +113,7 @@ def get_transaction_usecase(
 
 
 async def get_blockrader_wallet_service(
+    config: Config = Depends(get_config),
     blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
     user_repository: UserRepository = Depends(get_user_repository),
     wallet_repository: WalletRepository = Depends(get_wallet_repository),
@@ -123,6 +124,7 @@ async def get_blockrader_wallet_service(
 ):
     logger.debug("Entering get_blockrader_wallet_service")
     return WalletService(
+        config=config,
         blockrader_config=blockrader_config,
         user_repository=user_repository,
         wallet_repository=wallet_repository,
