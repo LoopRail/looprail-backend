@@ -101,6 +101,15 @@ class UserRepository(Base):
         result = await self.session.execute(stmt)
         return result.scalars().first(), None
 
+    async def get_user_profile_by_user_phone_number(
+        self, *, phone_number: str 
+    ) -> Tuple[Optional[UserProfile], Error]:
+
+
+        stmt = select(UserProfile).where(UserProfile.phone_number == phone_number)
+        result = await self.session.execute(stmt)
+        return result.scalars().first(), None
+
     async def update_user_profile(
         self, *, user_id: UserId, **kwargs
     ) -> Tuple[Optional[UserProfile], Error]:

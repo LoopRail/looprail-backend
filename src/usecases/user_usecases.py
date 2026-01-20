@@ -9,14 +9,8 @@ from src.infrastructure.repositories import UserRepository
 from src.infrastructure.security import Argon2Config
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import User, UserCredentials, UserPin, UserProfile
-from src.types import (
-    Error,
-    HashedPassword,
-    InvalidCredentialsError,
-    NotFoundError,
-    UserAlreadyExistsError,
-    error,
-)
+from src.types import (Error, HashedPassword, InvalidCredentialsError,
+                       NotFoundError, UserAlreadyExistsError, error)
 from src.types.common_types import UserId
 from src.usecases.wallet_usecases import WalletManagerUsecase, WalletService
 from src.utils import hash_password, verify_password
@@ -249,8 +243,11 @@ class UserUseCase:
         self, phone_number: str
     ) -> Tuple[Optional[User], Error]:
         logger.debug("Getting user by phone number: %s", phone_number)
-        user_profile, err = await self.user_repository.find_one(
-            UserProfile, phone_number=phone_number
+        (
+            user_profile,
+            err,
+        ) = await self.user_repository.get_user_profile_by_user_phone_number(
+            phone_number=phone_number
         )
         if err:
             logger.debug(
