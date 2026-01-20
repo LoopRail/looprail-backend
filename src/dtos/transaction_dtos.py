@@ -9,7 +9,8 @@ from pydantic_extra_types.country import CountryShortName
 
 from src.dtos.base import Base
 from src.models.tranaction_model import Transaction
-from src.types.common_types import AssetId, TransactionId, UserId, WalletId
+from src.types.common_types import (Address, AssetId, TransactionId, UserId,
+                                    WalletId)
 from src.types.types import (Currency, PaymentMethod, TransactionStatus,
                              TransactionType)
 
@@ -23,7 +24,7 @@ class BaseTransactionParams(Base):
     payment_type: TransactionType
     method: PaymentMethod
     currency: Currency
-    sender: UserId
+    sender: UserId | Address
     receiver: str
     amount: Decimal = Field(gt=0)
     narration: Optional[str] = Field(default=None, max_length=500)
