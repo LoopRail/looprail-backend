@@ -16,6 +16,8 @@ class UserRepository(Base):
     Concrete implementation of the user repository using SQLModel.
     """
 
+    _model = User
+
     async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]:
         async with self.session.begin_nested():
             existing_user_by_email, err = await self.get_user_by_email(email=user.email)
@@ -72,13 +74,13 @@ class UserRepository(Base):
     async def update_user(
         self, *, user_id: UserId, **kwargs
     ) -> Tuple[Optional[User], Error]:
-        user, err = await self.get(User, user_id)
+        user, err = await self.get(user_id)
         if err:
             return None, err
         return await self.update(user, **kwargs)
 
     async def delete_user(self, *, user_id: UserId) -> Error:
-        user, err = await self.get(User, user_id)
+        user, err = await self.get(user_id)
         if err:
             return err
         return await self.delete(user)
@@ -91,10 +93,13 @@ class UserRepository(Base):
     async def get_user_profile_by_user_id(
         self, *, user_id: UserId
     ) -> Tuple[Optional[UserProfile], Error]:
-        user, err = await self.get(User, user_id)
+        user, err = await self.get(user_id)
         if err:
             return None, err
-        return await self.get(UserProfile, _id=user.profile.id)
+
+        stmt = select(UserProfile).where(UserProfile.id == user.profile.id)
+        result = await self.session.execute(stmt)
+        return result.scalars().first(), None
 
     async def update_user_profile(
         self, *, user_id: UserId, **kwargs
@@ -103,16 +108,3 @@ class UserRepository(Base):
         if err:
             return None, err
         return await self.update(user_profile, **kwargs)
-
-    async def verify_user_pin(self, user_id: UserId, pin: str) -> bool:
-        user, err = await self.get(User, user_id)
-        if err or not user:
-            return False
-
-        # Dummy check: For example, if user.id is 'test_user_id' and pin is '1234'
-        # This needs to be replaced with actual secure PIN verification
-        if str(user.id) == "test_user_id" and pin == "1234":
-            return True
-        elif pin == "0000":  # A dummy always true for testing
-            return True
-        return False
