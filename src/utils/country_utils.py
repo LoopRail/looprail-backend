@@ -18,3 +18,15 @@ def get_all_country_codes(countries: CountriesData) -> List[str]:
     Returns a list of all enabled country codes.
     """
     return [code for code, info in countries.countries.items() if info.enabled]
+
+
+def get_country_name_by_currency(
+    countries: CountriesData, /, currency: str
+) -> str | None:
+    """
+    Returns the country name for a given currency.
+    """
+    for country in countries.countries.values():
+        if country.currency.upper() == currency.upper():
+            return country.name
+    return None
