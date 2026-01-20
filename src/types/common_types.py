@@ -41,7 +41,8 @@ Address = Annotated[str, BeforeValidator(validate_address)]
 
 
 class WorldLedger(StrEnum):
-    WORLD = "@world"
+    WORLD_IN = "@world_in"
+    WORLD_OUT = "@world_OUT"
     PAYCREST_FEES = "@paycrest_fees"
     PLATFORM_FEES = "@platform_fees"
     BLOCKCHAIN_FEES = "@blockchain_fees"
