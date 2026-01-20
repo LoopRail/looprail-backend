@@ -11,8 +11,18 @@ ModelType = TypeVar("ModelType", bound=SQLModel)
 
 
 class Base:
+    _model: Type[ModelType] | None = None
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    @classmethod
+    def _get_model(cls) -> Type[ModelType]:
+        if cls._model is None:
+            raise RuntimeError(
+                f"{cls.__name__} has no model configured. Set _model on the subclass."
+            )
+        return cls._model
 
     async def rollback(self) -> Error:
         try:
@@ -21,32 +31,29 @@ class Base:
         except SQLAlchemyError as e:
             return error(e)
 
-    async def save(self, model: Type[ModelType]):
-        return await model.save(self.session)
+    async def save(self, instance: ModelType):
+        return await instance.save(self.session)
 
     async def get(
         self,
-        model: Type[ModelType],
         _id: Union[str, int],
         deletion: DeletionFilter = "active",
     ) -> Tuple[Optional[ModelType], Error]:
-        return await model.get(self.session, _id, deletion)
+        return await self._get_model().get(self.session, _id, deletion)
 
     async def find_one(
         self,
-        model: Type[ModelType],
         deletion: Optional[DeletionFilter] = None,
         **kwargs,
     ) -> Tuple[Optional[ModelType], Error]:
-        return await model.find_one(self.session, deletion, **kwargs)
+        return await self._get_model().find_one(self.session, deletion, **kwargs)
 
     async def find_all(
         self,
-        model: Type[ModelType],
         deletion: Optional[DeletionFilter] = None,
         **kwargs,
     ) -> List[ModelType]:
-        return await model.find_all(self.session, deletion, **kwargs)
+        return await self._get_model().find_all(self.session, deletion, **kwargs)
 
     async def create(self, instance: ModelType) -> Tuple[Optional[ModelType], Error]:
         return await instance.create(self.session)
