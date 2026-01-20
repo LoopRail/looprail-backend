@@ -66,6 +66,7 @@ class TransactionUsecase:
             "wallet_id": params.wallet_id,
             "asset_id": params.asset_id,
             "transaction_type": params.transaction_type,
+            "payment_type": params.payment_type,
             "method": params.method,
             "currency": params.currency,
             "sender": params.sender,
@@ -75,6 +76,7 @@ class TransactionUsecase:
             "fee": params.fee,
             "status": TransactionStatus.PENDING,
             "metadata": params.metadata,
+            "country": params.country,
         }
 
         # Add type-specific fields
