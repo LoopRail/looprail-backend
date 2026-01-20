@@ -1,4 +1,5 @@
 import os
+
 os.environ["ENVIRONMENT"] = "test"
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -9,13 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlmodel import SQLModel
 
 from src.infrastructure.config_settings import load_config
+
 # Load the test config immediately to ensure it's used by subsequent imports
 test_config = load_config()
 
 from src.dtos.base import Base as DTOBase
+
 DTOBase.dto_config = {
     "disposable_email_domains": test_config.disposable_email_domains,
-    "allowed_countries": test_config.countries
+    "allowed_countries": test_config.countries,
 }
 
 from src.api.dependencies import (
@@ -35,7 +38,13 @@ from src.infrastructure.db import get_session as get_app_session
 from src.main import app
 from src.models import Otp, User
 from src.types import OtpType
-from src.usecases import JWTUsecase, OtpUseCase, SecurityUseCase, SessionUseCase, UserUseCase
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    SecurityUseCase,
+    SessionUseCase,
+    UserUseCase,
+)
 import time
 
 
