@@ -17,7 +17,12 @@ from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RQManager
 from src.infrastructure.tasks.withdrawal_tasks import process_withdrawal_task
 from src.models import Session, User
-from src.usecases import SecurityUseCase, SessionUseCase, UserUseCase, WalletManagerUsecase
+from src.usecases import (
+    SecurityUseCase,
+    SessionUseCase,
+    UserUseCase,
+    WalletManagerUsecase,
+)
 
 logger = get_logger(__name__)
 
@@ -88,7 +93,9 @@ async def process_withraw_request(
     )
 
     # 1. Verify PKCE
-    verified, err = await security_usecase.verify_pkce(req.challenge_id, req.code_verifier)
+    verified, err = await security_usecase.verify_pkce(
+        req.challenge_id, req.code_verifier
+    )
     if err or not verified:
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
