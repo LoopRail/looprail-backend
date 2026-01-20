@@ -5,13 +5,10 @@ from src.infrastructure.repositories import AssetRepository, WalletRepository
 from src.infrastructure.services import LedgerService
 from src.types import TransactionType, WorldLedger
 from src.types.blnk import RecordTransactionRequest
-from src.types.blockrader import (
-    WebhookDepositSuccess,
-    WebhookEventType,
-    WebhookWithdrawCancelled,
-    WebhookWithdrawFailed,
-    WebhookWithdrawSuccess,
-)
+from src.types.blockrader import (WebhookDepositSuccess, WebhookEventType,
+                                  WebhookWithdrawCancelled,
+                                  WebhookWithdrawFailed,
+                                  WebhookWithdrawSuccess)
 from src.usecases import TransactionUsecase
 from src.utils import create_transaction_params_from_event
 
@@ -80,7 +77,7 @@ async def handle_deposit_success(
         countries=config.countries,
     )
     logger.debug("Creating local transaction record for event %s", event.data.id)
-    _, err = await transaction_usecase.create_transaction(create_transaction_params)
+    txn, err = await transaction_usecase.create_transaction(create_transaction_params)
     if err:
         logger.error(
             "Failed to create local transaction record for event %s: %s",
@@ -105,11 +102,12 @@ async def handle_deposit_success(
 
     transaction_request = RecordTransactionRequest(
         amount=amount_in_minor_units,
-        reference=event.data.id,
         currency=asset.symbol,
-        source=WorldLedger.WORLD,
+        source=WorldLedger.WORLD_IN,
         destination=asset.ledger_balance_id,
         description=f"Deposit from {event.data.senderAddress}",
+        allow_overdraft=True,
+        reference=txn.reference,
     )
     logger.debug("Recording transaction on ledger for event %s", event.data.id)
     _, err = await ledger_service.transactions.record_transaction(transaction_request)
@@ -211,7 +209,7 @@ async def handle_withdraw_success(
         reference=event.data.id,
         currency=event.data.currency,
         source=asset.ledger_balance_id,
-        destination=WorldLedger.WORLD,
+        destination=WorldLedger.WORLD_OUT,
         description=f"Withdrawal to {event.data.recipientAddress}",
     )
     logger.debug("Recording transaction on ledger for event %s", event.data.id)
@@ -298,7 +296,7 @@ async def handle_withdraw_failed(
         reference=event.data.id,
         currency=event.data.currency,
         source=asset.ledger_balance_id,
-        destination=WorldLedger.WORLD,
+        destination=WorldLedger.WORLD_OUT,
         description=f"Failed withdrawal to {event.data.recipientAddress}. Reason: {event.data.reason}",
     )
     logger.debug("Recording failed transaction on ledger for event %s", event.data.id)
@@ -388,7 +386,7 @@ async def handle_withdraw_cancelled(
         reference=event.data.id,
         currency=event.data.currency,
         source=asset.ledger_balance_id,
-        destination=WorldLedger.WORLD,
+        destination=WorldLedger.WORLD_OUT,
         description=f"Cancelled withdrawal to {event.data.recipientAddress}. Reason: {event.data.reason}",
     )
     logger.debug(
