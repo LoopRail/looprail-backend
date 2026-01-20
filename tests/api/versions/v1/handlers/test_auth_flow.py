@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from src.api.dependencies import BearerToken
 from src.main import app
 from src.models import User
+from src.dtos import UserPublic
 from src.types import AccessToken, TokenType, error
 
 
@@ -48,8 +49,9 @@ def test_login_success(
     login_data = {"email": user.email, "password": password}
     headers = {"X-Device-ID": "test_device_id", "X-Platform": "web"}
 
-    # Mock use case return values
     mock_user_usecases.authenticate_user.return_value = (user, None)
+    user_public_data = UserPublic.model_validate(user).model_dump(exclude_none=True)
+    mock_user_usecases.load_public_user.return_value = (user_public_data, None)
 
     session_id = f"ses_{uuid4()}"
     mock_session = MagicMock()
