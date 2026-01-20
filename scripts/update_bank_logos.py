@@ -15,7 +15,12 @@ for url in urls:
     # Extract filename from URL (e.g., "access-bank.svg" from the URL)
     filename = url.split("/")[-1].split("_")[0]
     # Handle special cases with extensions
-    if filename.endswith(".svg") or filename.endswith(".png") or filename.endswith(".jpg") or filename.endswith(".webp"):
+    if (
+        filename.endswith(".svg")
+        or filename.endswith(".png")
+        or filename.endswith(".jpg")
+        or filename.endswith(".webp")
+    ):
         url_map[filename] = url
     else:
         # Try to match by the part before the underscore
@@ -33,7 +38,12 @@ for country, banks in banks_data.items():
                 bank["logo"] = url_map[logo_filename]
             else:
                 # Try fuzzy matching
-                logo_base = logo_filename.replace(".svg", "").replace(".png", "").replace(".jpg", "").replace(".webp", "")
+                logo_base = (
+                    logo_filename.replace(".svg", "")
+                    .replace(".png", "")
+                    .replace(".jpg", "")
+                    .replace(".webp", "")
+                )
                 for url in urls:
                     if logo_base in url.lower():
                         bank["logo"] = url
