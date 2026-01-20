@@ -1,12 +1,14 @@
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple, Type
+from uuid import UUID
 
-from pydantic import field_validator
+from pydantic import field_serializer, field_validator
+from pydantic.types import UuidVersion
 
 from src.dtos.base import Base
-from src.types.common_types import Address, AssetId, Chain
+from src.types.common_types import Address, AssetId, Chain, WalletId
 from src.types.error import Error, error
-from src.types.types import PaymentMethod, WithdrawalMethod
+from src.types.types import WithdrawalMethod
 
 
 class TransferType(Base):
@@ -78,7 +80,7 @@ class ProcessWithdrawalRequest(Base):
 
 
 class AssetPublic(Base):
-    id: str
+    id: AssetId
     name: str
     symbol: str
     decimals: int
@@ -86,10 +88,18 @@ class AssetPublic(Base):
     network: str
     address: str
 
+    @field_serializer("id")
+    def serialise_id(self, asset_id: UUID) -> AssetId:
+        return AssetId.new(asset_id)
+
 
 class WalletPublic(Base):
-    id: str
+    id: WalletId
     address: str
     chain: str
     name: str | None = None
     assets: List[AssetPublic] = []
+
+    @field_serializer("id")
+    def serialise_id(self, wallet_id: UUID) -> WalletId:
+        return WalletId.new(wallet_id)
