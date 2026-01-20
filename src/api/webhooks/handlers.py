@@ -108,7 +108,7 @@ async def handle_deposit_success(
         description=f"Deposit from {event.data.senderAddress}",
         allow_overdraft=True,
         reference=txn.reference,
-    )
+    ) # TODO add more metadata here
     logger.debug("Recording transaction on ledger for event %s", event.data.id)
     _, err = await ledger_service.transactions.record_transaction(transaction_request)
     if err:
