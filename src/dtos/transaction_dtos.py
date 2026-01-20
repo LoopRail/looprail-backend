@@ -1,22 +1,26 @@
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 from typing import List, Optional, Union
+from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+from pydantic import (BaseModel, ConfigDict, Field, computed_field,
+                      field_validator)
+from pydantic_extra_types.country import CountryShortName
 
 from src.dtos.base import Base
-from src.types.common_types import AssetId, TransactionId, UserId, WalletId
-from src.types.types import Currency, PaymentMethod, TransactionStatus, TransactionType
-
 from src.models.tranaction_model import Transaction
+from src.types.common_types import AssetId, TransactionId, UserId, WalletId
+from src.types.types import (Currency, PaymentMethod, TransactionStatus,
+                             TransactionType)
 
 
 class BaseTransactionParams(Base):
     """Base params for all transaction types"""
 
-    wallet_id: WalletId
-    asset_id: AssetId
+    wallet_id: UUID
+    asset_id: UUID
     transaction_type: TransactionType
+    payment_type: TransactionType
     method: PaymentMethod
     currency: Currency
     sender: UserId
@@ -25,6 +29,7 @@ class BaseTransactionParams(Base):
     narration: Optional[str] = Field(default=None, max_length=500)
     fee: Optional[Decimal] = Field(default=None, ge=0)
     metadata: dict = Field(default_factory=dict)
+    country: Optional[CountryShortName] = Field(default=None)
 
 
 class CryptoTransactionParams(BaseTransactionParams):
@@ -94,9 +99,11 @@ class TransactionRead(Base):
 
     # Transaction info
     transaction_type: TransactionType = Field(alias="transaction-type")
+    payment_type: TransactionType = Field(alias="payment-type")
     method: PaymentMethod
     currency: Currency
     status: TransactionStatus
+    country: Optional[CountryShortName] = None
 
     # Parties
     sender: str
@@ -236,9 +243,11 @@ class TransactionResponseBuilder:
             "wallet_id": transaction.wallet_id,
             "asset_id": transaction.asset_id,
             "transaction_type": transaction.transaction_type,
+            "payment_type": transaction.payment_type,
             "method": transaction.method,
             "currency": transaction.currency,
             "status": transaction.status,
+            "country": transaction.country,
             "sender": transaction.sender,
             "receiver": transaction.receiver,
             "amount": transaction.amount,
