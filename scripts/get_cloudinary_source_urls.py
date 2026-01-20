@@ -3,6 +3,7 @@ import json
 import cloudinary
 import cloudinary.api
 
+
 def get_all_asset_urls(folder_path: str, resource_type: str = "image"):
     """
     Return a list of secure URLs of all assets in the given Cloudinary folder.
@@ -28,6 +29,7 @@ def get_all_asset_urls(folder_path: str, resource_type: str = "image"):
 
     return urls
 
+
 def list_all_folders():
     """
     List all folders in the Cloudinary account recursively.
@@ -45,19 +47,24 @@ def list_all_folders():
     fetch_subfolders()
     return folders
 
+
 # -----------------------------
 # CLI entry point
 # -----------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Cloudinary CLI: list folders or fetch asset URLs")
-    
+    parser = argparse.ArgumentParser(
+        description="Cloudinary CLI: list folders or fetch asset URLs"
+    )
+
     # Cloudinary credentials
     parser.add_argument("--cloud_name", required=True, help="Cloudinary cloud name")
     parser.add_argument("--api_key", required=True, help="Cloudinary API key")
     parser.add_argument("--api_secret", required=True, help="Cloudinary API secret")
 
     # Folder and type
-    parser.add_argument("--folder", help="Cloudinary folder path (e.g., apps/app_123/banners)")
+    parser.add_argument(
+        "--folder", help="Cloudinary folder path (e.g., apps/app_123/banners)"
+    )
     parser.add_argument(
         "--type",
         default="image",
@@ -102,6 +109,6 @@ def main():
         print("Error: You must specify either --folder or --list-folders")
         exit(1)
 
+
 if __name__ == "__main__":
     main()
-
