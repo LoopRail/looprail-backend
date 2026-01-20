@@ -133,6 +133,7 @@ async def test_initiate_withdraw_usecase_error(
     }
 
     from src.types.error import error
+
     mock_wallet_manager_usecase.initiate_withdrawal.return_value = (
         None,
         error("Insufficient balance"),
@@ -158,13 +159,13 @@ async def test_process_withdraw_success(
     from src.api.dependencies import get_current_session
     from src.models import Session
     from uuid import UUID
-    
+
     session_id_raw = str(uuid4())
     mock_session = MagicMock(spec=Session)
     mock_session.id = UUID(session_id_raw)
     mock_session.get_prefixed_id.return_value = f"ses_{session_id_raw}"
     app.dependency_overrides[get_current_session] = lambda: mock_session
-    
+
     process_data = {
         "transaction_id": f"txn_{uuid4()}",
         "transation_pin": "123456",
@@ -182,6 +183,6 @@ async def test_process_withdraw_success(
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["message"] == "Withdrawal processing initiated successfully."
     mock_rq_manager.get_queue().enqueue.assert_called_once()
-    
+
     # Clean up
     del app.dependency_overrides[get_current_session]
