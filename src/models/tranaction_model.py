@@ -33,8 +33,12 @@ class Transaction(Base, table=True):
     transaction_type: TransactionType = Field(
         nullable=False, sa_column_kwargs={"index": True}
     )
+    payment_type: TransactionType = Field(
+        nullable=False, sa_column_kwargs={"index": True}
+    )
     method: PaymentMethod = Field(nullable=False)
     currency: Currency = Field(nullable=False)
+    country: Optional[str] = Field(default=None, sa_column_kwargs={"index": True})
 
     # Parties
     sender: UserId = Field(nullable=False)
