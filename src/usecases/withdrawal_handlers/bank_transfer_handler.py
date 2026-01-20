@@ -98,7 +98,7 @@ async def handle_bank_transfer(
         amount=int(withdrawal_request.amount * 100),  # Convert to minor units
         reference=transaction.get_prefixed_id(),  # Use internal transaction ID as reference for ledger
         source=asset.ledger_balance_id,
-        destination=WorldLedger.WORLD,  # To external world
+        destination=WorldLedger.WORLD_OUT,  # To external world
         description=withdrawal_request.narration,
     )
     logger.debug(
