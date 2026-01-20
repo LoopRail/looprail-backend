@@ -7,10 +7,12 @@ from sqlmodel import select, update
 from src.infrastructure.repositories.base import Base
 from src.models import RefreshToken
 from src.types import Error, error
-from src.types.common_types import SessionId, UserId
+from src.types.common_types import SessionId
 
 
 class RefreshTokenRepository(Base):
+    _model = RefreshToken
+
     async def create_refresh_token(
         self,
         session_id: SessionId,
@@ -74,11 +76,3 @@ class RefreshTokenRepository(Base):
         )
         await self.session.execute(statement)
         return None
-
-    async def revoke_all_refresh_tokens_for_user(self, user_id: UserId) -> Error:
-        # This requires joining with the Session table to find all sessions for a user
-        # and then revoking their refresh tokens.
-        # This will be handled in SessionRepository or SessionUseCase
-        return error(
-            "Not implemented: revoke_all_refresh_tokens_for_user in RefreshTokenRepository"
-        )
