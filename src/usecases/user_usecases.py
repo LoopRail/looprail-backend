@@ -1,7 +1,9 @@
 import uuid
 from typing import List, Optional, Tuple
 
-from src.dtos.user_dtos import UserCreate
+from pydantic_core import ValidationError
+
+from src.dtos.user_dtos import UserCreate, UserPublic
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import UserRepository
 from src.infrastructure.security import Argon2Config
@@ -9,10 +11,11 @@ from src.infrastructure.settings import BlockRaderConfig
 from src.models import User, UserCredentials, UserPin, UserProfile
 from src.types import (
     Error,
-    NotFoundError,
     HashedPassword,
     InvalidCredentialsError,
+    NotFoundError,
     UserAlreadyExistsError,
+    error,
 )
 from src.types.common_types import UserId
 from src.usecases.wallet_usecases import WalletManagerUsecase, WalletService
@@ -305,14 +308,49 @@ class UserUseCase:
         user, err = await self.get_user_by_id(user_id)
         if err or not user:
             return False, err
-        
+
         if not user.pin:
             logger.warning("Transaction pin not set for user %s", user_id)
             return False, None
-        
+
         is_valid = verify_password(
-            pin, 
-            HashedPassword(password_hash=user.pin.pin_hash), 
-            self.argon2_config
+            pin, HashedPassword(password_hash=user.pin.pin_hash), self.argon2_config
         )
         return is_valid, None
+
+    async def load_public_user(self, user_id: UserId) -> Tuple[Optional[dict], Error]:
+        logger.debug("Loading public user data for user %s", user_id)
+        user, err = await self.get_user_by_id(user_id)
+        if err or not user:
+            return None, err or NotFoundError
+
+        user_data = user.model_dump()
+
+        wallet = getattr(user, "wallet", None)
+        wallets_data = []
+        if wallet:
+            source_wallets = wallet if isinstance(wallet, list) else [wallet]
+            for w in source_wallets:
+                w_dict = w.model_dump()
+                assets_data = []
+                if hasattr(w, "assets") and w.assets:
+                    for a in w.assets:
+                        a_dict = a.model_dump()
+                        assets_data.append(a_dict)
+                w_dict["assets"] = assets_data
+                wallets_data.append(w_dict)
+
+        user_data["wallets"] = wallets_data
+
+        # Ensure profile is included in user_data and populated with necessary fields
+        if hasattr(user, "profile") and user.profile:
+            user_data["profile"] = user.profile.model_dump()
+
+        try:
+            public_user = UserPublic.model_validate(user_data)
+            return public_user.model_dump(exclude_none=True), None
+        except ValidationError as e:
+            logger.error(
+                "Failed to validate public user data for user %s: %s", user_id, str(e)
+            )
+            return None, error(f"Failed to load user data: {str(e)}")
