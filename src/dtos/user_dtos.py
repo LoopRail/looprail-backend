@@ -3,6 +3,7 @@ from datetime import date
 from typing import List, Optional
 
 from pydantic import EmailStr, Field, field_validator
+from pydantic_extra_types.country import CountryShortName
 
 from src.dtos.base import Base
 from src.dtos.wallet_dtos import WalletPublic
@@ -10,7 +11,7 @@ from src.types.common_types import PhoneNumber, RefreshTokenId, UserId, UserProf
 from src.types.country_types import CountriesData
 from src.types.error import error
 from src.types.types import Gender, KYCStatus
-from src.utils import is_valid_country_code, is_valid_email, validate_password_strength
+from src.utils import is_valid_email, validate_password_strength
 
 USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]{4,16}$")
 
@@ -27,7 +28,7 @@ class UserCreate(Base):
     first_name: str
     last_name: str
     username: str = Field(min_length=4, max_length=16)
-    country_code: str
+    country_code: CountryShortName
     gender: Gender
     phone_number: PhoneNumber
 
@@ -48,16 +49,6 @@ class UserCreate(Base):
             raise err
         return v
 
-    @field_validator("country_code")
-    @classmethod
-    def _validate_country_code(cls, v: str) -> str:
-        config: CountriesData = cls.dto_config.get("allowed_countries", None)
-        if config is None:
-            raise error("Config not set")
-        if not is_valid_country_code(config, v):
-            raise error(f"Country code '{v.upper()}' is not supported")
-        return v.upper()
-
     @field_validator("email")
     @classmethod
     def _validate_email(cls, v: str) -> str:
@@ -76,34 +67,31 @@ class UserPublic(Base):
     last_name: str | None = Field(default=None)
     username: str
     gender: Gender
+    is_email_verified: bool
     has_completed_onboarding: bool
-    onboarding_responses: List[str] = []
     profile: Optional["UserProfilePublic"] = None
-    wallets: List[WalletPublic] = []
+    wallets: Optional[List[WalletPublic]] = None
 
 
 class UserProfileCreate(Base):
-    street: str
-    city: str
-    state: str
-    postal_code: str
-    country: str
+    street: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: CountryShortName
     phone_number: PhoneNumber
-    date_of_birth: date
+    date_of_birth: Optional[date] = None
 
 
 class UserProfilePublic(Base):
-    id: UserProfileId
     kyc_status: KYCStatus
-    is_email_verified: bool
-    street: str
-    city: str
-    state: str
-    postal_code: str
-    country: str
+    street: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    postal_code: Optional[str] = None
+    country: CountryShortName
     phone_number: PhoneNumber
-    date_of_birth: date
-    user_id: UserId
+    date_of_birth: Optional[date] = None
 
 
 class LoginRequest(Base):
