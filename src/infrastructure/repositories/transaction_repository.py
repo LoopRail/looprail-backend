@@ -14,6 +14,8 @@ class TransactionRepository(Base):
     Concrete implementation of the transaction repository using SQLModel.
     """
 
+    _model = Transaction
+
     async def create_transaction(
         self, *, transaction: Transaction
     ) -> Tuple[Optional[Transaction], Error]:
@@ -22,7 +24,7 @@ class TransactionRepository(Base):
     async def get_transaction_by_id(
         self, *, transaction_id: TransactionId
     ) -> Tuple[Optional[Transaction], Error]:
-        return await self.get(Transaction, transaction_id)
+        return await self.get(transaction_id)
 
     async def get_transactions_by_wallet_id(
         self, *, wallet_id: WalletId, limit: int = 20, offset: int = 0
@@ -42,12 +44,12 @@ class TransactionRepository(Base):
     async def get_transaction_by_hash(
         self, *, transaction_hash: str
     ) -> Tuple[Optional[Transaction], Error]:
-        return await self.find_one(Transaction, transaction_hash=transaction_hash)
+        return await self.find_one(transaction_hash=transaction_hash)
 
     async def get_transaction_by_provider_id(
         self, *, provider_id: str
     ) -> Tuple[Optional[Transaction], Error]:
-        return await self.find_one(Transaction, provider_id=provider_id)
+        return await self.find_one(provider_id=provider_id)
 
     async def update_transaction(
         self, *, transaction: Transaction
