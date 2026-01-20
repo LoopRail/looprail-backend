@@ -5,10 +5,13 @@ from src.infrastructure.repositories import AssetRepository, WalletRepository
 from src.infrastructure.services import LedgerService
 from src.types import TransactionType, WorldLedger
 from src.types.blnk import RecordTransactionRequest
-from src.types.blockrader import (WebhookDepositSuccess, WebhookEventType,
-                                  WebhookWithdrawCancelled,
-                                  WebhookWithdrawFailed,
-                                  WebhookWithdrawSuccess)
+from src.types.blockrader import (
+    WebhookDepositSuccess,
+    WebhookEventType,
+    WebhookWithdrawCancelled,
+    WebhookWithdrawFailed,
+    WebhookWithdrawSuccess,
+)
 from src.usecases import TransactionUsecase
 from src.utils import create_transaction_params_from_event
 
@@ -103,7 +106,7 @@ async def handle_deposit_success(
     transaction_request = RecordTransactionRequest(
         amount=amount_in_minor_units,
         reference=event.data.id,
-        currency=event.data.currency,
+        currency=asset.symbol,
         source=WorldLedger.WORLD,
         destination=asset.ledger_balance_id,
         description=f"Deposit from {event.data.senderAddress}",
