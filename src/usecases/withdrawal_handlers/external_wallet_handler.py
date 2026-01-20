@@ -64,6 +64,7 @@ async def handle_external_wallet_transfer(
     create_transaction_params = CreateTransactionParams(
         wallet_id=asset.wallet_id,
         transaction_type=TransactionType.DEBIT,
+        payment_type=TransactionType.DEBIT,
         method=WithdrawalMethod.EXTERNAL_WALLET,
         currency=asset.symbol,
         sender=user.id,
