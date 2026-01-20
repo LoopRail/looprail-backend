@@ -29,7 +29,6 @@ def create_transaction_params_from_event(
     if country is None and countries is not None:
         country = get_country_name_by_currency(countries, event_data.currency)
 
-
     return CryptoTransactionParams(
         wallet_id=wallet.id,
         asset_id=asset_id,
