@@ -13,8 +13,8 @@ class AuthTokensResponse(Base):
 
 
 class AuthWithTokensAndUserResponse(MessageResponse, AuthTokensResponse):
-    user: UserPublic
     session_id: str
+    user: UserPublic
 
 
 class CreateUserResponse(Base):
