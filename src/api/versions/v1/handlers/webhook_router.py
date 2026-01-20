@@ -7,6 +7,8 @@ from src.api.dependencies.repositories import (
     get_asset_repository,
 )
 from src.api.dependencies.services import get_ledger_service
+from src.api.dependencies import get_config
+from src.infrastructure.config_settings import Config
 from src.infrastructure.repositories import WalletRepository, AssetRepository
 from src.infrastructure.services.ledger import LedgerService
 from src.api.dependencies.webhooks import get_blockrader_webhook_event
@@ -28,6 +30,7 @@ async def handle_blockrader_webhook(
     wallet_repo: WalletRepository = Depends(get_wallet_repository),
     asset_repo: AssetRepository = Depends(get_asset_repository),
     transaction_usecase: TransactionUsecase = Depends(get_transaction_usecase),
+    config: Config = Depends(get_config),
 ):
     logger.info("Handling BlockRadar webhook event of type: %s", webhook_event.event)
     logger.info("Received BlockRadar webhook event: %s", webhook_event.event)
@@ -41,6 +44,7 @@ async def handle_blockrader_webhook(
             wallet_repo=wallet_repo,
             asset_repo=asset_repo,
             transaction_usecase=transaction_usecase,
+            config=config,
         )
         logger.info("Webhook event %s processed successfully.", webhook_event.event)
         return {"message": "Webhook received and processed"}
