@@ -5,10 +5,13 @@ from src.infrastructure.repositories import AssetRepository, WalletRepository
 from src.infrastructure.services import LedgerService
 from src.types import TransactionType, WorldLedger
 from src.types.blnk import RecordTransactionRequest
-from src.types.blockrader import (WebhookDepositSuccess, WebhookEventType,
-                                  WebhookWithdrawCancelled,
-                                  WebhookWithdrawFailed,
-                                  WebhookWithdrawSuccess)
+from src.types.blockrader import (
+    WebhookDepositSuccess,
+    WebhookEventType,
+    WebhookWithdrawCancelled,
+    WebhookWithdrawFailed,
+    WebhookWithdrawSuccess,
+)
 from src.usecases import TransactionUsecase
 from src.utils import create_transaction_params_from_event
 
@@ -108,7 +111,7 @@ async def handle_deposit_success(
         description=f"Deposit from {event.data.senderAddress}",
         allow_overdraft=True,
         reference=txn.reference,
-    ) # TODO add more metadata here
+    )  # TODO add more metadata here
     logger.debug("Recording transaction on ledger for event %s", event.data.id)
     _, err = await ledger_service.transactions.record_transaction(transaction_request)
     if err:
