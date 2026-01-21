@@ -7,8 +7,7 @@ from pydantic_extra_types.country import CountryShortName
 
 from src.dtos.base import Base
 from src.dtos.wallet_dtos import WalletPublic
-from src.types.common_types import PhoneNumber, RefreshTokenId, UserId, UserProfileId
-from src.types.country_types import CountriesData
+from src.types.common_types import PhoneNumber, RefreshTokenId, UserId
 from src.types.error import error
 from src.types.types import Gender, KYCStatus
 from src.utils import is_valid_email, validate_password_strength
@@ -16,8 +15,11 @@ from src.utils import is_valid_email, validate_password_strength
 USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]{4,16}$")
 
 
-class OnboardUserUpdate(Base):
+class SetTransactionPinRequest(Base):
     transaction_pin: str = Field(pattern=r"^\d{4}$")
+
+
+class CompleteOnboardingRequest(Base):
     allow_notifications: bool
     questioner: list[str]
 

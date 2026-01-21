@@ -21,16 +21,18 @@ from src.dtos.transaction_dtos import (
     CryptoTransactionParams,
 )
 from src.dtos.user_dtos import (
+    CompleteOnboardingRequest,
     LoginRequest,
-    OnboardUserUpdate,
     RefreshTokenRequest,
+    SetTransactionPinRequest,
     UserCreate,
     UserPublic,
 )
 from src.dtos.wallet_dtos import BankTransferRequest, WithdrawalRequest
 
 __all__ = [
-    "OnboardUserUpdate",
+    "CompleteOnboardingRequest",
+    "SetTransactionPinRequest",
     "VerifyAccountRequest",
     "LoginRequest",
     "RefreshTokenRequest",
