@@ -121,7 +121,7 @@ async def handle_deposit_success(
             err.message,
         )
         return
-    logger.info("Deposit transaction recorded on ledger for event %s", event.data.id)
+    logger.info("Deposit transaction successfully recorded on ledger for event %s", event.data.id)
 
 
 @register(event_type=WebhookEventType.WITHDRAW_SUCCESS)
@@ -224,7 +224,7 @@ async def handle_withdraw_success(
             err.message,
         )
         return
-    logger.info("Withdrawal transaction recorded on ledger for event %s", event.data.id)
+    logger.info("Withdrawal transaction successfully recorded on ledger for event %s", event.data.id)
     return
 
 
@@ -312,7 +312,7 @@ async def handle_withdraw_failed(
         )
         return
     logger.info(
-        "Failed withdrawal transaction recorded on ledger for event %s", event.data.id
+        "Failed withdrawal transaction successfully recorded on ledger for event %s", event.data.id
     )
     return
 
@@ -404,6 +404,6 @@ async def handle_withdraw_cancelled(
         )
         return
     logger.info(
-        "Cancelled withdrawal transaction recorded on ledger for event %s",
+        "Cancelled withdrawal transaction successfully recorded on ledger for event %s",
         event.data.id,
     )
