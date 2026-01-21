@@ -9,8 +9,14 @@ from src.infrastructure.repositories import UserRepository
 from src.infrastructure.security import Argon2Config
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import User, UserCredentials, UserPin, UserProfile
-from src.types import (Error, HashedPassword, InvalidCredentialsError,
-                       NotFoundError, UserAlreadyExistsError, error)
+from src.types import (
+    Error,
+    HashedPassword,
+    InvalidCredentialsError,
+    NotFoundError,
+    UserAlreadyExistsError,
+    error,
+)
 from src.types.common_types import UserId
 from src.usecases.wallet_usecases import WalletManagerUsecase, WalletService
 from src.utils import hash_password, verify_password
@@ -165,13 +171,12 @@ class UserUseCase:
 
         return created_user, None
 
-    async def complete_user_onboarding(
+    async def setup_user_wallet(
         self,
         user_id: UserId,
         transaction_pin: str,
-        onboarding_responses: List[str],
     ) -> Tuple[Optional[User], Error]:
-        logger.info("Completing onboarding for user %s", user_id)
+        logger.info("Setting up wallet for user %s", user_id)
 
         user, err = await self.get_user_by_id(user_id)
         if err or not user:
@@ -182,10 +187,7 @@ class UserUseCase:
         if err:
             return None, err
 
-        # 2. Store onboarding responses
-        user.onboarding_responses = onboarding_responses
-
-        # 3. Create ledger identity
+        # 2. Create ledger identity
         logger.debug("Creating ledger identity for user %s", user.username)
         ledger_identity, err = await self.wallet_service.create_ledger_identity(user)
         if err:
@@ -199,7 +201,7 @@ class UserUseCase:
 
         user.ledger_identity_id = ledger_identity.identity_id
 
-        # 4. Create wallet
+        # 3. Create wallet
         logger.debug("Creating wallet for user %s", user.username)
         _, err = await self.wallet_manager_usecase.create_user_wallet(user.id)
         if err:
@@ -211,7 +213,28 @@ class UserUseCase:
             )
             return None, err
 
-        # 5. Mark as completed
+        updated_user, err = await self.save(user)
+        if err:
+            return None, err
+
+        logger.info("Wallet setup successfully for user %s", user.username)
+        return updated_user, None
+
+    async def finalize_onboarding(
+        self,
+        user_id: UserId,
+        onboarding_responses: List[str],
+    ) -> Tuple[Optional[User], Error]:
+        logger.info("Finalizing onboarding for user %s", user_id)
+
+        user, err = await self.get_user_by_id(user_id)
+        if err or not user:
+            return None, err
+
+        # 1. Store onboarding responses
+        user.onboarding_responses = onboarding_responses
+
+        # 2. Mark as completed
         user.has_completed_onboarding = True
 
         updated_user, err = await self.save(user)
