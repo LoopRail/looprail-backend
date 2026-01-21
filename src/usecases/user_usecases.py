@@ -158,14 +158,9 @@ class UserUseCase:
             )
             return None, err
         logger.info(
-            "User %s created successfully in repository with temporary ledger ID %s.",
-            created_user.username,
-            temp_ledger_identity_id,
-        )
-
-        logger.info(
-            "User %s created successfully in repository with temporary ledger ID %s.",
-            created_user.username,
+            "User %s (ID: %s) created successfully with temporary ledger ID %s.",
+            user_create.username,
+            created_user.id,
             temp_ledger_identity_id,
         )
 
@@ -183,17 +178,17 @@ class UserUseCase:
             return None, err
 
         # 1. Update transaction pin
-        _, err = await self.update_transaction_pin(user_id, transaction_pin)
+        user, err = await self.update_transaction_pin(user_id, transaction_pin)
         if err:
             return None, err
 
         # 2. Create ledger identity
-        logger.debug("Creating ledger identity for user %s", user.username)
+        logger.debug("Creating ledger identity for user ID %s", user_id)
         ledger_identity, err = await self.wallet_service.create_ledger_identity(user)
         if err:
             logger.error(
-                "Failed to create ledger identity for user %s: %s",
-                user.username,
+                "Failed to create ledger identity for user ID %s: %s",
+                user_id,
                 err.message,
                 exc_info=True,
             )
@@ -201,13 +196,12 @@ class UserUseCase:
 
         user.ledger_identity_id = ledger_identity.identity_id
 
-        # 3. Create wallet
-        logger.debug("Creating wallet for user %s", user.username)
+        logger.debug("Creating wallet for user ID %s", user_id)
         _, err = await self.wallet_manager_usecase.create_user_wallet(user.id)
         if err:
             logger.error(
-                "Failed to create wallet for user %s: %s",
-                user.username,
+                "Failed to create wallet for user ID %s: %s",
+                user_id,
                 err.message,
                 exc_info=True,
             )
@@ -217,7 +211,7 @@ class UserUseCase:
         if err:
             return None, err
 
-        logger.info("Wallet setup successfully for user %s", user.username)
+        logger.info("Wallet setup successfully for user ID %s", user_id)
         return updated_user, None
 
     async def finalize_onboarding(
@@ -241,7 +235,7 @@ class UserUseCase:
         if err:
             return None, err
 
-        logger.info("Onboarding completed successfully for user %s", user.username)
+        logger.info("Onboarding completed successfully for user ID %s", user_id)
         return updated_user, None
 
     async def get_user_by_id(self, user_id: UserId) -> Tuple[Optional[User], Error]:
@@ -311,7 +305,7 @@ class UserUseCase:
         updated_user, err = await self.save(user)
         if err:
             logger.error(
-                "Failed to update transaction pin for user %s: %s",
+                "Failed to save user %s after updating transaction pin: %s",
                 user_id,
                 err.message,
                 exc_info=True,
@@ -336,6 +330,10 @@ class UserUseCase:
         is_valid = verify_password(
             pin, HashedPassword(password_hash=user.pin.pin_hash), self.argon2_config
         )
+        if is_valid:
+            logger.info("Transaction pin verified successfully for user %s", user_id)
+        else:
+            logger.warning("Invalid transaction pin provided for user %s", user_id)
         return is_valid, None
 
     async def load_public_user(self, user_id: UserId) -> Tuple[Optional[dict], Error]:
