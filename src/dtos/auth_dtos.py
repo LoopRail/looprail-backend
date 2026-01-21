@@ -12,8 +12,10 @@ class AuthTokensResponse(Base):
     refresh_token: str | None = None
 
 
-class AuthWithTokensAndUserResponse(MessageResponse, AuthTokensResponse):
-    session_id: str
+class AuthWithTokensAndUserResponse(MessageResponse):
+    session_id: str | None = None
+    access_token: str | None = Field(None, alias="access-token")
+    refresh_token: str | None = Field(None, alias="refresh-token")
     user: UserPublic
 
 
