@@ -3,61 +3,30 @@ import hashlib
 from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (
-    BearerToken,
-    get_app_environment,
-    get_config,
-    get_current_session,
-    get_jwt_usecase,
-    get_otp_usecase,
-    get_resend_service,
-    get_security_usecase,
-    get_session_usecase,
-    get_user_usecases,
-)
-from src.api.internals import (
-    send_otp_internal,
-    set_send_otp_config,
-    set_user_create_config,
-)
+from src.api.dependencies import (BearerToken, get_app_environment, get_config,
+                                  get_current_session, get_jwt_usecase,
+                                  get_otp_usecase, get_resend_service,
+                                  get_security_usecase, get_session_usecase,
+                                  get_user_usecases)
+from src.api.internals import (send_otp_internal, set_send_otp_config,
+                               set_user_create_config)
 from src.api.rate_limiter import limiter
-from src.dtos import (
-    AuthTokensResponse,
-    AuthWithTokensAndUserResponse,
-    ChallengeResponse,
-    CreateUserResponse,
-    LoginRequest,
-    MessageResponse,
-    OnboardUserUpdate,
-    OtpCreate,
-    PasscodeLoginRequest,
-    PasscodeSetRequest,
-    RefreshTokenRequest,
-    UserCreate,
-    UserPublic,
-)
+from src.dtos import (AuthTokensResponse, AuthWithTokensAndUserResponse,
+                      ChallengeResponse, CompleteOnboardingRequest,
+                      CreateUserResponse, LoginRequest, MessageResponse,
+                      OtpCreate, PasscodeLoginRequest, PasscodeSetRequest,
+                      RefreshTokenRequest, SetTransactionPinRequest,
+                      UserCreate)
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
 from src.models import Session
-from src.types import (
-    AccessToken,
-    AccessTokenSub,
-    OnBoardingToken,
-    Platform,
-    TokenType,
-    UserAlreadyExistsError,
-    UserId,
-)
+from src.types import (AccessToken, AccessTokenSub, OnBoardingToken, Platform,
+                       TokenType, UserAlreadyExistsError, UserId)
 from src.types.common_types import SessionId
-from src.usecases import (
-    JWTUsecase,
-    OtpUseCase,
-    SecurityUseCase,
-    SessionUseCase,
-    UserUseCase,
-)
+from src.usecases import (JWTUsecase, OtpUseCase, SecurityUseCase,
+                          SessionUseCase, UserUseCase)
 from src.utils.auth_utils import create_refresh_token
 
 logger = get_logger(__name__)
@@ -113,6 +82,39 @@ async def create_user(
 
 
 @router.post(
+    "/setup-wallet",
+    response_model=MessageResponse,
+    status_code=status.HTTP_200_OK,
+)
+@limiter.limit("5/minute")
+async def setup_wallet(
+    request: Request,
+    user_data: SetTransactionPinRequest,
+    token: OnBoardingToken = Depends(BearerToken[OnBoardingToken](OnBoardingToken)),
+    user_usecases: UserUseCase = Depends(get_user_usecases),
+):
+    logger.info("Setting up wallet for user ID: %s", token.user_id)
+    if token.token_type != TokenType.ONBOARDING_TOKEN:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"message": "Invalid token"},
+        )
+
+    _, err = await user_usecases.setup_user_wallet(
+        user_id=token.user_id.clean(),
+        transaction_pin=user_data.transaction_pin,
+    )
+    if err:
+        logger.error("Failed to setup user wallet: %s", err.message)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": err.message},
+        )
+
+    return {"message": "Wallet setup initiated successfully"}
+
+
+@router.post(
     "/complete_onboarding",
     response_model=AuthWithTokensAndUserResponse,
     status_code=status.HTTP_202_ACCEPTED,
@@ -120,7 +122,7 @@ async def create_user(
 @limiter.limit("5/minute")
 async def complete_onboarding(
     request: Request,
-    user_data: OnboardUserUpdate,
+    user_data: CompleteOnboardingRequest,
     token: OnBoardingToken = Depends(BearerToken[OnBoardingToken](OnBoardingToken)),
     user_usecases: UserUseCase = Depends(get_user_usecases),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
@@ -156,9 +158,8 @@ async def complete_onboarding(
             content={"message": "Onboarding already completed"},
         )
 
-    current_user, err = await user_usecases.complete_user_onboarding(
+    current_user, err = await user_usecases.finalize_onboarding(
         user_id=current_user.id,
-        transaction_pin=user_data.transaction_pin,
         onboarding_responses=user_data.questioner,
     )
     if err:
