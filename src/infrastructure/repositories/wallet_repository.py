@@ -1,9 +1,13 @@
 from typing import Optional, Tuple
 
+from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories.base import Base
 from src.models.wallet_model import Wallet
 from src.types.common_types import UserId, WalletId
 from src.types.error import Error
+
+
+logger = get_logger(__name__)
 
 
 class WalletRepository(Base):
@@ -14,6 +18,7 @@ class WalletRepository(Base):
     _model = Wallet
 
     async def create_wallet(self, *, wallet: Wallet) -> Tuple[Optional[Wallet], Error]:
+        logger.info("Creating new wallet for user: %s", wallet.user_id)
         return await self.create(wallet)
 
     async def get_wallet_by_id(
