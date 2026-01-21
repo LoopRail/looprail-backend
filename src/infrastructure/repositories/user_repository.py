@@ -97,18 +97,21 @@ class UserRepository(Base):
         if err:
             return None, err
 
-        stmt = select(UserProfile).where(UserProfile.id == user.profile.id)
-        result = await self.session.execute(stmt)
-        return result.scalars().first(), None
+        profile = await user.awaitable_attrs.profile
+        if not profile:
+            return None, NotFoundError
+
+        return profile, None
 
     async def get_user_profile_by_user_phone_number(
-        self, *, phone_number: str 
+        self, *, phone_number: str
     ) -> Tuple[Optional[UserProfile], Error]:
-
-
         stmt = select(UserProfile).where(UserProfile.phone_number == phone_number)
         result = await self.session.execute(stmt)
-        return result.scalars().first(), None
+        profile = result.scalars().first()
+        if not profile:
+            return None, NotFoundError
+        return profile, None
 
     async def update_user_profile(
         self, *, user_id: UserId, **kwargs
