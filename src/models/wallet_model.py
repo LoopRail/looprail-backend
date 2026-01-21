@@ -48,7 +48,7 @@ class Asset(Base, table=True):
     )
     ledger_balance_id: str = Field(default=None, nullable=False, unique=True)
     name: str = Field(nullable=False)
-    asset_id: UUID = Field(index=True, nullable=False, unique=True)
+    asset_id: UUID = Field(index=True, nullable=False)
     asset_type: AssetType = Field(nullable=False)
     address: Address = Field(nullable=False)
     symbol: str = Field(nullable=False)
