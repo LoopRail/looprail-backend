@@ -22,8 +22,9 @@ from src.infrastructure.logger import get_logger
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
 from src.models import Session
-from src.types import (AccessToken, AccessTokenSub, OnBoardingToken, Platform,
-                       TokenType, UserAlreadyExistsError, UserId)
+from src.types import (AccessToken, AccessTokenSub, OnBoardingToken,
+                       OnBoardingTokenSub, Platform, TokenType,
+                       UserAlreadyExistsError, UserId)
 from src.types.common_types import SessionId
 from src.usecases import (JWTUsecase, OtpUseCase, SecurityUseCase,
                           SessionUseCase, UserUseCase)
@@ -70,11 +71,13 @@ async def create_user(
 
     public_user, err = await user_usecases.load_public_user(created_user.id)
     if err:
+        logger.error("Failed to load public user data for %s: %s", created_user.id, err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to load user data"},
         )
 
+    logger.info("Create user flow completed for %s. OTP token issued.", user_data.email)
     return {
         "user": public_user,
         "otp_token": token,
@@ -105,12 +108,13 @@ async def setup_wallet(
         transaction_pin=user_data.transaction_pin,
     )
     if err:
-        logger.error("Failed to setup user wallet: %s", err.message)
+        logger.error("Failed to setup user wallet for user %s: %s", token.user_id, err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": err.message},
         )
 
+    logger.info("Wallet setup successfully initiated for user ID: %s", token.user_id)
     return {"message": "Wallet setup initiated successfully"}
 
 
@@ -196,11 +200,13 @@ async def complete_onboarding(
     )
     public_user, err = await user_usecases.load_public_user(current_user.id)
     if err:
+        logger.error("Failed to load public user data during onboarding for %s: %s", current_user.id, err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to load user data"},
         )
 
+    logger.info("Onboarding successfully completed for user ID: %s", current_user.id)
     return {
         "message": "User onboarded successfully",
         "session_id": session.get_prefixed_id(),
@@ -233,6 +239,29 @@ async def login(
             content={"message": "Invalid credentials"},
         )
 
+    public_user, err = await user_usecases.load_public_user(user.id)
+    if err:
+        logger.error("Failed to load public user data during login for %s: %s", user.id, err.message)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Failed to load user data"},
+        )
+
+    if not user.has_completed_onboarding:
+        logger.info("User %s has not completed onboarding. Issuing onboarding token.", login_request.email)
+        token_data = OnBoardingToken(
+            sub=OnBoardingTokenSub.new(user.id),
+            user_id=user.get_prefixed_id()
+        )
+        onboarding_token = jwt_usecase.create_token(
+            data=token_data, exp_minutes=config.jwt.onboarding_token_expire_minutes
+        )
+        return {
+            "message": "Login successful. Please complete onboarding.",
+            "user": public_user,
+            "access-token": onboarding_token,
+        }
+
     session, raw_refresh_token, err = await session_usecase.create_session(
         user_id=user.id,
         device_id=device_id,
@@ -258,13 +287,7 @@ async def login(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
-    public_user, err = await user_usecases.load_public_user(user.id)
-    if err:
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"message": "Failed to load user data"},
-        )
-
+    logger.info("User %s logged in successfully. Session created: %s", login_request.email, session.get_prefixed_id())
     return {
         "message": "Login successful.",
         "session_id": session.get_prefixed_id(),
@@ -341,12 +364,13 @@ async def refresh_token(
         new_refresh_token_string=create_refresh_token().clean(),
     )
     if err:
-        logger.error("Could not rotate refresh token: %s", err.message)
+        logger.error("Could not rotate refresh token for session %s: %s", session.id, err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Internal server error"},
         )
 
+    logger.info("Access token refreshed successfully for session: %s", session.get_prefixed_id())
     return {
         "access-token": new_access_token,
         "refresh-token": new_raw_refresh_token,
@@ -363,10 +387,12 @@ async def create_challenge(
     """Generate a PKCE challenge and nonce."""
     challenge, err = await security_usecase.create_challenge(code_challenge)
     if err:
+        logger.error("Failed to create PKCE challenge: %s", err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to create challenge"},
         )
+    logger.info("PKCE challenge created successfully.")
     return challenge
 
 
@@ -381,10 +407,12 @@ async def set_passcode(
     """Set a session-bound 6-digit passcode."""
     err = await session_usecase.set_passcode(session.id, req.passcode)
     if err:
+        logger.error("Failed to set passcode for session %s: %s", session.id, err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to set passcode"},
         )
+    logger.info("Passcode set successfully for session: %s", session.get_prefixed_id())
     return {"message": "Passcode set successfully"}
 
 
@@ -442,11 +470,13 @@ async def passcode_login(
 
     public_user, err = await user_usecases.load_public_user(user.id)
     if err:
+        logger.error("Failed to load public user data during passcode login for %s: %s", user.id, err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to load user data"},
         )
 
+    logger.info("Passcode login successful for session: %s", session.get_prefixed_id())
     return {
         "message": "Passcode login successful",
         "session_id": session.get_prefixed_id(),
@@ -470,13 +500,14 @@ async def logout(
         logger.error(
             "Failed to revoke session %s for user %s: %s",
             current_token.session_id,
-            current_token.sub,
+            current_token.user_id,
             err.message,
         )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to logout"},
         )
+    logger.info("Logout successful for session: %s", current_token.session_id)
     return {"message": "Logged out successfully"}
 
 
@@ -496,13 +527,14 @@ async def logout_all(
     if err:
         logger.error(
             "Failed to revoke all sessions for user %s: %s",
-            current_token.sub,
+            current_token.user_id,
             err.message,
         )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to logout from all sessions"},
         )
+    logger.info("Logged out from all sessions for user: %s", current_token.user_id)
     return {"message": "Logged out from all sessions successfully"}
 
 
@@ -525,4 +557,5 @@ async def send_otp(
     )
 
     response.headers["X-OTP-Token"] = token
+    logger.info("OTP sent successfully to email: %s", otp_data.email)
     return {"message": "OTP sent successfully"}
