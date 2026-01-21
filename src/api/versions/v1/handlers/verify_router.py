@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/verify", tags=["Auth", "Verify"])
 
 
-@router.post("/onbaording-otp")
+@router.post("/onboarding-otp")
 @limiter.limit("1/minute")
 async def verify_onboarding_otp(
     request: Request,
