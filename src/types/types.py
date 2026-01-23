@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Any
 
 from pydantic import BaseModel
 
@@ -20,11 +20,26 @@ class Wallet(BaseModel):
 class WalletConfig(BaseModel):
     wallets: List[Wallet]
 
-    def get_wallet(self, wallet_name: str) -> Tuple[Optional[Wallet], Error]:
-        for wallet in self.wallets:
-            if wallet.wallet_name == wallet_name:
-                return wallet, None
-        return None, error(f"Wallet with name {wallet_name} not found")
+    def get_wallet(self, **kwargs: Any) -> Tuple[Optional[Wallet], Error]:
+        wallet_name = kwargs.get("wallet_name")
+        address = kwargs.get("address")
+
+        if wallet_name and address:
+            return None, error("Cannot search by both wallet_name and address")
+
+        if wallet_name:
+            for wallet in self.wallets:
+                if wallet.wallet_name == wallet_name:
+                    return wallet, None
+            return None, error(f"Wallet with name {wallet_name} not found")
+
+        if address:
+            for wallet in self.wallets:
+                if wallet.wallet_address == address:
+                    return wallet, None
+            return None, error(f"Wallet with address {address} not found")
+
+        return None, error("Wallet name or address not provided")
 
 
 class TransactionStatus(StrEnum):
