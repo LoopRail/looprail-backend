@@ -17,6 +17,7 @@ from src.infrastructure.services import (
     PaystackService,
     ResendService,
 )
+from src.infrastructure.settings import ENVIRONMENT
 from src.types import Error, InternaleServerError, error
 
 logger = get_logger(__name__)
@@ -113,6 +114,4 @@ async def health_check():
     return {"status": "ok"}
 
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("src.main:app", host="0.0.0.0", port=port, reload=True)
+

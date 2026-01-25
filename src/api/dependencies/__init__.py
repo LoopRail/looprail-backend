@@ -18,6 +18,7 @@ from src.api.dependencies.services import (
     get_blockrader_config,
     get_ledger_config,
     get_ledger_service,
+    get_lock_service,
     get_paycrest_service,
     get_paystack_service,
     get_redis_service,
@@ -31,9 +32,11 @@ from src.api.dependencies.usecases import (
     get_secrets_usecase,
     get_security_usecase,
     get_session_usecase,
+    get_transaction_usecase,
     get_user_usecases,
     get_wallet_manager_usecase,
 )
+from src.api.dependencies.webhooks import get_blockrader_webhook_event
 
 __all__ = [
     "BearerToken",
@@ -65,4 +68,8 @@ __all__ = [
     "get_ledger_config",
     "get_ledger_service",
     "get_security_usecase",
+    "get_lock_service",
+    "get_lock_service",
+    "get_transaction_usecase",
+    "get_blockrader_webhook_event",
 ]

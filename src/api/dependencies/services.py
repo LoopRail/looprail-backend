@@ -1,9 +1,10 @@
-from fastapi import Request
+from fastapi import Depends, Request
 
 from src.infrastructure import RedisClient
 from src.infrastructure.services import (
     AuthLockService,
     LedgerService,
+    LockService,
     PaycrestService,
     PaystackService,
     ResendService,
@@ -41,3 +42,9 @@ def get_redis_service(request: Request) -> RedisClient:
 
 def get_auth_lock_service(request: Request) -> AuthLockService:
     return request.app.state.auth_lock
+
+
+def get_lock_service(
+    redis_client: RedisClient = Depends(get_redis_service),
+) -> LockService:
+    return LockService(redis_client)

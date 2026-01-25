@@ -15,7 +15,7 @@ services:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=looprail_backend
-    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    command: gunicorn -c gunicorn.conf.py src.main:app
     develop:
       watch:
         - action: sync
@@ -33,7 +33,7 @@ services:
     depends_on:
       - db
       - redis
-    command: uv run uvicorn src.worker:run_worker --reload 
+    command: uv run src.worker:run_worker 
     develop:
       watch:
         - action: sync
