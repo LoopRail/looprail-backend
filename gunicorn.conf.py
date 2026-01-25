@@ -13,3 +13,4 @@ max_requests = 10000
 limit_concurrency = 1000
 proxy_headers = True
 forwarded_allow_ips = ""
+reload = os.environ.get("ENVIRONMENT", "dev") == "dev"
