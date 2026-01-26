@@ -62,11 +62,10 @@ class Transaction(Base, table=True):
         default_factory=generate_transaction_reference,
         index=True,
     )
-    external_reference: Optional[str] = Field(
-        default=None, index=True
-    )  # Bank/provider reference
+    external_reference: Optional[str] = Field(default=None, index=True)
 
-    # Blockchain fields (for crypto transactions)
+    ledger_transaction_id: Optional[str] = Field(default=None, unique=True)
+
     transaction_hash: Optional[str] = Field(default=None, unique=True, index=True)
     network: Optional[str] = Field(default=None)
     confirmations: int = Field(nullable=False, default=0)
@@ -79,19 +78,16 @@ class Transaction(Base, table=True):
     chain_id: Optional[int] = Field(default=None)
 
     # General fields
-    narration: Optional[str] = Field(default=None, max_length=500)  # Alias for note
+    narration: Optional[str] = Field(default=None, max_length=500)
 
-    # Destination details - store type-specific data here
     destination_data: dict = Field(
         default={}, sa_column=Column(JSONB, nullable=False, server_default="{}")
     )
 
-    # Metadata for additional flexible data
     extra_data: dict = Field(
         default={}, sa_column=Column(JSONB, nullable=False, server_default="{}")
     )
 
-    # Relationships
     asset: "Asset" = Relationship(back_populates="transactions")
     wallet: "Wallet" = Relationship(back_populates="transactions")
 

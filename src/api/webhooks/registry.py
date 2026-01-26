@@ -1,8 +1,8 @@
-from typing import Callable, Dict
+from typing import Awaitable, Callable, Dict
 
 from src.types.blockrader.webhook_dtos import WebhookEvent, WebhookEventType
 
-WebhookHandler = Callable[[WebhookEvent], None]
+WebhookHandler = Callable[[WebhookEvent, ...], Awaitable[None]]
 HandlerRegistry = Dict[WebhookEventType, WebhookHandler]
 
 _registry: HandlerRegistry = {}

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -148,12 +148,8 @@ class TransactionResponse(BlnkBase):
     meta_data: Optional[Dict[str, Any]] = None
 
 
-class BulkTransactionItem(RecordTransactionRequest):
-    pass
-
-
 class RecordBulkTransactionRequest(BlnkBase):
-    transactions: List[BulkTransactionItem]
+    transactions: List[RecordTransactionRequest]
 
 
 class RefundTransactionResponse(TransactionResponse):
@@ -161,7 +157,7 @@ class RefundTransactionResponse(TransactionResponse):
 
 
 class UpdateInflightTransactionRequest(BlnkBase):
-    status: str  # "commit" or "void"
+    status: Literal["commit", "void"]
     amount: Optional[float] = None
 
 

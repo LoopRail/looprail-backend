@@ -280,7 +280,7 @@ class TransactionManager(BlnkClient):
             request.model_dump(by_alias=True),
         )
         return await self._put(
-            BlnkBase,  # Placeholder
+            BlnkBase,
             path_suffix=f"/inflight/{transaction_id}",
             data=request.model_dump(by_alias=True),
         )

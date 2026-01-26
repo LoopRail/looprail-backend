@@ -29,7 +29,7 @@ class Lock:
         logger.debug(
             "Attempting to acquire lock: key='%s', value='%s'", key, lock_value
         )
-        err = await self.redis_client.create(key, lock_value, ex=self.ttl_seconds)
+        err = await self.redis_client.create(key, lock_value, ttl=self.ttl_seconds)
         if err:
             logger.info("Lock already held for key='%s'", key)
             return None, err
@@ -41,7 +41,9 @@ class Lock:
         key = await self._get_key(key_id)
         logger.debug("Releasing lock: key='%s', expected_value='%s'", key, lock_value)
 
-        current_value = await self.redis_client.get(key, uuid.UUID)
+        current_value, err = await self.redis_client.get(key, uuid.UUID)
+        if err:
+            return err
         if current_value != lock_value:
             logger.warning(
                 "Cannot release lock for key='%s': current_value='%s' does not match expected",
@@ -50,10 +52,10 @@ class Lock:
             )
             return error("Lock ownership mismatch")
 
-        err = await self.redis_client.delete([key])
-        if err:
-            logger.error("Failed to delete lock key='%s': %s", key, err)
-            return err
+        ok = await self.redis_client.delete([key])
+        if not ok:
+            logger.error("Failed to delete lock key='%s'", key)
+            return error("Failed to delete key")
 
         logger.info("Lock released for key='%s', value='%s'", key, lock_value)
         return None
