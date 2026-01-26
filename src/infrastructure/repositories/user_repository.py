@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, override
 
 from pydantic import EmailStr
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,14 +11,15 @@ from src.types.common_types import UserId
 from src.types.error import Error, NotFoundError, UserAlreadyExistsError, error
 
 
-class UserRepository(Base):
+class UserRepository(Base[User]):
     """
     Concrete implementation of the user repository using SQLModel.
     """
 
     _model = User
 
-    async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]:
+    @override
+    async def create(self, *, user: User) -> Tuple[Optional[User], Error]:
         async with self.session.begin_nested():
             existing_user_by_email, err = await self.get_user_by_email(email=user.email)
             if err != NotFoundError and err:

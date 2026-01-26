@@ -10,7 +10,7 @@ from src.types import Error, error
 from src.types.common_types import SessionId
 
 
-class RefreshTokenRepository(Base):
+class RefreshTokenRepository(Base[RefreshToken]):
     _model = RefreshToken
 
     async def create_refresh_token(

@@ -7,7 +7,7 @@ from src.types.common_types import WalletId
 from src.types.error import Error, error
 
 
-class AssetRepository(Base):
+class AssetRepository(Base[Asset]):
     """
     Concrete implementation of the asset repository using SQLModel.
     """

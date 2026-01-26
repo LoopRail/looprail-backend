@@ -7,7 +7,7 @@ from src.types import Error
 from src.types.common_types import SessionId, UserId
 
 
-class SessionRepository(Base):
+class SessionRepository(Base[Session]):
     _model = Session
 
     async def create_session(
