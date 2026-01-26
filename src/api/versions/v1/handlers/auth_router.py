@@ -3,31 +3,62 @@ import hashlib
 from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (BearerToken, get_app_environment, get_config,
-                                  get_current_session, get_jwt_usecase,
-                                  get_otp_usecase, get_resend_service,
-                                  get_security_usecase, get_session_usecase,
-                                  get_user_usecases)
-from src.api.internals import (send_otp_internal, set_send_otp_config,
-                               set_user_create_config)
+from src.api.dependencies import (
+    BearerToken,
+    get_app_environment,
+    get_config,
+    get_current_session,
+    get_jwt_usecase,
+    get_otp_usecase,
+    get_resend_service,
+    get_security_usecase,
+    get_session_usecase,
+    get_user_usecases,
+)
+from src.api.internals import (
+    send_otp_internal,
+    set_send_otp_config,
+    set_user_create_config,
+)
 from src.api.rate_limiter import limiter
-from src.dtos import (AuthTokensResponse, AuthWithTokensAndUserResponse,
-                      ChallengeResponse, CompleteOnboardingRequest,
-                      CreateUserResponse, LoginRequest, MessageResponse,
-                      OtpCreate, PasscodeLoginRequest, PasscodeSetRequest,
-                      RefreshTokenRequest, SetTransactionPinRequest,
-                      UserCreate)
+from src.dtos import (
+    AuthTokensResponse,
+    AuthWithTokensAndUserResponse,
+    ChallengeResponse,
+    CompleteOnboardingRequest,
+    CreateUserResponse,
+    LoginRequest,
+    MessageResponse,
+    OtpCreate,
+    PasscodeLoginRequest,
+    PasscodeSetRequest,
+    RefreshTokenRequest,
+    SetTransactionPinRequest,
+    UserCreate,
+)
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
 from src.models import Session
-from src.types import (AccessToken, AccessTokenSub, OnBoardingToken,
-                       OnBoardingTokenSub, Platform, TokenType,
-                       UserAlreadyExistsError, UserId)
+from src.types import (
+    AccessToken,
+    AccessTokenSub,
+    OnBoardingToken,
+    OnBoardingTokenSub,
+    Platform,
+    TokenType,
+    UserAlreadyExistsError,
+    UserId,
+)
 from src.types.common_types import SessionId
-from src.usecases import (JWTUsecase, OtpUseCase, SecurityUseCase,
-                          SessionUseCase, UserUseCase)
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    SecurityUseCase,
+    SessionUseCase,
+    UserUseCase,
+)
 from src.utils.auth_utils import create_refresh_token
 
 logger = get_logger(__name__)
@@ -71,7 +102,9 @@ async def create_user(
 
     public_user, err = await user_usecases.load_public_user(created_user.id)
     if err:
-        logger.error("Failed to load public user data for %s: %s", created_user.id, err.message)
+        logger.error(
+            "Failed to load public user data for %s: %s", created_user.id, err.message
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to load user data"},
@@ -108,7 +141,9 @@ async def setup_wallet(
         transaction_pin=user_data.transaction_pin,
     )
     if err:
-        logger.error("Failed to setup user wallet for user %s: %s", token.user_id, err.message)
+        logger.error(
+            "Failed to setup user wallet for user %s: %s", token.user_id, err.message
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": err.message},
@@ -200,7 +235,11 @@ async def complete_onboarding(
     )
     public_user, err = await user_usecases.load_public_user(current_user.id)
     if err:
-        logger.error("Failed to load public user data during onboarding for %s: %s", current_user.id, err.message)
+        logger.error(
+            "Failed to load public user data during onboarding for %s: %s",
+            current_user.id,
+            err.message,
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to load user data"},
@@ -241,17 +280,23 @@ async def login(
 
     public_user, err = await user_usecases.load_public_user(user.id)
     if err:
-        logger.error("Failed to load public user data during login for %s: %s", user.id, err.message)
+        logger.error(
+            "Failed to load public user data during login for %s: %s",
+            user.id,
+            err.message,
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to load user data"},
         )
 
     if not user.has_completed_onboarding:
-        logger.info("User %s has not completed onboarding. Issuing onboarding token.", login_request.email)
+        logger.info(
+            "User %s has not completed onboarding. Issuing onboarding token.",
+            login_request.email,
+        )
         token_data = OnBoardingToken(
-            sub=OnBoardingTokenSub.new(user.id),
-            user_id=user.get_prefixed_id()
+            sub=OnBoardingTokenSub.new(user.id), user_id=user.get_prefixed_id()
         )
         onboarding_token = jwt_usecase.create_token(
             data=token_data, exp_minutes=config.jwt.onboarding_token_expire_minutes
@@ -287,7 +332,11 @@ async def login(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
-    logger.info("User %s logged in successfully. Session created: %s", login_request.email, session.get_prefixed_id())
+    logger.info(
+        "User %s logged in successfully. Session created: %s",
+        login_request.email,
+        session.get_prefixed_id(),
+    )
     return {
         "message": "Login successful.",
         "session_id": session.get_prefixed_id(),
@@ -364,13 +413,17 @@ async def refresh_token(
         new_refresh_token_string=create_refresh_token().clean(),
     )
     if err:
-        logger.error("Could not rotate refresh token for session %s: %s", session.id, err.message)
+        logger.error(
+            "Could not rotate refresh token for session %s: %s", session.id, err.message
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Internal server error"},
         )
 
-    logger.info("Access token refreshed successfully for session: %s", session.get_prefixed_id())
+    logger.info(
+        "Access token refreshed successfully for session: %s", session.get_prefixed_id()
+    )
     return {
         "access-token": new_access_token,
         "refresh-token": new_raw_refresh_token,
@@ -407,7 +460,9 @@ async def set_passcode(
     """Set a session-bound 6-digit passcode."""
     err = await session_usecase.set_passcode(session.id, req.passcode)
     if err:
-        logger.error("Failed to set passcode for session %s: %s", session.id, err.message)
+        logger.error(
+            "Failed to set passcode for session %s: %s", session.id, err.message
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to set passcode"},
@@ -470,7 +525,11 @@ async def passcode_login(
 
     public_user, err = await user_usecases.load_public_user(user.id)
     if err:
-        logger.error("Failed to load public user data during passcode login for %s: %s", user.id, err.message)
+        logger.error(
+            "Failed to load public user data during passcode login for %s: %s",
+            user.id,
+            err.message,
+        )
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to load user data"},

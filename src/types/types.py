@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import List, Optional, Tuple, Any
+from typing import Any, List, Optional, Tuple
 
 from pydantic import BaseModel
 
@@ -16,30 +16,37 @@ class Wallet(BaseModel):
     active: bool
     assets: List[AssetData]
 
+    def get(self, **kwargs: Any) -> Tuple[Optional[AssetData], Error]:
+        if not kwargs:
+            return None, error("No search criteria provided")
+
+        for asset in self.assets:
+            match = all(
+                getattr(asset, key, None) == value for key, value in kwargs.items()
+            )
+            if match:
+                return asset, None
+
+        criteria = ", ".join(f"{k}={v}" for k, v in kwargs.items())
+        return None, error(f"Asset matching criteria ({criteria}) not found")
+
 
 class WalletConfig(BaseModel):
     wallets: List[Wallet]
 
     def get_wallet(self, **kwargs: Any) -> Tuple[Optional[Wallet], Error]:
-        wallet_name = kwargs.get("wallet_name")
-        address = kwargs.get("address")
+        if not kwargs:
+            return None, error("No search criteria provided")
 
-        if wallet_name and address:
-            return None, error("Cannot search by both wallet_name and address")
+        for wallet in self.wallets:
+            match = all(
+                getattr(wallet, key, None) == value for key, value in kwargs.items()
+            )
+            if match:
+                return wallet, None
 
-        if wallet_name:
-            for wallet in self.wallets:
-                if wallet.wallet_name == wallet_name:
-                    return wallet, None
-            return None, error(f"Wallet with name {wallet_name} not found")
-
-        if address:
-            for wallet in self.wallets:
-                if wallet.wallet_address == address:
-                    return wallet, None
-            return None, error(f"Wallet with address {address} not found")
-
-        return None, error("Wallet name or address not provided")
+        criteria = ", ".join(f"{k}={v}" for k, v in kwargs.items())
+        return None, error(f"Wallet matching criteria ({criteria}) not found")
 
 
 class TransactionStatus(StrEnum):

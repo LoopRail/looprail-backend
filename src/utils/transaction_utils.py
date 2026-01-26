@@ -7,7 +7,6 @@ from src.dtos.transaction_dtos import CreateTransactionParams, CryptoTransaction
 
 
 from src.types.blockrader import DepositSuccessData, WithdrawSuccessData
-from src.types.common_types import ReferenceId
 from src.types.country_types import CountriesData
 from src.types.types import PaymentMethod, TransactionType
 from src.utils.country_utils import get_country_name_by_currency

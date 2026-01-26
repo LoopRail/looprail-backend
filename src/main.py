@@ -2,7 +2,6 @@ import json
 import os
 from contextlib import asynccontextmanager
 
-import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -17,7 +16,6 @@ from src.infrastructure.services import (
     PaystackService,
     ResendService,
 )
-from src.infrastructure.settings import ENVIRONMENT
 from src.types import Error, InternaleServerError, error
 
 logger = get_logger(__name__)
@@ -112,6 +110,3 @@ async def custom_http_error_handler(request: Request, exc: HTTPException):
 @app.get("/health", status_code=status.HTTP_200_OK, tags=["Monitoring"])
 async def health_check():
     return {"status": "ok"}
-
-
-
