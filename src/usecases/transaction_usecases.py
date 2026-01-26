@@ -9,17 +9,16 @@ from src.dtos import (
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import TransactionRepository
 from src.models import BankTransferDetail, Transaction, WalletTransferDetail
-from src.types import Error, TransactionStatus, error
+from src.types import Error, TransactionStatus
 from src.types.blockrader import WithdrawCancelledData, WithdrawFailedData
 from src.types.common_types import TransactionId, WalletId
-from src.types.types import TransactionType
 
 logger = get_logger(__name__)
 
 
 class TransactionUsecase:
     def __init__(self, transaction_repo: TransactionRepository):
-        self._transaction_repo = transaction_repo
+        self.repo = transaction_repo
         logger.debug("TransactionUsecase initialized.")
 
     async def create_transaction(
@@ -31,13 +30,10 @@ class TransactionUsecase:
         """
         logger.debug("Creating transaction of type: %s", params.transaction_type)
 
-        # Step 1: Create the main transaction record
         transaction_data = self._prepare_transaction_data(params)
         transaction = Transaction(**transaction_data)
 
-        created_txn, err = await self._transaction_repo.create_transaction(
-            transaction=transaction
-        )
+        created_txn, err = await self.repo.create(transaction)
         if err:
             logger.error("Failed to create transaction: %s", err.message)
             return None, err
@@ -48,9 +44,7 @@ class TransactionUsecase:
         detail_err = await self._create_transaction_details(params, created_txn.id)
         if detail_err:
             logger.error("Failed to create transaction details: %s", detail_err.message)
-            await self._transaction_repo.update_status(
-                created_txn.id, TransactionStatus.FAILED
-            )
+            await self.repo.update_status(created_txn.id, TransactionStatus.FAILED)
             return None, detail_err
 
         return created_txn, None
@@ -125,21 +119,16 @@ class TransactionUsecase:
         """
         Create type-specific detail records
         """
-        try:
-            if isinstance(params, BankTransferParams):
-                return await self._create_bank_transfer_detail(params, transaction_id)
+        if isinstance(params, BankTransferParams):
+            return await self._create_bank_transfer_detail(params, transaction_id)
 
-            if (
-                isinstance(params, CryptoTransactionParams)
-                and params.destination_wallet_address
-            ):
-                return await self._create_wallet_transfer_detail(params, transaction_id)
+        if (
+            isinstance(params, CryptoTransactionParams)
+            and params.destination_wallet_address
+        ):
+            return await self._create_wallet_transfer_detail(params, transaction_id)
 
-            return None
-
-        except Exception as e:
-            logger.error("Error creating transaction details: %s", str(e))
-            return error(f"Failed to create transaction details: {str(e)}")
+        return None
 
     async def _create_bank_transfer_detail(
         self, params: BankTransferParams, transaction_id: TransactionId
@@ -157,7 +146,7 @@ class TransactionUsecase:
             provider_reference=params.external_reference,
         )
 
-        _, err = await self._transaction_repo.create(detail)
+        _, err = await self.repo.create(detail)
         return err
 
     async def _create_wallet_transfer_detail(
@@ -171,7 +160,7 @@ class TransactionUsecase:
             memo=params.memo,
         )
 
-        _, err = await self._transaction_repo.create(detail)
+        _, err = await self.repo.create(detail)
         return err
 
     async def get_transactions_by_wallet_id(
@@ -183,7 +172,7 @@ class TransactionUsecase:
             limit,
             offset,
         )
-        transactions, err = await self._transaction_repo.get_transactions_by_wallet_id(
+        transactions, err = await self.repo.get_transactions_by_wallet_id(
             wallet_id=wallet_id, limit=limit, offset=offset
         )
         if err:
@@ -200,9 +189,7 @@ class TransactionUsecase:
         self, *, transaction_id: TransactionId
     ) -> Tuple[Transaction, Error]:
         logger.debug("Getting transaction with ID: %s", transaction_id)
-        transaction, err = await self._transaction_repo.get_transaction_by_id(
-            transaction_id=transaction_id
-        )
+        transaction, err = await self.repo.get(transaction_id)
         if err:
             logger.debug("Transaction %s not found: %s", transaction_id, err.message)
             return None, err
@@ -215,9 +202,7 @@ class TransactionUsecase:
         logger.debug(
             "Updating transaction status from event for provider ID: %s", event_data.id
         )
-        transaction, err = await self._transaction_repo.get_transaction_by_provider_id(
-            provider_id=event_data.id
-        )
+        transaction, err = await self.repo.find_one(provider_id=event_data.id)
         if err:
             logger.error(
                 "Transaction with provider_id %s not found for status update: %s",
@@ -232,9 +217,7 @@ class TransactionUsecase:
         transaction.status = event_data.status.value
         transaction.reason = event_data.reason
 
-        _, err = await self._transaction_repo.update_transaction(
-            transaction=transaction
-        )
+        _, err = await self.repo.update(transaction)
         if err:
             logger.error(
                 "Failed to update transaction status for event %s: %s",
@@ -262,7 +245,7 @@ class TransactionUsecase:
             new_status,
             message,
         )
-        transaction, err = await self._transaction_repo.get_transaction_by_id(
+        transaction, err = await self.get_transaction_by_id(
             transaction_id=transaction_id
         )
         if err:
@@ -278,9 +261,7 @@ class TransactionUsecase:
         if message:
             transaction.reason = message
 
-        _, err = await self._transaction_repo.update_transaction(
-            transaction=transaction
-        )
+        _, err = await self.repo.update(transaction)
         if err:
             logger.error(
                 "Failed to update transaction status for ID %s to %s: %s",
@@ -296,7 +277,7 @@ class TransactionUsecase:
         self, *, transaction_id: TransactionId, fee: Decimal
     ) -> Optional[Error]:
         logger.debug("Updating fee for transaction %s to %s", transaction_id, fee)
-        transaction, err = await self._transaction_repo.get_transaction_by_id(
+        transaction, err = await self.repo.get_transaction_by_id(
             transaction_id=transaction_id
         )
         if err:
@@ -310,9 +291,7 @@ class TransactionUsecase:
 
         transaction.fee = fee
 
-        _, err = await self._transaction_repo.update_transaction(
-            transaction=transaction
-        )
+        _, err = await self.repo.update(transaction)
         if err:
             logger.error(
                 "Failed to update transaction fee for ID %s to %s: %s",

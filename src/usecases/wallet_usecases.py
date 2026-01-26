@@ -5,8 +5,6 @@ from src.dtos.transaction_dtos import (
     BankTransferParams,
     CreateTransactionParams,
     CryptoTransactionParams,
-    TransactionDetailRead,
-    TransactionRead,
 )
 from src.dtos.wallet_dtos import (
     BankTransferData,
@@ -54,11 +52,12 @@ logger = get_logger(__name__)
 class WalletService:
     def __init__(
         self,
+        repo: WalletRepository,
+        *,
         config: Config,
         blockrader_config: BlockRaderConfig,
         ledger_service: LedgerService,
         user_repository: UserRepository,
-        wallet_repository: WalletRepository,
         asset_repository: AssetRepository,
         paycrest_service: PaycrestService,
         transaction_usecase: TransactionUsecase,
@@ -68,9 +67,9 @@ class WalletService:
         self.blockrader_config = blockrader_config
         self.provider = provider
 
-        self.user_repository = user_repository
-        self.wallet_repository = wallet_repository
-        self.asset_repository = asset_repository
+        self.repo = repo
+        self._user_repository = user_repository
+        self._asset_repository = asset_repository
         self.paycrest_service = paycrest_service
         self.transaction_usecase = transaction_usecase
 
@@ -172,7 +171,7 @@ class WalletManagerUsecase:
 
     async def _get_user_data(self, user_id: UserId) -> Tuple[Optional[User], Error]:
         logger.debug("Attempting to get user data for user ID: %s", user_id)
-        user, err = await self.service.user_repository.get_user_by_id(user_id=user_id)
+        user, err = await self.service._user_repository.get_user_by_id(user_id=user_id)
         if err:
             logger.error("Could not get user %s: %s", user_id, err.message)
             return None, error("Could not get user")
@@ -182,9 +181,7 @@ class WalletManagerUsecase:
     async def _get_user_wallet(self, user_id: UserId) -> Tuple[Optional[Wallet], Error]:
         logger.debug("Attempting to get user wallet for user ID: %s", user_id)
         # Assuming user has a default wallet, or a way to determine the correct wallet
-        wallet, err = await self.service.wallet_repository.get_wallet_by_user_id(
-            user_id=user_id
-        )
+        wallet, err = await self.service.repo.get_wallet_by_user_id(user_id=user_id)
         if err:
             logger.error("Could not get wallet for user %s: %s", user_id, err.message)
             return None, error("Could not get user wallet")
@@ -198,7 +195,7 @@ class WalletManagerUsecase:
         (
             asset,
             err,
-        ) = await self.service.asset_repository.get_asset_by_wallet_id_and_asset_id(
+        ) = await self.service._asset_repository.get_asset_by_wallet_id_and_asset_id(
             wallet_id=wallet_id, asset_id=asset_id
         )
         if err:
@@ -253,9 +250,7 @@ class WalletManagerUsecase:
             derivation_path=provider_wallet.data.derivationPath,
         )
 
-        wallet, err = await self.service.wallet_repository.create_wallet(
-            wallet=new_wallet
-        )
+        wallet, err = await self.service.repo.create(new_wallet)
         if err:
             logger.error(
                 "Could not save wallet %s on provider %s to db: %s",
@@ -355,7 +350,7 @@ class WalletManagerUsecase:
                 local_wallet.id,
                 asset_type.value,
             )
-            _, err = await self.service.asset_repository.create_asset(asset=new_asset)
+            _, err = await self.service._asset_repository.create_asset(asset=new_asset)
             if err:
                 logger.error(
                     "Could not create local asset record for wallet %s, asset %s: %s",
@@ -386,7 +381,7 @@ class WalletManagerUsecase:
             user.get_prefixed_id()
         )
         if err:
-            rollback_err = await self.service.user_repository.rollback()
+            rollback_err = await self.service._user_repository.rollback()
             if rollback_err:
                 logger.error(
                     "Failed to rollback user creation for user %s after provider wallet failure: %s",
@@ -407,7 +402,7 @@ class WalletManagerUsecase:
 
         err = await self._create_ledger_balance(user, wallet)
         if err:
-            rollback_err = await self.service.user_repository.rollback()
+            rollback_err = await self.service._user_repository.rollback()
             if rollback_err:
                 logger.error(
                     "Failed to rollback user creation for user %s after ledger balance failure: %s",

@@ -27,13 +27,14 @@ logger = get_logger(__name__)
 class UserUseCase:
     def __init__(
         self,
-        user_repository: UserRepository,
+        repo: UserRepository,
+        *,
         blockrader_config: BlockRaderConfig,
         argon2_config: Argon2Config,
         wallet_manager_usecase: WalletManagerUsecase,
         wallet_service: WalletService,
     ):
-        self.user_repository = user_repository
+        self.repo = repo
         self.blockrader_config = blockrader_config
         self.argon2_config = argon2_config
         self.wallet_manager_usecase = wallet_manager_usecase
@@ -44,7 +45,7 @@ class UserUseCase:
         self, email: str, password: str
     ) -> Tuple[Optional[User], Error]:
         logger.debug("Authenticating user with email: %s", email)
-        user, err = await self.user_repository.get_user_by_email(email=email)
+        user, err = await self.repo.get_user_by_email(email=email)
         if err:
             logger.debug("Error getting user by email %s: %s", email, err.message)
             return None, err
@@ -71,7 +72,7 @@ class UserUseCase:
 
     async def save(self, user: User) -> Tuple[Optional[User], Error]:
         logger.debug("Saving user with ID: %s", user.id)
-        err = await self.user_repository.save(user)
+        err = await self.repo.save(user)
         if err:
             logger.error("Failed to save user %s: %s", user.id, err.message)
         else:
@@ -82,7 +83,7 @@ class UserUseCase:
         self, user_id: UserId, /, **kwargs
     ) -> Tuple[Optional[User], Error]:
         logger.debug("Updating user %s with data: %s", user_id, kwargs)
-        user, err = await self.user_repository.update_user(user_id=user_id, **kwargs)
+        user, err = await self.repo.update_user(user_id=user_id, **kwargs)
         if err:
             logger.error("Failed to update user %s: %s", user_id, err.message)
         else:
@@ -93,9 +94,7 @@ class UserUseCase:
         self, user_id: UserId, /, **kwargs
     ) -> Tuple[Optional[UserProfile], Error]:
         logger.debug("Updating user profile for user %s with data: %s", user_id, kwargs)
-        user_profile, err = await self.user_repository.update_user_profile(
-            user_id, **kwargs
-        )
+        user_profile, err = await self.repo.update_user_profile(user_id, **kwargs)
         if err:
             logger.error(
                 "Failed to update user profile for user %s: %s", user_id, err.message
@@ -148,7 +147,7 @@ class UserUseCase:
             profile=user_profile,
         )
 
-        created_user, err = await self.user_repository.create_user(user=user)
+        created_user, err = await self.repo.create(user=user)
         if err:
             logger.error(
                 "Failed to create user in repository for email %s: %s",
@@ -240,7 +239,7 @@ class UserUseCase:
 
     async def get_user_by_id(self, user_id: UserId) -> Tuple[Optional[User], Error]:
         logger.debug("Getting user by ID: %s", user_id)
-        user, err = await self.user_repository.get_user_by_id(user_id=user_id)
+        user, err = await self.repo.get_user_by_id(user_id=user_id)
         if err:
             logger.debug("User %s not found: %s", user_id, err.message)
         else:
@@ -249,7 +248,7 @@ class UserUseCase:
 
     async def get_user_by_email(self, user_email: str) -> Tuple[Optional[User], Error]:
         logger.debug("Getting user by email: %s", user_email)
-        user, err = await self.user_repository.get_user_by_email(email=user_email)
+        user, err = await self.repo.get_user_by_email(email=user_email)
         if err:
             logger.debug("User with email %s not found: %s", user_email, err.message)
         else:
@@ -263,7 +262,7 @@ class UserUseCase:
         (
             user_profile,
             err,
-        ) = await self.user_repository.get_user_profile_by_user_phone_number(
+        ) = await self.repo.get_user_profile_by_user_phone_number(
             phone_number=phone_number
         )
         if err:
@@ -273,9 +272,7 @@ class UserUseCase:
             return None, err
         if not user_profile:
             return None, None
-        user, err = await self.user_repository.get_user_by_id(
-            user_id=user_profile.user_id
-        )
+        user, err = await self.repo.get_user_by_id(user_id=user_profile.user_id)
         if err:
             logger.error(
                 "Could not retrieve user for profile with phone number %s: %s",
