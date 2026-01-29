@@ -184,7 +184,7 @@ async def handle_deposit_success(
         source_asset.asset_id,
         wallet.get_prefixed_id(),
     )
-    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_id(
+    asset, err = await asset_repo.find_one(
         wallet_id=wallet.id, asset_id=source_asset.asset_id
     )
     if err:
@@ -326,7 +326,7 @@ async def handle_withdraw_success(
         event.data.asset.asset_id,
         wallet.get_prefixed_id(),
     )
-    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_id(
+    asset, err = await asset_repo.find_one(
         wallet_id=wallet.id, asset_id=event.data.asset.asset_id
     )
     if err:
@@ -453,7 +453,7 @@ async def handle_withdraw_failed(
         event.data.asset.asset_id,
         wallet.get_prefixed_id(),
     )
-    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_id(
+    asset, err = await asset_repo.find_one(
         wallet_id=wallet.id, asset_id=event.data.asset.asset_id
     )
     if err:
@@ -545,7 +545,7 @@ async def handle_withdraw_cancelled(
         event.data.asset.asset_id,
         wallet.get_prefixed_id(),
     )
-    asset, err = await asset_repo.get_asset_by_wallet_id_and_asset_id(
+    asset, err = await asset_repo.find_one(
         wallet_id=wallet.id, asset_id=event.data.asset.asset_id
     )
     if err:
