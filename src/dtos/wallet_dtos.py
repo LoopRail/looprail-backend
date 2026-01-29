@@ -3,7 +3,6 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from uuid import UUID
 
 from pydantic import field_serializer, field_validator
-from pydantic.types import UuidVersion
 
 from src.dtos.base import Base
 from src.types.common_types import Address, AssetId, Chain, WalletId
