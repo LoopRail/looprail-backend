@@ -25,6 +25,7 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app_: FastAPI):
+
     config = load_config()
     app_.state.config = config
     app_.state.environment = config.app.environment
@@ -109,12 +110,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"message": final_message}
+        content={"message": final_message},
     )
 
 
 @app.exception_handler(PydanticValidationError)
-async def raw_pydantic_validation_exception_handler(request: Request, exc: PydanticValidationError):
+async def raw_pydantic_validation_exception_handler(
+    request: Request, exc: PydanticValidationError
+):
     """
     Handles raw Pydantic validation errors that might occur outside of FastAPI's RequestValidationError.
     """
