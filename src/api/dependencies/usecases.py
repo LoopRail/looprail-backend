@@ -124,10 +124,10 @@ async def get_blockrader_wallet_service(
 ):
     logger.debug("Entering get_blockrader_wallet_service")
     return WalletService(
+        wallet_repository,
         config=config,
         blockrader_config=blockrader_config,
         user_repository=user_repository,
-        wallet_repository=wallet_repository,
         asset_repository=asset_repository,
         ledger_service=ledger_service,
         paycrest_service=paycrest_service,
@@ -149,7 +149,7 @@ async def get_wallet_manager_usecase(
             },
         )
     base_master_wallet, err = wallet_service.blockrader_config.wallets.get_wallet(
-        MASTER_BASE_WALLET
+        wallet_name=MASTER_BASE_WALLET
     )
 
     if err:
@@ -179,8 +179,8 @@ async def get_user_usecases(
     argon2_config = request.app.state.argon2_config
     yield UserUseCase(
         user_repository,
-        blockrader_config,
-        argon2_config,
-        wallet_manager_usecase,
-        wallet_service,
+        blockrader_config=blockrader_config,
+        argon2_config=argon2_config,
+        wallet_manager_usecase=wallet_manager_usecase,
+        wallet_service=wallet_service,
     )

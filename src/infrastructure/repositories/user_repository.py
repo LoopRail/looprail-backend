@@ -19,7 +19,7 @@ class UserRepository(Base[User]):
     _model = User
 
     @override
-    async def create(self, *, user: User) -> Tuple[Optional[User], Error]:
+    async def create_user(self, *, user: User) -> Tuple[Optional[User], Error]:
         async with self.session.begin_nested():
             existing_user_by_email, err = await self.get_user_by_email(email=user.email)
             if err != NotFoundError and err:
@@ -89,7 +89,7 @@ class UserRepository(Base[User]):
     async def create_user_profile(
         self, *, user_profile: UserProfile
     ) -> Tuple[Optional[UserProfile], Error]:
-        return await self.create(user_profile)
+        return await self.create(user=user_profile)
 
     async def get_user_profile_by_user_id(
         self, *, user_id: UserId

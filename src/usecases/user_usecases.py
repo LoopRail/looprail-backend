@@ -147,7 +147,7 @@ class UserUseCase:
             profile=user_profile,
         )
 
-        created_user, err = await self.repo.create(user=user)
+        created_user, err = await self.repo.create_user(user=user)
         if err:
             logger.error(
                 "Failed to create user in repository for email %s: %s",
