@@ -7,7 +7,7 @@ from src.models import Asset, Transaction, User
 from src.types.blnk import RecordTransactionRequest
 from src.types.common_types import WorldLedger
 from src.types.error import Error, error
-from src.types.types import TransactionType, WithdrawalMethod
+from src.types.types import  WithdrawalMethod
 from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry
 
 if TYPE_CHECKING:
