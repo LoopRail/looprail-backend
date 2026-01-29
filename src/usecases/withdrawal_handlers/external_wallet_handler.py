@@ -10,7 +10,7 @@ from src.types.blnk import RecordTransactionRequest
 from src.types.common_types import WorldLedger
 from src.types.error import Error, error
 from src.types.types import TransactionType, WithdrawalMethod
-from src.usecases.withdrawal_handlers.registry import register_withdrawal_handler
+from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry
 
 if TYPE_CHECKING:
     from src.usecases.wallet_usecases import WalletManagerUsecase
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@register_withdrawal_handler(method=WithdrawalMethod.EXTERNAL_WALLET)
+@WithdrawalHandlerRegistry.register_handler(method=WithdrawalMethod.EXTERNAL_WALLET)
 async def handle_external_wallet_transfer(
     wallet_manager: WalletManagerUsecase,
     user: User,
