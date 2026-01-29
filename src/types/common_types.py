@@ -93,8 +93,8 @@ class PrefixedId(str):
         # except ValueError:
         #     raise ValueError("ID suffix must be a valid UUID")
 
-    def clean(self) -> str:
-        return self[len(self.prefix) :]
+    def clean(self, separator: str = "_") -> str:
+        return self.rsplit(separator, 1)[-1]
 
     @classmethod
     def new[T](cls: T, value: str | UUID) -> T:
