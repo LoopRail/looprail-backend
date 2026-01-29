@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic_core import ValidationError as PydanticValidationError
 
 from src.api import add_rate_limiter, v1_router
 from src.api.middlewares import RequestLoggerMiddleware
@@ -96,6 +97,35 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
         if message:
             # Clean up pydantic's 'Value error, ' prefix if it exists
+            if "Value error, " in message:
+                message = message.replace("Value error, ", "")
+
+            if field_path:
+                messages.append(f"{field_path}: {message}")
+            else:
+                messages.append(message)
+
+    final_message = ". ".join(messages) if messages else "Validation error"
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"message": final_message}
+    )
+
+
+@app.exception_handler(PydanticValidationError)
+async def raw_pydantic_validation_exception_handler(request: Request, exc: PydanticValidationError):
+    """
+    Handles raw Pydantic validation errors that might occur outside of FastAPI's RequestValidationError.
+    """
+    error_details = exc.errors()
+
+    messages = []
+    for e in error_details:
+        field_path = ".".join(map(str, e.get("loc", [])[1:]))
+        message = e.get("msg")
+
+        if message:
             if "Value error, " in message:
                 message = message.replace("Value error, ", "")
 
