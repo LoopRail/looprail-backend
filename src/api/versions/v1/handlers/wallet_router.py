@@ -3,10 +3,8 @@ from fastapi.responses import JSONResponse
 
 from src.api.dependencies import (
     get_config,
-    get_current_session,
     get_current_user,
     get_security_usecase,
-    get_session_usecase,
     get_user_usecases,
     get_wallet_manager_usecase,
 )
@@ -16,13 +14,8 @@ from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RQManager
 from src.infrastructure.tasks.withdrawal_tasks import process_withdrawal_task
-from src.models import Session, User
-from src.usecases import (
-    SecurityUseCase,
-    SessionUseCase,
-    UserUseCase,
-    WalletManagerUsecase,
-)
+from src.models import User
+from src.usecases import SecurityUseCase, UserUseCase, WalletManagerUsecase
 
 logger = get_logger(__name__)
 
@@ -79,11 +72,9 @@ async def initiate_withdraw(
 async def process_withraw_request(
     req: ProcessWithdrawalRequest,
     user: User = Depends(get_current_user),
-    session: Session = Depends(get_current_session),
     config: Config = Depends(get_config),
     rq_manager: RQManager = Depends(get_rq_manager),
     security_usecase: SecurityUseCase = Depends(get_security_usecase),
-    session_usecase: SessionUseCase = Depends(get_session_usecase),
     user_usecase: UserUseCase = Depends(get_user_usecases),
 ):
     logger.info(
@@ -110,7 +101,6 @@ async def process_withraw_request(
             content={"message": "Invalid transaction PIN"},
         )
 
-    # 3. Enqueue the task
     rq_manager.get_queue().enqueue(
         process_withdrawal_task,
         user_id=user.id,
