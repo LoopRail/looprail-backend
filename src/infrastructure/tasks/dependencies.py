@@ -50,10 +50,10 @@ class TaskDependenciesFactory:
     @functools.cached_property
     def wallet_service(self) -> WalletService:
         return WalletService(
+            self.wallet_repository,
             blockrader_config=self.config.block_rader,
             ledger_service=self.ledger_service,
             user_repository=self.user_repository,
-            wallet_repository=self.wallet_repository,
             asset_repository=self.asset_repository,
             paycrest_service=self.paycrest_service,
             transaction_usecase=self.transaction_usecase,
