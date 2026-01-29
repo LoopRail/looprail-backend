@@ -1,16 +1,14 @@
-from typing import Callable, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Dict, Optional
 
 from src.types.error import Error
 from src.types.types import WithdrawalMethod
 
 if TYPE_CHECKING:
-    from src.dtos.wallet_dtos import (
-        BankTransferData,
-        ExternalWalletTransferData,
-        WithdrawalRequest,
-    )
     from src.dtos.transaction_dtos import CreateTransactionParams
-    from src.models import Asset, User, Transaction
+    from src.dtos.wallet_dtos import (BankTransferData,
+                                      ExternalWalletTransferData,
+                                      WithdrawalRequest)
+    from src.models import Asset, Transaction, User
     from src.usecases.wallet_usecases import WalletManagerUsecase
 
 # Define a type hint for the withdrawal handler functions
@@ -19,11 +17,11 @@ WithdrawalHandler = Callable[
         "WalletManagerUsecase",
         "User",
         "WithdrawalRequest",
-        "BankTransferData | ExternalWalletTransferData",  # Specific data type
+        "BankTransferData | ExternalWalletTransferData",
         "Asset",
-        "CreateTransactionParams",  # Partially filled transaction params
+        "CreateTransactionParams",
     ],
-    "tuple[Optional[Transaction], Optional[Error]]",  # Returns created Transaction or Error
+    "tuple[Optional[Transaction], Optional[Error]]",
 ]
 
 
@@ -36,9 +34,7 @@ class WithdrawalHandlerRegistry:
     ) -> Callable[[WithdrawalHandler], WithdrawalHandler]:
         def decorator(handler: WithdrawalHandler) -> WithdrawalHandler:
             if method in cls._handlers:
-                if (
-                    cls._handlers[method] != handler
-                ):  # Allow re-registration of the same handler for hot reloading/testing
+                if cls._handlers[method] != handler:
                     raise ValueError(
                         f"Handler for withdrawal method {method.value} already registered with a different handler."
                     )
