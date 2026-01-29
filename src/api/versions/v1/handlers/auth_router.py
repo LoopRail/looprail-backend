@@ -51,7 +51,7 @@ from src.types import (
     UserAlreadyExistsError,
     UserId,
 )
-from src.types.common_types import SessionId
+from src.types.common_types import DeviceID, SessionId
 from src.usecases import (
     JWTUsecase,
     OtpUseCase,
@@ -165,7 +165,7 @@ async def complete_onboarding(
     token: OnBoardingToken = Depends(BearerToken[OnBoardingToken](OnBoardingToken)),
     user_usecases: UserUseCase = Depends(get_user_usecases),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
-    device_id: str = Header(..., alias="X-Device-ID"),
+    device_id: DeviceID = Header(..., alias="X-Device-ID"),
     platform: Platform = Header(..., alias="X-Platform"),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
@@ -262,7 +262,7 @@ async def login(
     login_request: LoginRequest,
     user_usecases: UserUseCase = Depends(get_user_usecases),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
-    device_id: str = Header(..., alias="X-Device-ID"),
+    device_id: DeviceID = Header(..., alias="X-Device-ID"),
     platform: Platform = Header(..., alias="X-Platform"),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
@@ -353,7 +353,7 @@ async def login(
 async def refresh_token(
     request: Request,
     refresh_token_request: RefreshTokenRequest,
-    device_id: str = Header(..., alias="X-Device-ID"),
+    device_id: DeviceID = Header(..., alias="X-Device-ID"),
     platform: Platform = Header(..., alias="X-Platform"),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
@@ -426,7 +426,7 @@ async def refresh_token(
     )
     return {
         "access-token": new_access_token,
-        "refresh-token": new_raw_refresh_token,
+        "refresh-token": new_raw_refresh_token.get_prefixed_id(),
     }
 
 
@@ -482,7 +482,7 @@ async def passcode_login(
     session_usecase: SessionUseCase = Depends(get_session_usecase),
     security_usecase: SecurityUseCase = Depends(get_security_usecase),
     platform: Platform = Header(...),
-    device_id: str = Header(...),
+    device_id: DeviceID = Header(...),
     session_id: SessionId = Header(alias="X-Session-Id"),
 ):
     verified, err = await security_usecase.verify_pkce(

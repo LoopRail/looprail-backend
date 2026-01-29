@@ -7,7 +7,7 @@ from src.infrastructure.repositories import RefreshTokenRepository, SessionRepos
 from src.infrastructure.security import Argon2Config
 from src.models import RefreshToken, Session
 from src.types import Error
-from src.types.common_types import RefreshTokenId, SessionId, UserId
+from src.types.common_types import RefreshTokenId, SessionId, UserId, DeviceID
 from src.utils.auth_utils import create_refresh_token, hash_password, verify_password
 
 logger = get_logger(__name__)
@@ -34,7 +34,7 @@ class SessionUseCase:
         self,
         user_id: UserId,
         platform: str,
-        device_id: str,
+        device_id: DeviceID,
         ip_address: str,
         allow_notifications: bool = False,
         user_agent: str | None = None,

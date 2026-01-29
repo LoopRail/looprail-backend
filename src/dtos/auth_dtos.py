@@ -1,6 +1,7 @@
 from pydantic import Field
 from src.dtos.user_dtos import UserPublic
 from src.dtos.base import Base
+from src.types.common_types import DeviceID
 
 
 class MessageResponse(Base):
@@ -41,7 +42,7 @@ class PasscodeLoginRequest(Base):
 
 class BiometricEnrollRequest(Base):
     public_key: str
-    device_id: str
+    device_id: DeviceID
 
 
 class BiometricLoginRequest(Base):
@@ -49,4 +50,4 @@ class BiometricLoginRequest(Base):
     code_verifier: str
     public_key: str
     signature: str
-    device_id: str
+    device_id: DeviceID

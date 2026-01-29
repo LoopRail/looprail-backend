@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base
+from src.types.common_types import DeviceID
 
 
 class Session(Base, table=True):
@@ -12,7 +13,7 @@ class Session(Base, table=True):
     __id_prefix__ = "ses_"
     user_id: UUID = Field(index=True)
     platform: str
-    device_id: str
+    device_id: DeviceID
     ip_address: str
     allow_notifications: bool = Field(default=False)
     revoked_at: Optional[datetime] = Field(default=None, index=True)

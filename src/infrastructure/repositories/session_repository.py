@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 from src.infrastructure.repositories.base import Base
 from src.models import Session
 from src.types import Error
-from src.types.common_types import SessionId, UserId
+from src.types.common_types import DeviceID, SessionId, UserId
 
 
 class SessionRepository(Base[Session]):
@@ -14,7 +14,7 @@ class SessionRepository(Base[Session]):
         self,
         user_id: UserId,
         platform: str,
-        device_id: str,
+        device_id: DeviceID,
         ip_address: str,
         allow_notifications: bool = False,
         user_agent: str | None = None,

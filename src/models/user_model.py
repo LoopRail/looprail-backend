@@ -9,6 +9,7 @@ from pydantic_extra_types.country import CountryShortName
 
 from src.models.base import Base
 from src.types.types import Gender, KYCStatus
+from src.types.common_types import DeviceID
 
 if TYPE_CHECKING:
     from src.models.wallet_model import Wallet
@@ -137,7 +138,7 @@ class UserBiometric(Base, table=True):
         nullable=False,
         index=True,
     )
-    device_id: str = Field(nullable=False, index=True)
+    device_id: DeviceID = Field(nullable=False, index=True)
     public_key: str = Field(nullable=False)
     is_active: bool = Field(default=True)
 
