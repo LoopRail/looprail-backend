@@ -38,10 +38,11 @@ class RefreshTokenRepository(Base[RefreshToken]):
             RefreshToken.token_hash == refresh_token_hash,
             RefreshToken.revoked_at.is_(None),
             RefreshToken.expires_at > datetime.utcnow(),
-            RefreshToken.replaced_by_hash.is_(None),
+            # RefreshToken.replaced_by_hash.is_(None),
         )
         result = await self.session.execute(statement)
         refresh_token = result.scalars().first()
+        print(refresh_token)
         if not refresh_token:
             return None, error("Invalid or expired refresh token")
         return refresh_token, None
