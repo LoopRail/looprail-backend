@@ -6,19 +6,12 @@ import toml
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.security import Argon2Config
-from src.infrastructure.settings import (
-    ENVIRONMENT,
-    AppSettings,
-    BlockRaderConfig,
-    DatabaseConfig,
-    JWTConfig,
-    LedgderServiceConfig,
-    OTPConfig,
-    PayCrestConfig,
-    PaystackConfig,
-    RedisConfig,
-    ResendConfig,
-)
+from src.infrastructure.settings import (ENVIRONMENT, AppSettings,
+                                         BlockRaderConfig, DatabaseConfig,
+                                         JWTConfig, LedgderServiceConfig,
+                                         OTPConfig, PayCrestConfig,
+                                         PaystackConfig, RedisConfig,
+                                         ResendConfig)
 from src.types.country_types import CountriesData
 from src.types.ledger_types import LedgerConfig
 from src.types.types import WalletConfig
@@ -192,6 +185,7 @@ class Config:
 
 def load_config() -> Config:
     config_obj = Config()
+
     logger.debug("Config loaded with ENVIRONMENT: %s", config_obj.app.environment)
     logger.debug("Database driver: %s", config_obj.database.db_driver)
     logger.debug("Database URI: %s", config_obj.database.get_uri())
