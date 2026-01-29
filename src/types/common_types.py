@@ -168,3 +168,7 @@ class AccessTokenSub(PrefixedId):
 
 class ChallengeId(PrefixedId):
     prefix = "chl_"
+
+
+class DeviceID(PrefixedId):
+    prefix = "device_"

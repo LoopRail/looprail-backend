@@ -4,7 +4,9 @@ from src.types.common_types import (
     AccessTokenSub,
     Address,
     AssetId,
+    ChallengeId,
     DeletionFilter,
+    DeviceID,
     IdentiyType,
     OnBoardingTokenSub,
     OtpId,
@@ -17,7 +19,6 @@ from src.types.common_types import (
     UserId,
     UserProfileId,
     WorldLedger,
-    ChallengeId,
 )
 from src.types.country_types import CountriesData
 from src.types.error import (
@@ -115,4 +116,5 @@ __all__ = [
     "AccessTokenSub",
     "OnBoardingTokenSub",
     "ChallengeId",
+    "DeviceID",
 ]
