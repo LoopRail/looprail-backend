@@ -9,16 +9,16 @@ from src.dtos.transaction_dtos import (
 from src.dtos.wallet_dtos import (
     BankTransferData,
     ExternalWalletTransferData,
-    WithdrawalRequest,
     TransferType,
+    WithdrawalRequest,
 )
+from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import (
     AssetRepository,
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.config_settings import Config
 from src.infrastructure.services import LedgerService, PaycrestService, WalletManager
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, Transaction, User, Wallet
@@ -173,8 +173,8 @@ class WalletManagerUsecase:
         logger.debug("Attempting to get user data for user ID: %s", user_id)
         user, err = await self.service._user_repository.get_user_by_id(user_id=user_id)
         if err:
-            logger.error("Could not get user %s: %s", user_id, err.message)
-            return None, error("Could not get user")
+            logger.error("Could not find user %s: %s", user_id, err.message)
+            return None, error("Could not find user")
         logger.debug("User %s data retrieved.", user_id)
         return user, None
 
@@ -183,29 +183,29 @@ class WalletManagerUsecase:
         # Assuming user has a default wallet, or a way to determine the correct wallet
         wallet, err = await self.service.repo.get_wallet_by_user_id(user_id=user_id)
         if err:
-            logger.error("Could not get wallet for user %s: %s", user_id, err.message)
-            return None, error("Could not get user wallet")
+            logger.error("Could not find wallet for user %s: %s", user_id, err.message)
+            return None, error("Could not find user wallet")
         logger.debug("Wallet %s retrieved for user %s.", wallet.id, user_id)
         return wallet, None
 
     async def _get_asset_by_id(
-        self, wallet_id: UUID, asset_id: AssetType
+        self, wallet_id: UUID, asset_id: UUID
     ) -> Tuple[Optional[Asset], Error]:
         logger.debug("Attempting to get asset %s for wallet %s", asset_id, wallet_id)
         (
             asset,
             err,
-        ) = await self.service._asset_repository.get_asset_by_wallet_id_and_asset_id(
-            wallet_id=wallet_id, asset_id=asset_id
+        ) = await self.service._asset_repository.find_one(
+            wallet_id=wallet_id, id=asset_id
         )
         if err:
             logger.error(
-                "Could not get asset %s for wallet %s: %s",
+                "Could not find asset %s for wallet %s: %s",
                 asset_id,
                 wallet_id,
                 err.message,
             )
-            return None, error("Could not get asset")
+            return None, error("Could not find asset")
         logger.debug("Asset %s retrieved for wallet %s.", asset.id, wallet_id)
         return asset, None
 
@@ -426,28 +426,6 @@ class WalletManagerUsecase:
             withdrawal_request.asset_id,
             withdrawal_request.amount,
         )
-        # Fetch user's wallet and asset
-        user_wallet, err = await self._get_user_wallet(user_id=user.id)
-        if err:
-            logger.error(
-                "Could not get user wallet for user %s: %s", user.id, err.message
-            )
-            return None, error("Could not get user wallet")
-        logger.debug("User wallet %s retrieved for user %s.", user_wallet.id, user.id)
-
-        asset, err = await self._get_asset_by_id(
-            wallet_id=user_wallet.id, asset_id=withdrawal_request.asset_id.clean()
-        )
-        if err:
-            logger.error(
-                "Could not get asset %s for user %s, wallet %s: %s",
-                withdrawal_request.asset_id,
-                user.id,
-                user_wallet.id,
-                err.message,
-            )
-            return None, error("Could not get asset")  # TODO we need to get a 404 here
-        logger.debug("Asset %s retrieved for user %s.", asset.id, user.id)
 
         withdrawal_method = specific_withdrawal.event
         withdrawal_handler = WithdrawalHandlerRegistry.get_handler(withdrawal_method)
@@ -459,6 +437,29 @@ class WalletManagerUsecase:
                 user.id,
             )
             return None, error(f"Unsupported withdrawal method: {withdrawal_method}")
+
+        # Fetch user's wallet and asset
+        user_wallet, err = await self._get_user_wallet(user_id=user.id)
+        if err:
+            logger.error(
+                "Could not find user wallet for user %s: %s", user.id, err.message
+            )
+            return None, error("Could not find user wallet")
+        logger.debug("User wallet %s retrieved for user %s.", user_wallet.id, user.id)
+
+        asset, err = await self._get_asset_by_id(
+            wallet_id=user_wallet.id, asset_id=withdrawal_request.asset_id.clean()
+        )
+        if err:
+            logger.error(
+                "Could not find asset %s for user %s, wallet %s: %s",
+                withdrawal_request.asset_id,
+                user.id,
+                user_wallet.id,
+                err.message,
+            )
+            return None, error("Could not find asset")  # TODO we need to get a 404 here
+        logger.debug("Asset %s retrieved for user %s.", asset.id, user.id)
 
         # Map WithdrawalMethod to PaymentMethod
         payment_method = PaymentMethod.BLOCKCHAIN
