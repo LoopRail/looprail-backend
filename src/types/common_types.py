@@ -107,11 +107,15 @@ class PrefixedId(str):
     def __get_pydantic_core_schema__(
         cls, _source_type: Any, _handler: GetCoreSchemaHandler
     ) -> core_schema.CoreSchema:
+        string_validator = core_schema.no_info_plain_validator_function(
+            lambda v: _validate_id_with_prefix(v, cls.prefix)
+        )
+
         return core_schema.no_info_after_validator_function(
             cls,
             core_schema.union_schema(
                 [
-                    core_schema.str_schema(),
+                    string_validator,
                     core_schema.is_instance_schema(UUID),
                 ]
             ),
