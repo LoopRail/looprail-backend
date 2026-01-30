@@ -25,7 +25,7 @@ from src.types.ledger_types import Ledger
 from src.types.types import WithdrawalMethod
 from src.usecases.transaction_usecases import TransactionUsecase
 from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry
-from src.utils.country_utils import get_country_name_by_currency
+from src.utils.country_utils import get_country_code_by_currency, get_country_name_by_currency
 
 logger = get_logger(__name__)
 
@@ -482,15 +482,29 @@ class WalletManagerUsecase:
         if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
             # For Bank Transfer, create BankTransferParams
             if isinstance(specific_data, BankTransferData):
+                country_code = get_country_code_by_currency(
+                    self.service.config.countries, withdrawal_request.currency
+                )
+                if not country_code:
+                    logger.warning(
+                        "Could not determine country code for currency %s",
+                        withdrawal_request.currency,
+                    )
+                    bank_name = "Unknown Bank"
+                else:
+                    found_banks = self.service.config.banks_data.get(
+                        country_code=country_code, code=specific_data.bank_code
+                    )
+                    bank_name = found_banks[0].name if found_banks else "Unknown Bank"
+
                 common_transaction_params = BankTransferParams(
                     **base_kwargs,
                     bank_code=specific_data.bank_code,
-                    bank_name="Unknown",
+                    bank_name=bank_name,
                     account_number=specific_data.account_number,
                     account_name=specific_data.account_name,
-                    provider="paycrest", 
+                    provider="paycrest",
                 )
-                common_transaction_params.bank_name = "Unknown Bank"
             else:
                 return None, error("Invalid data for bank transfer")
 

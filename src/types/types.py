@@ -17,7 +17,30 @@ class Bank(BaseModel):
 
 
 class BanksData(RootModel[Dict[str, List[Bank]]]):
-    pass
+    def get(self, country_code: Optional[str] = None, **kwargs: Any) -> List[Bank]:
+        """
+        Retrieves a list of banks based on optional country code and other criteria.
+        If country_code is None, searches across all countries.
+        """
+        found_banks = []
+        target_countries = []
+
+        if country_code:
+            target_countries.append(country_code.upper())
+        else:
+            target_countries.extend(self.root.keys())
+
+        for c_code in target_countries:
+            banks_in_country = self.root.get(c_code, [])
+            for bank in banks_in_country:
+                match = True
+                for key, value in kwargs.items():
+                    if not hasattr(bank, key) or getattr(bank, key) != value:
+                        match = False
+                        break
+                if match:
+                    found_banks.append(bank)
+        return found_banks
 
 
 class Wallet(BaseModel):

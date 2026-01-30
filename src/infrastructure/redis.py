@@ -207,3 +207,4 @@ class RedisClient:
         if not keys:
             return 0
         return await self._instance.delete(*keys)
+

@@ -30,3 +30,15 @@ def get_country_name_by_currency(
         if country.currency.upper() == currency.upper():
             return country.name
     return None
+
+
+def get_country_code_by_currency(
+    countries: CountriesData, /, currency: str
+) -> str | None:
+    """
+    Returns the country code for a given currency.
+    """
+    for code, country in countries.countries.items():
+        if country.currency.upper() == currency.upper():
+            return code
+    return None
