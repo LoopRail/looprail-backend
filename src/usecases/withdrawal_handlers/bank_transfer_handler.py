@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Optional, Tuple
 
-from src.dtos.transaction_dtos import BankTransferParams, CreateTransactionParams
+from src.dtos.transaction_dtos import (BankTransferParams,
+                                       CreateTransactionParams)
 from src.dtos.wallet_dtos import BankTransferData, WithdrawalRequest
 from src.infrastructure.logger import get_logger
 from src.models import Asset, Transaction, User
@@ -25,6 +26,7 @@ async def handle_bank_transfer(
     bank_transfer_data: BankTransferData,
     asset: Asset,
     create_transaction_params: CreateTransactionParams,
+    **kwargs,
 ) -> Tuple[Optional[Transaction], Optional[Error]]:
     logger.info(
         "Handling bank transfer for user %s to account %s",

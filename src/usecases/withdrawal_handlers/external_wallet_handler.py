@@ -25,6 +25,7 @@ async def handle_external_wallet_transfer(
     withdrawal_request: WithdrawalRequest,
     external_wallet_transfer_data: ExternalWalletTransferData,
     asset: Asset,
+    **kwargs
 ) -> Optional[Error]:
     logger.info(
         "Handling external wallet transfer for user %s to address %s",

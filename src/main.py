@@ -79,6 +79,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     Handles Pydantic's validation errors to return a human-readable message.
     """
     error_details = exc.errors()
+    logger.error(error_details)
 
     messages = []
     for e in error_details:
@@ -139,6 +140,7 @@ async def raw_pydantic_validation_exception_handler(
 
 @app.exception_handler(error)
 async def custom_error_handler(request: Request, exc: Error):
+    logger.error(exc.message)
     code = status.HTTP_400_BAD_REQUEST
     if hasattr(exc, "code"):
         code = exc.code
