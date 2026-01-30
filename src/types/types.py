@@ -1,11 +1,23 @@
 from enum import StrEnum
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
 from src.types.blockrader.types import AssetData
 from src.types.common_types import Chain
 from src.types.error import Error, error
+
+
+class Bank(BaseModel):
+    name: str
+    code: str
+    type: str # This could be an Enum like 'bank' or 'mobile_money'
+    logo: Optional[str] = None
+    id: Optional[str] = None
+
+
+class BanksData(BaseModel):
+    __root__: Dict[str, List[Bank]]
 
 
 class Wallet(BaseModel):

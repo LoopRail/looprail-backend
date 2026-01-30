@@ -6,15 +6,22 @@ import toml
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.security import Argon2Config
-from src.infrastructure.settings import (ENVIRONMENT, AppSettings,
-                                         BlockRaderConfig, DatabaseConfig,
-                                         JWTConfig, LedgderServiceConfig,
-                                         OTPConfig, PayCrestConfig,
-                                         PaystackConfig, RedisConfig,
-                                         ResendConfig)
+from src.infrastructure.settings import (
+    ENVIRONMENT,
+    AppSettings,
+    BlockRaderConfig,
+    DatabaseConfig,
+    JWTConfig,
+    LedgderServiceConfig,
+    OTPConfig,
+    PayCrestConfig,
+    PaystackConfig,
+    RedisConfig,
+    ResendConfig,
+)
 from src.types.country_types import CountriesData
 from src.types.ledger_types import LedgerConfig
-from src.types.types import WalletConfig
+from src.types.types import Bank, BanksData, WalletConfig # Added Bank, BanksData
 from src.utils import return_base_dir
 
 logger = get_logger(__name__)
@@ -142,6 +149,27 @@ def load_ledger_settings_from_file(environment: ENVIRONMENT) -> LedgerConfig:
     return LedgerConfig(ledgers=[])
 
 
+def load_banks_data() -> BanksData:
+    logger.debug("Entering load_banks_data function.")
+    config_path = os.path.join(return_base_dir(), "public", "banks.json")
+    logger.debug("Banks data file path: %s", config_path)
+    try:
+        logger.debug("Attempting to open banks data file: %s", config_path)
+        with open(config_path, "r", encoding="utf-8") as f:
+            logger.debug("File opened. Attempting to parse JSON.")
+            data = json.load(f)
+            logger.debug("JSON parsed successfully.")
+            logger.info("Successfully loaded banks data from %s", config_path)
+            return BanksData.parse_obj(data)
+    except FileNotFoundError:
+        logger.warning("Banks data file not found: %s", config_path)
+    except json.JSONDecodeError:
+        logger.warning("Invalid JSON in banks data file: %s", config_path)
+    except Exception as e:
+        logger.error("An unexpected error occurred while loading banks data: %s", e)
+    logger.debug("Exiting load_banks_data function with empty BanksData.")
+    return BanksData(__root__={})
+
 class Config:
     def __init__(self):
         logger.debug("Initializing Config class.")
@@ -170,6 +198,9 @@ class Config:
             self.app.environment
         )
         logger.debug("BlockRader wallet configs loaded.")
+
+        self.banks_data: BanksData = load_banks_data()
+        logger.debug("Banks data loaded.")
 
         if self.app.environment == ENVIRONMENT.PRODUCTION:
             self.resend.default_sender_domain = "looprail.xyz"

@@ -25,7 +25,6 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app_: FastAPI):
-
     config = load_config()
     app_.state.config = config
     app_.state.environment = config.app.environment
@@ -43,17 +42,7 @@ async def lifespan(app_: FastAPI):
     app_.state.ledger_config = config.ledger
     app_.state.argon2_config = config.argon2
 
-    # Load banks data from JSON file
-    banks_json_path = os.path.join(
-        os.path.dirname(__file__), "..", "public", "banks.json"
-    )
-    try:
-        with open(banks_json_path, "r", encoding="utf-8") as f:
-            app_.state.banks_data = json.load(f)
-        logger.info("Successfully loaded banks data from %s", banks_json_path)
-    except Exception as e:
-        logger.error("Failed to load banks data: %s", e)
-        app_.state.banks_data = {}
+    app_.state.banks_data = config.banks_data.__root__ # Access the loaded data
 
     yield
 
@@ -95,7 +84,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     for e in error_details:
         loc_parts = e.get("loc", [])[1:]
         # Filter out pydantic-internal validation details from the location path
-        filtered_loc = [str(p) for p in loc_parts if '[' not in str(p)]
+        filtered_loc = [str(p) for p in loc_parts if "[" not in str(p)]
         field_path = ".".join(filtered_loc)
         message = e.get("msg")
 
@@ -129,7 +118,7 @@ async def raw_pydantic_validation_exception_handler(
     for e in error_details:
         loc_parts = e.get("loc", [])[1:]
         # Filter out pydantic-internal validation details from the location path
-        filtered_loc = [str(p) for p in loc_parts if '[' not in str(p)]
+        filtered_loc = [str(p) for p in loc_parts if "[" not in str(p)]
         field_path = ".".join(filtered_loc)
         message = e.get("msg")
 
