@@ -93,7 +93,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
     messages = []
     for e in error_details:
-        field_path = ".".join(map(str, e.get("loc", [])[1:]))
+        loc_parts = e.get("loc", [])[1:]
+        # Filter out pydantic-internal validation details from the location path
+        filtered_loc = [str(p) for p in loc_parts if '[' not in str(p)]
+        field_path = ".".join(filtered_loc)
         message = e.get("msg")
 
         if message:
@@ -106,11 +109,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             else:
                 messages.append(message)
 
-    final_message = ". ".join(messages) if messages else "Validation error"
-
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"message": final_message},
+        content={"messages": messages},
     )
 
 
@@ -125,7 +126,10 @@ async def raw_pydantic_validation_exception_handler(
 
     messages = []
     for e in error_details:
-        field_path = ".".join(map(str, e.get("loc", [])[1:]))
+        loc_parts = e.get("loc", [])[1:]
+        # Filter out pydantic-internal validation details from the location path
+        filtered_loc = [str(p) for p in loc_parts if '[' not in str(p)]
+        field_path = ".".join(filtered_loc)
         message = e.get("msg")
 
         if message:
@@ -137,11 +141,9 @@ async def raw_pydantic_validation_exception_handler(
             else:
                 messages.append(message)
 
-    final_message = ". ".join(messages) if messages else "Validation error"
-
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"message": final_message},
+        content={"messages": messages},
     )
 
 
