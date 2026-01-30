@@ -349,7 +349,7 @@ async def login(
 @router.post(
     "/token", summary="Refresh Access Token", response_model=AuthTokensResponse
 )
-@limiter.limit("2/minute")
+@limiter.limit("3/minute")
 async def refresh_token(
     request: Request,
     refresh_token_request: RefreshTokenRequest,
@@ -407,10 +407,12 @@ async def refresh_token(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
+    new_refresh_token = create_refresh_token()
+
     # Issues a new refresh token
-    new_raw_refresh_token, err = await session_usecase.rotate_refresh_token(
+    err = await session_usecase.rotate_refresh_token(
         old_refresh_token=refresh_token_db,
-        new_refresh_token_string=create_refresh_token().clean(),
+        new_refresh_token_string=new_refresh_token.clean(),
     )
     if err:
         logger.error(
@@ -424,10 +426,7 @@ async def refresh_token(
     logger.info(
         "Access token refreshed successfully for session: %s", session.get_prefixed_id()
     )
-    return {
-        "access-token": new_access_token,
-        "refresh-token": new_raw_refresh_token.get_prefixed_id(),
-    }
+    return {"access-token": new_access_token, "refresh-token": new_refresh_token}
 
 
 @router.post("/challenge", response_model=ChallengeResponse)

@@ -3,12 +3,14 @@ from typing import List, Optional, Tuple
 from uuid import UUID
 
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import RefreshTokenRepository, SessionRepository
+from src.infrastructure.repositories import (RefreshTokenRepository,
+                                             SessionRepository)
 from src.infrastructure.security import Argon2Config
 from src.models import RefreshToken, Session
 from src.types import Error
-from src.types.common_types import RefreshTokenId, SessionId, UserId, DeviceID
-from src.utils.auth_utils import create_refresh_token, hash_password, verify_password
+from src.types.common_types import DeviceID, RefreshTokenId, SessionId, UserId
+from src.utils.auth_utils import (create_refresh_token, hash_password,
+                                  verify_password)
 
 logger = get_logger(__name__)
 
@@ -205,13 +207,14 @@ class SessionUseCase:
 
     async def rotate_refresh_token(
         self, old_refresh_token: RefreshToken, new_refresh_token_string: str
-    ) -> Tuple[Optional[RefreshToken], Error]:
+    ) -> Error:
         logger.debug(
             "Rotating refresh token for session %s", old_refresh_token.session_id
         )
         new_refresh_token_hash = hashlib.sha256(
             new_refresh_token_string.encode()
         ).hexdigest()
+
         err = await self.refresh_token_repository.mark_refresh_token_as_replaced(
             old_refresh_token=old_refresh_token,
             new_refresh_token_hash=new_refresh_token_hash,
@@ -226,7 +229,7 @@ class SessionUseCase:
         logger.debug("Old refresh token %s marked as replaced.", old_refresh_token.id)
 
         (
-            new_refresh_token,
+            _,
             err,
         ) = await self.refresh_token_repository.create_refresh_token(
             session_id=old_refresh_token.session_id,
@@ -244,7 +247,7 @@ class SessionUseCase:
             "Refresh token rotated successfully for session %s",
             old_refresh_token.session_id,
         )
-        return new_refresh_token, None
+        return None
 
     async def get_user_sessions(self, user_id: UserId) -> List[Session]:
         logger.debug("Getting all sessions for user %s", user_id)
