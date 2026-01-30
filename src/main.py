@@ -123,6 +123,7 @@ async def raw_pydantic_validation_exception_handler(
     Handles raw Pydantic validation errors that might occur outside of FastAPI's RequestValidationError.
     """
     error_details = exc.errors()
+    logger.error(error_details)
 
     messages = []
     for e in error_details:
