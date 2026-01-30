@@ -42,7 +42,7 @@ async def lifespan(app_: FastAPI):
     app_.state.ledger_config = config.ledger
     app_.state.argon2_config = config.argon2
 
-    app_.state.banks_data = config.banks_data.__root__ # Access the loaded data
+    app_.state.banks_data = config.banks_data.root # Access the loaded data
 
     yield
 

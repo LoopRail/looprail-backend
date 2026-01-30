@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Any, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 
 from src.types.blockrader.types import AssetData
 from src.types.common_types import Chain
@@ -16,8 +16,8 @@ class Bank(BaseModel):
     id: Optional[str] = None
 
 
-class BanksData(BaseModel):
-    __root__: Dict[str, List[Bank]]
+class BanksData(RootModel[Dict[str, List[Bank]]]):
+    pass
 
 
 class Wallet(BaseModel):
