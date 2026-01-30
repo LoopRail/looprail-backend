@@ -5,9 +5,11 @@ from src.types.types import WithdrawalMethod
 
 if TYPE_CHECKING:
     from src.dtos.transaction_dtos import CreateTransactionParams
-    from src.dtos.wallet_dtos import (BankTransferData,
-                                      ExternalWalletTransferData,
-                                      WithdrawalRequest)
+    from src.dtos.wallet_dtos import (
+        BankTransferData,
+        ExternalWalletTransferData,
+        WithdrawalRequest,
+    )
     from src.models import Asset, Transaction, User
     from src.usecases.wallet_usecases import WalletManagerUsecase
 

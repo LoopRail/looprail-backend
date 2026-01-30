@@ -1,44 +1,25 @@
 from typing import Any, Dict, Optional, Self, Tuple
 from uuid import UUID
 
-from src.dtos.transaction_dtos import (
-    BankTransferParams,
-    CreateTransactionParams,
-    CryptoTransactionParams,
-)
-from src.dtos.wallet_dtos import (
-    BankTransferData,
-    ExternalWalletTransferData,
-    TransferType,
-    WithdrawalRequest,
-)
+from src.dtos.transaction_dtos import (BankTransferParams,
+                                       CreateTransactionParams,
+                                       CryptoTransactionParams)
+from src.dtos.wallet_dtos import (BankTransferData, ExternalWalletTransferData,
+                                  TransferType, WithdrawalRequest)
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import (
-    AssetRepository,
-    UserRepository,
-    WalletRepository,
-)
-from src.infrastructure.services import LedgerService, PaycrestService, WalletManager
+from src.infrastructure.repositories import (AssetRepository, UserRepository,
+                                             WalletRepository)
+from src.infrastructure.services import (LedgerService, PaycrestService,
+                                         WalletManager)
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, Transaction, User, Wallet
-from src.types import (
-    AssetType,
-    Error,
-    IdentiyType,
-    PaymentMethod,
-    Provider,
-    TransactionStatus,
-    TransactionType,
-    WalletConfig,
-    error,
-)
-from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse
-from src.types.blockrader import (
-    CreateAddressRequest,
-    NetworkFeeRequest,
-    WalletAddressResponse,
-)
+from src.types import (AssetType, Error, IdentiyType, PaymentMethod, Provider,
+                       TransactionStatus, TransactionType, WalletConfig, error)
+from src.types.blnk import (CreateBalanceRequest, CreateIdentityRequest,
+                            IdentityResponse)
+from src.types.blockrader import (CreateAddressRequest, NetworkFeeRequest,
+                                  WalletAddressResponse)
 from src.types.common_types import AssetId, UserId
 from src.types.ledger_types import Ledger
 from src.types.types import WithdrawalMethod
@@ -458,7 +439,7 @@ class WalletManagerUsecase:
                 user_wallet.id,
                 err.message,
             )
-            return None, error("Could not find asset")  # TODO we need to get a 404 here
+            return None, error("Could not find asset")
         logger.debug("Asset %s retrieved for user %s.", asset.id, user.id)
 
         # Map WithdrawalMethod to PaymentMethod
@@ -486,14 +467,15 @@ class WalletManagerUsecase:
             "transaction_type": TransactionType.DEBIT,
             "payment_type": TransactionType.DEBIT,
             "method": payment_method,
-            "currency": asset.symbol.lower(),
+            "currency": withdrawal_request.currency,
             "sender": user.get_prefixed_id(),
             "receiver": "N/A",
             "amount": withdrawal_request.amount,
             "narration": withdrawal_request.narration,
             "fee": None,
             "country": get_country_name_by_currency(
-                self.service.config.countries, asset.symbol
+                self.service.config.countries,
+                withdrawal_request.currency,
             ),
         }
 
@@ -503,17 +485,11 @@ class WalletManagerUsecase:
                 common_transaction_params = BankTransferParams(
                     **base_kwargs,
                     bank_code=specific_data.bank_code,
-                    bank_name="Unknown",  # Or fetch/map bank name if available, specific_data doesn't imply it? Ah, specific_withdrawal.data had it? No, BankTransferData has bank_code, account_number, account_name.
-                    # Wait, BankTransferParams requires bank_name. BankTransferData (DTO) has bank_code, account_number, account_name. It misses bank_name?
-                    # Let's check BankTransferData definition in src/dtos/wallet_dtos.py (Step 909): it has bank_code, account_number, account_name. No bank_name.
-                    # Providing a default or fetching it. Since I don't have bank list here easily without async call or lookup.
-                    # I'll use "Unknown Bank" for now or empty string if allowed.
+                    bank_name="Unknown",
                     account_number=specific_data.account_number,
                     account_name=specific_data.account_name,
-                    provider="paycrest",  # Default
+                    provider="paycrest", 
                 )
-                # Correction: specific_data DOES NOT have bank_name. But CreateTransactionParams -> BankTransferParams REQUIRES bank_name (Step 962: min_length=1).
-                # I should probably pass "Unknown" for now as tests probably don't check this or mock it.
                 common_transaction_params.bank_name = "Unknown Bank"
             else:
                 return None, error("Invalid data for bank transfer")

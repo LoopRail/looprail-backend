@@ -3,14 +3,12 @@ from typing import List, Optional, Tuple
 from uuid import UUID
 
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import (RefreshTokenRepository,
-                                             SessionRepository)
+from src.infrastructure.repositories import RefreshTokenRepository, SessionRepository
 from src.infrastructure.security import Argon2Config
 from src.models import RefreshToken, Session
 from src.types import Error
 from src.types.common_types import DeviceID, RefreshTokenId, SessionId, UserId
-from src.utils.auth_utils import (create_refresh_token, hash_password,
-                                  verify_password)
+from src.utils.auth_utils import create_refresh_token, hash_password, verify_password
 
 logger = get_logger(__name__)
 

@@ -7,7 +7,7 @@ from pydantic import field_serializer, field_validator
 from src.dtos.base import Base
 from src.types.common_types import Address, AssetId, Chain, WalletId
 from src.types.error import Error, error
-from src.types.types import WithdrawalMethod
+from src.types.types import Currency, WithdrawalMethod
 
 
 class TransferType(Base):
@@ -67,6 +67,7 @@ class GenericWithdrawalRequest(Base):
 class WithdrawalRequest(Base):
     asset_id: AssetId
     amount: Decimal
+    currency: Currency
     narration: str
     destination: GenericWithdrawalRequest
 
