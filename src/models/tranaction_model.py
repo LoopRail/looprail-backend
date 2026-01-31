@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship
 
 from src.models.base import Base
-from src.types.common_types import ReferenceId, UserId
+from src.types.common_types import Address, ReferenceId, UserId
 from src.types.types import Currency, PaymentMethod, TransactionStatus, TransactionType
 from src.utils.app_utils import generate_transaction_reference
 
@@ -142,7 +142,7 @@ class WalletTransferDetail(Base, table=True):
     )
 
     # Wallet details
-    wallet_address: str = Field(nullable=False, index=True, max_length=200)
+    wallet_address: Address = Field(nullable=False, index=True, max_length=200)
     network: str = Field(nullable=False, max_length=50)
     memo: Optional[str] = Field(default=None, max_length=100)
 
