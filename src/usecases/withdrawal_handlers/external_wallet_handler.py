@@ -34,43 +34,23 @@ async def handle_external_wallet_transfer(
         transfer_data.address,
     )
     logger.info(
-        "Initiating external wallet transfer for user %s to %s with asset %s amount %s",
+        "Preparing external wallet transfer for user %s to %s with asset %s amount %s",
         user.id,
         transfer_data.address,
         withdrawal_request.asset_id,
         withdrawal_request.amount,
     )
-    # Placeholder for actual transfer logic
-    # For example:
-    logger.debug("Calling wallet_manager.manager.transfer_asset for user %s", user.id)
-    transfer_response, err = await wallet_manager.manager.transfer_asset(
-        source_asset_id=asset.asset_id,
-        destination_address=transfer_data.address,
-        amount=withdrawal_request.amount,
-        chain=transfer_data.chain,
-    )
-    if err:
-        logger.error(
-            "Failed to initiate external wallet transfer for user %s: %s",
-            user.id,
-            err.message,
-        )
-        return error("External wallet transfer failed")
-    logger.info(
-        "External wallet transfer initiated with transaction ID: %s for user %s",
-        transfer_response.transaction_id,
-        user.id,
-    )
+    # The actual transfer initiation is handled in process_withdrawal_execution.
+    # This handler only prepares the transaction details.
 
-    # Record transaction in local DB and ledger (similar to bank transfer)
     # Populate the existing CreateTransactionParams with method-specific details
     crypto_specific_params = CryptoTransactionParams(
         **create_transaction_params.model_dump(),  # Start with common params
         status=TransactionStatus.PENDING,
-        transaction_hash=transfer_response.transaction_hash,
-        provider_id=transfer_response.transaction_id,
+        transaction_hash=None, # Will be filled after actual transfer
+        provider_id=None, # Will be filled after actual transfer
         network=transfer_data.chain.value,
-        chain_id=transfer_data.chain.value, # Assuming chain.value is suitable for chain_id
+        chain_id=transfer_data.chain.value,
         confirmations=0,
         confirmed=False,
     )
@@ -94,39 +74,6 @@ async def handle_external_wallet_transfer(
         transaction.id,
     )
 
-    transaction_request = RecordTransactionRequest(
-        amount=int(withdrawal_request.amount * 100),
-        reference=transaction.get_prefixed_id(), 
-        source=asset.ledger_balance_id,
-        destination=WorldLedger.WORLD_OUT,
-        description=withdrawal_request.narration,
-    )
-    logger.debug(
-        "Recording transaction in ledger for user %s with request: %s",
-        user.id,
-        transaction_request.model_dump(),
-    )
-    (
-        _,
-        err,
-    ) = await wallet_manager.service.ledger_service.transactions.record_transaction(
-        transaction_request
-    )
-    if err:
-        logger.error(
-            "Failed to record ledger transaction for user %s: %s", user.id, err.message
-        )
-        # Attempt to mark the local transaction as failed if ledger recording fails
-        await wallet_manager.service.transaction_usecase.update_transaction_status(
-            transaction_id=transaction.id,
-            new_status="FAILED",
-            message="Ledger record failed",
-        )
-        return None, error("Failed to record ledger transaction")
-    logger.info(
-        "Ledger transaction recorded for user %s, transaction ID: %s",
-        user.id,
-        transaction.id,
-    )
+    # Ledger recording has been moved to process_withdrawal_execution
 
     return transaction, None

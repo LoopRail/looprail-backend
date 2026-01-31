@@ -523,7 +523,7 @@ class WalletManagerUsecase:
             wallet_manager=self,
             user=user,
             withdrawal_request=withdrawal_request,
-            specific_data=specific_data,
+            transfer_data=specific_data,
             asset=asset,
             create_transaction_params=common_transaction_params,
         )
