@@ -23,7 +23,7 @@ async def handle_bank_transfer(
     wallet_manager: "WalletManagerUsecase",
     user: User,
     withdrawal_request: WithdrawalRequest,
-    bank_transfer_data: BankTransferData,
+    transfer_data: BankTransferData,
     asset: Asset,
     create_transaction_params: CreateTransactionParams,
     **kwargs,
@@ -31,7 +31,7 @@ async def handle_bank_transfer(
     logger.info(
         "Handling bank transfer for user %s to account %s",
         user.id,
-        bank_transfer_data.account_number,
+        transfer_data.account_number,
     )
     logger.debug(
         "Initiating Paystack transfer for user %s, amount %s",
@@ -43,9 +43,9 @@ async def handle_bank_transfer(
         err,
     ) = await wallet_manager.service.paystack_service.initiate_transfer(
         amount=withdrawal_request.amount,
-        recipient_bank_code=bank_transfer_data.bank_code,
-        recipient_account_number=bank_transfer_data.account_number,
-        recipient_name=bank_transfer_data.account_name,
+        recipient_bank_code=transfer_data.bank_code,
+        recipient_account_number=transfer_data.account_number,
+        recipient_name=transfer_data.account_name,
         narration=withdrawal_request.narration,
     )
     if err:
@@ -65,10 +65,10 @@ async def handle_bank_transfer(
     bank_transfer_specific_params = BankTransferParams(
         **create_transaction_params.model_dump(),  # Start with common params
         external_reference=transfer_code,
-        bank_code=bank_transfer_data.bank_code,
-        bank_name=bank_transfer_data.bank_name,  # Assuming bank name is available or can be fetched
-        account_number=bank_transfer_data.account_number,
-        account_name=bank_transfer_data.account_name,
+        bank_code=transfer_data.bank_code,
+        bank_name=transfer_data.bank_name,  # Assuming bank name is available or can be fetched
+        account_number=transfer_data.account_number,
+        account_name=transfer_data.account_name,
         provider="Paystack",  # Assuming Paystack is the provider for bank transfers
         session_id=None,  # Session ID might come from a higher level, setting to None for now
     )
