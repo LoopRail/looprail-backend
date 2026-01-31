@@ -9,7 +9,7 @@ from src.models import Asset, Transaction, User
 from src.types.blnk import RecordTransactionRequest
 from src.types.common_types import WorldLedger
 from src.types.error import Error, error
-from src.types.types import TransactionType, WithdrawalMethod
+from src.types.types import TransactionStatus, WithdrawalMethod
 from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry
 
 if TYPE_CHECKING:
@@ -96,7 +96,7 @@ async def handle_external_wallet_transfer(
 
     transaction_request = RecordTransactionRequest(
         amount=int(withdrawal_request.amount * 100),
-        reference=transaction.get_prefixed_id(), # Use internal transaction ID as reference for ledger
+        reference=transaction.get_prefixed_id(), 
         source=asset.ledger_balance_id,
         destination=WorldLedger.WORLD_OUT,
         description=withdrawal_request.narration,
