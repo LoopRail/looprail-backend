@@ -120,6 +120,7 @@ async def handle_deposit_success(
     config: Config,
     **kwargs,
 ):
+    logger.info(event)
     logger.info("Handling deposit swept success event: %s", event.data.id)
 
     logger.debug(
