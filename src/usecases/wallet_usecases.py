@@ -25,7 +25,8 @@ from src.types.ledger_types import Ledger
 from src.types.types import WithdrawalMethod
 from src.usecases.transaction_usecases import TransactionUsecase
 from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry
-from src.utils.country_utils import get_country_code_by_currency, get_country_name_by_currency
+from src.utils.country_utils import (get_country_code_by_currency,
+                                     get_country_name_by_currency)
 
 logger = get_logger(__name__)
 
@@ -524,7 +525,6 @@ class WalletManagerUsecase:
             user=user,
             withdrawal_request=withdrawal_request,
             transfer_data=specific_data,
-            asset=asset,
             create_transaction_params=common_transaction_params,
         )
         if err:
@@ -570,7 +570,7 @@ class WalletManagerUsecase:
             logger.debug("Paycrest rate fetched: %s", paycrest_rate)
 
         network_fee_request = NetworkFeeRequest(
-            assetId=withdrawal_request.asset_id.clean(),
+            assetId="ff8a28d1-2454-4a1d-ba77-21e08a67d78b",
             amount=str(withdrawal_request.amount),
             address=user_wallet.address,
         )
