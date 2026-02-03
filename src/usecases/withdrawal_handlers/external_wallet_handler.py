@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional, Tuple
 
-from src.dtos.transaction_dtos import CreateTransactionParams, CryptoTransactionParams
+from src.dtos.transaction_dtos import (CreateTransactionParams,
+                                       CryptoTransactionParams)
 from src.dtos.wallet_dtos import ExternalWalletTransferData, WithdrawalRequest
 from src.infrastructure.logger import get_logger
 from src.models import Asset, Transaction, User
@@ -24,9 +25,8 @@ async def handle_external_wallet_transfer(
     user: User,
     withdrawal_request: WithdrawalRequest,
     transfer_data: ExternalWalletTransferData,
-    asset: Asset,
     create_transaction_params: CreateTransactionParams,
-    **kwargs
+    **kwargs,
 ) -> Tuple[Optional[Transaction], Optional[Error]]:
     logger.info(
         "Handling external wallet transfer for user %s to address %s",
@@ -40,19 +40,10 @@ async def handle_external_wallet_transfer(
         withdrawal_request.asset_id,
         withdrawal_request.amount,
     )
-    # The actual transfer initiation is handled in process_withdrawal_execution.
-    # This handler only prepares the transaction details.
-
-    # Populate the existing CreateTransactionParams with method-specific details
     crypto_specific_params = CryptoTransactionParams(
-        **create_transaction_params.model_dump(),  # Start with common params
+        **create_transaction_params.model_dump(),
         status=TransactionStatus.PENDING,
-        transaction_hash=None, # Will be filled after actual transfer
-        provider_id=None, # Will be filled after actual transfer
-        network=transfer_data.chain.value,
-        chain_id=transfer_data.chain.value,
-        confirmations=0,
-        confirmed=False,
+        provider_id=None,
     )
 
     logger.debug(
@@ -60,7 +51,10 @@ async def handle_external_wallet_transfer(
         user.id,
         crypto_specific_params.model_dump(),
     )
-    transaction, err = await wallet_manager.service.transaction_usecase.create_transaction(
+    (
+        transaction,
+        err,
+    ) = await wallet_manager.service.transaction_usecase.create_transaction(
         crypto_specific_params
     )
     if err:
@@ -73,7 +67,5 @@ async def handle_external_wallet_transfer(
         user.id,
         transaction.id,
     )
-
-    # Ledger recording has been moved to process_withdrawal_execution
 
     return transaction, None

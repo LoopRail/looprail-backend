@@ -24,10 +24,15 @@ async def handle_bank_transfer(
     user: User,
     withdrawal_request: WithdrawalRequest,
     transfer_data: BankTransferData,
-    asset: Asset,
     create_transaction_params: CreateTransactionParams,
     **kwargs,
 ) -> Tuple[Optional[Transaction], Optional[Error]]:
+    logger.info(
+        "Handling bank transfer for user %s to account %s",
+        user.id,
+        transfer_data.account_number,
+    )
+
     # Populate the existing CreateTransactionParams with method-specific details
     bank_transfer_specific_params = BankTransferParams(
         **create_transaction_params.model_dump(),  # Start with common params
@@ -36,7 +41,7 @@ async def handle_bank_transfer(
         bank_name=transfer_data.bank_name,
         account_number=transfer_data.account_number,
         account_name=transfer_data.account_name,
-        provider=None,  # Not available at this stage
+        provider=None,
         session_id=None,
     )
 
@@ -61,7 +66,5 @@ async def handle_bank_transfer(
         user.id,
         transaction.id,
     )
-
-    # The ledger recording logic has been moved to process_withdrawal_execution
 
     return transaction, None
