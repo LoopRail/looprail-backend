@@ -5,15 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.ext.asyncio.engine import AsyncEngine
 
 from src.infrastructure import get_logger, load_config
+from src.infrastructure.settings import ENVIRONMENT
 from src.types import InternaleServerError
 
-db_url = load_config().database.get_uri()
+config = load_config()
+db_url = config.database.get_uri()
 
 logger = get_logger(__name__)
 
 
 def get_engine(db_uri: str) -> AsyncEngine:
-    engine = create_async_engine(db_uri, echo=True)  # TODO do not echo in prod
+    is_production = config.app.environment == ENVIRONMENT.PRODUCTION
+    engine = create_async_engine(db_uri, echo=not is_production)
     return engine
 
 

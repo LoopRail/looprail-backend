@@ -85,8 +85,13 @@ def load_countries() -> CountriesData:
     return CountriesData(countries={})
 
 
-def load_disposable_email_domains() -> List[str]:
+def load_disposable_email_domains(environment: ENVIRONMENT) -> List[str]:
     logger.debug("Entering load_disposable_email_domains function.")
+    if environment in (ENVIRONMENT.DEVELOPMENT, ENVIRONMENT.STAGING):
+        logger.debug(
+            "Skipping disposable email domains check in development or staging environment."
+        )
+        return []
     config_path = os.path.join(
         return_base_dir(), "config", "disposable_email_domains.txt"
     )
@@ -188,7 +193,9 @@ class Config:
         self.countries: CountriesData = load_countries()
         logger.debug("Countries data loaded.")
 
-        self.disposable_email_domains: List[str] = load_disposable_email_domains()
+        self.disposable_email_domains: List[str] = load_disposable_email_domains(
+            self.app.environment
+        )
         logger.debug("Disposable email domains loaded.")
         self.ledger.ledgers: LedgerConfig = load_ledger_settings_from_file(
             self.app.environment
