@@ -8,7 +8,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from src.api.dependencies.services import get_redis_service
-from src.api.rate_limiter.custom_rate_limiter.py import CustomRateLimiter, limiter
+from src.api.rate_limiters.limiters import CustomRateLimiter, limiter
 from src.infrastructure import get_logger
 from src.infrastructure.services import RedisClient
 from src.infrastructure.settings import ENVIRONMENT
@@ -100,3 +100,4 @@ def add_rate_limiter(app: FastAPI):
         return
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+

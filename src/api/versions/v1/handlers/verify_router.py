@@ -6,7 +6,7 @@ from src.api.dependencies import (
     get_user_usecases,
     verify_otp_dep,
 )
-from src.api.rate_limiter import limiter
+from src.api.rate_limiters import limiter
 from src.dtos import OTPSuccessResponse
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
