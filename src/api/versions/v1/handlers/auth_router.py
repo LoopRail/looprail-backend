@@ -1,3 +1,4 @@
+from src.api.rate_limiter import custom_rate_limiter
 import hashlib
 
 from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
@@ -597,7 +598,7 @@ async def logout_all(
 
 
 @router.post("/send-otp", response_model=MessageResponse)
-@limiter.limit("1/minute")
+@custom_rate_limiter("otp", identifier_arg="otp_data", identifier_field="email")
 async def send_otp(
     request: Request,
     response: Response,
