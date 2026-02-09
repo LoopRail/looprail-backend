@@ -208,3 +208,7 @@ class RedisClient:
             return 0
         return await self._instance.delete(*keys)
 
+    async def ping(self) -> bool:
+        """Ping the Redis server to check the connection."""
+        return await self._instance.ping()
+

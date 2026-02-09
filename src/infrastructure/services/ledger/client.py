@@ -28,6 +28,7 @@ from src.types.blnk.dtos import (
     TransactionResponse,
     UpdateBalanceMonitorRequest,
     UpdateInflightTransactionRequest,
+    HealthStatus,
 )
 from src.infrastructure.logger import get_logger
 
@@ -457,6 +458,14 @@ class BlnkGenericManager(BlnkClient):
     def __init__(self, config: LedgderServiceConfig) -> None:
         super().__init__(config, path="")  # Path is dynamic for /:id/metadata
         logger.debug("BlnkGenericManager initialized.")
+
+    async def health(self) -> Tuple[Optional[HealthStatus], Error]:
+        """Checks the health of the ledger service."""
+        logger.debug("Checking ledger service health.")
+        return await self._get(
+            HealthStatus,
+            path_suffix="/health",
+        )
 
     async def post_metadata(
         self, entity_id: str, request: PostMetadataRequest

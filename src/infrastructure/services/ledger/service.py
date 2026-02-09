@@ -13,8 +13,8 @@ from src.infrastructure.services.ledger.client import (
     TransactionManager,
 )
 from src.infrastructure.settings import LedgderServiceConfig
+from src.types.blnk.dtos import HealthStatus
 from src.types.error import Error
-from src.types.ledger_types import Ledger
 
 logger = get_logger(__name__)
 
@@ -34,3 +34,7 @@ class LedgerService:
         self.hooks = BlnkHookManager(config)
         self.api_keys = BlnkApiKeyManager(config)
         self.generic = BlnkGenericManager(config)
+
+    async def health(self) -> Tuple[Optional[HealthStatus], Error]:
+        """Check the health of the ledger service."""
+        return await self.generic.health()

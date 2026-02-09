@@ -234,3 +234,7 @@ class StartInstantReconciliationRequest(BlnkBase):
 # =========== Generic DTOs ===========
 class PostMetadataRequest(BlnkBase):
     meta_data: Dict[str, Any]
+
+
+class HealthStatus(BlnkBase):
+    status: str
