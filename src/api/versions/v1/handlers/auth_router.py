@@ -553,7 +553,7 @@ async def logout(
     session_usecase: SessionUseCase = Depends(get_session_usecase),
 ):
     logger.info("Received logout request for session ID: %s", current_token.session_id)
-    err = await session_usecase.revoke_session(current_token.session_id)
+    err = await session_usecase.revoke_session(current_token.session_id.clean())
     if err:
         logger.error(
             "Failed to revoke session %s for user %s: %s",
@@ -581,7 +581,7 @@ async def logout_all(
     logger.info(
         "Received logout all sessions request for user ID: %s", current_token.sub
     )
-    err = await session_usecase.revoke_all_user_sessions(current_token.user_id)
+    err = await session_usecase.revoke_all_user_sessions(current_token.user_id.clean())
     if err:
         logger.error(
             "Failed to revoke all sessions for user %s: %s",
