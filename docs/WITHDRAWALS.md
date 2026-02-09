@@ -34,7 +34,7 @@ The request body should be a JSON object with the following structure:
 
       // For "withdraw:external-wallet"
       "address": "0x...",
-      "chain": "ethereum"
+      "chain": "base"
     }
   }
 }
