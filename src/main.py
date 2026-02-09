@@ -134,7 +134,7 @@ async def raw_pydantic_validation_exception_handler(
 
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"messages": messages},
+        content={"message": messages},
     )
 
 
