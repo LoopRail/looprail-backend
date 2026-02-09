@@ -1,3 +1,4 @@
+from src.infrastructure.redis import RedisClient
 from src.infrastructure.services.auth_lock_service import AuthLockService
 from src.infrastructure.services.blockrader_client import AddressManager, WalletManager
 from src.infrastructure.services.ledger import LedgerService

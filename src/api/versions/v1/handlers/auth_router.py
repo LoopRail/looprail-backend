@@ -1,4 +1,3 @@
-from src.api.rate_limiter import custom_rate_limiter
 import hashlib
 
 from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
@@ -21,7 +20,7 @@ from src.api.internals import (
     set_send_otp_config,
     set_user_create_config,
 )
-from src.api.rate_limiter import limiter
+from src.api.rate_limiters import custom_rate_limiter, limiter
 from src.dtos import (
     AuthTokensResponse,
     AuthWithTokensAndUserResponse,
