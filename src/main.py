@@ -1,20 +1,21 @@
-import json
-import os
+import asyncio
 from contextlib import asynccontextmanager
 
+from coredis.exceptions import RedisError
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic_core import ValidationError as PydanticValidationError
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api import add_rate_limiter, v1_router
+from src.api.dependencies.repositories import get_session
 from src.api.dependencies.services import get_ledger_service, get_redis_service
 from src.api.middlewares import RequestLoggerMiddleware
 from src.infrastructure import RedisClient, get_logger, load_config
-from src.infrastructure.db import get_session
 from src.infrastructure.services import (
     AuthLockService,
     LedgerService,
@@ -46,7 +47,7 @@ async def lifespan(app_: FastAPI):
     app_.state.ledger_config = config.ledger
     app_.state.argon2_config = config.argon2
 
-    app_.state.banks_data = config.banks_data.root # Access the loaded data
+    app_.state.banks_data = config.banks_data.root  # Access the loaded data
 
     yield
 
@@ -169,16 +170,6 @@ async def custom_http_error_handler(request: Request, exc: HTTPException):
     )
 
 
-import asyncio
-
-from fastapi import Depends, Response
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.api.dependencies.repositories import get_session
-from src.api.dependencies.services import get_ledger_service, get_redis_service
-
-
 @app.get("/health", status_code=status.HTTP_200_OK, tags=["Monitoring"])
 async def health_check(
     response: Response,
@@ -198,7 +189,8 @@ async def health_check(
         try:
             await db.execute(text("SELECT 1"))
             services["database"] = True
-        except Exception:
+        except SQLAlchemyError as e:
+            logger.error("Health check for database failed: %s", e)
             services["database"] = False
             healthy = False
 
@@ -207,23 +199,28 @@ async def health_check(
         try:
             services["redis"] = await redis.ping()
             if not services["redis"]:
+                logger.error("Health check for redis failed: ping returned false")
                 healthy = False
-        except Exception:
+        except RedisError as e:
+            logger.error("Health check for redis failed: %s", e)
             services["redis"] = False
             healthy = False
 
     async def check_ledger():
         nonlocal healthy
-        try:
-            ledger_status, err = await ledger.health()
-            if not err and ledger_status and ledger_status.status.upper() == "UP":
-                services["ledger"] = True
-            else:
-                services["ledger"] = False
-                healthy = False
-        except Exception:
+        ledger_status, err = await ledger.health()
+        if not err and ledger_status and ledger_status.status.upper() == "UP":
+            services["ledger"] = True
+        else:
             services["ledger"] = False
             healthy = False
+            if err:
+                logger.error("Health check for ledger failed: %s", err)
+            else:
+                logger.error(
+                    "Health check for ledger failed: status is %s",
+                    ledger_status.status if ledger_status else "UNKNOWN",
+                )
 
     await asyncio.gather(
         check_db(),
@@ -233,5 +230,6 @@ async def health_check(
 
     if not healthy:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        logger.warning("Health check failed, services status: %s", services)
 
     return {"status": "UP" if healthy else "DOWN", "services": services}
