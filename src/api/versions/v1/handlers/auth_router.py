@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from src.api.dependencies import (
     BearerToken,
     get_app_environment,
+    get_auth_lock_service,
     get_config,
     get_current_session,
     get_jwt_usecase,
@@ -38,7 +39,7 @@ from src.dtos import (
 )
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
-from src.infrastructure.services import ResendService
+from src.infrastructure.services import AuthLockService, ResendService
 from src.infrastructure.settings import ENVIRONMENT
 from src.models import Session
 from src.types import (
@@ -256,7 +257,7 @@ async def complete_onboarding(
 
 
 @router.post("/login", response_model=AuthWithTokensAndUserResponse)
-@limiter.limit("5/minute")
+@limiter.limit("10/minute")
 async def login(
     request: Request,
     login_request: LoginRequest,
@@ -266,12 +267,38 @@ async def login(
     platform: Platform = Header(..., alias="X-Platform"),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
+    auth_lock_service: AuthLockService = Depends(get_auth_lock_service("logins")),
 ):
     logger.info("Received login request for email: %s", login_request.email)
+    login_request.ip_address = request.client.host
+    login_request.user_agent = request.headers.get("user-agent")
+
+    is_locked, err = await auth_lock_service.is_account_locked(login_request.email)
+    if err or is_locked:
+        logger.warning(
+            "Account locked for user %s due to too many failed attempts. IP: %s, User-Agent: %s",
+            login_request.email,
+            login_request.ip_address,
+            login_request.user_agent,
+        )
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"message": "Account is locked due to too many failed attempts."},
+        )
     user, err = await user_usecases.authenticate_user(
         email=login_request.email, password=login_request.password
     )
     if err:
+        current_attempts, _ = await auth_lock_service.increment_failed_attempts(
+            user.email
+        )
+        logger.warning(
+            "Invalid password for user %s. Failed attempts: %s. IP: %s, User-Agent: %s",
+            login_request.email,
+            current_attempts,
+            login_request.ip_address,
+            login_request.user_agent,
+        )
         logger.error("Authentication failed for user %s: %s", login_request.email, err)
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -480,31 +507,100 @@ async def passcode_login(
     user_usecases: UserUseCase = Depends(get_user_usecases),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
     security_usecase: SecurityUseCase = Depends(get_security_usecase),
-    platform: Platform = Header(...),
-    device_id: DeviceID = Header(...),
+    auth_lock_service: AuthLockService = Depends(get_auth_lock_service),
+    device_id: DeviceID = Header(..., alias="X-Device-ID"),
+    platform: Platform = Header(..., alias="X-Platform"),
     session_id: SessionId = Header(alias="X-Session-Id"),
 ):
+    req.ip_address = request.client.host
+    req.user_agent = request.headers.get("user-agent")
+    logger.info(
+        "Passcode login attempt for session ID: %s. IP: %s, User-Agent: %s",
+        session_id,
+        req.ip_address,
+        req.user_agent,
+    )
+
+    if not session_id:
+        logger.warning(
+            "Passcode login attempt without X-Session-Id header. IP: %s, User-Agent: %s",
+            req.ip_address,
+            req.user_agent,
+        )
+        return JSONResponse(
+            status_code=400, content={"message": "X-Session-Id header required"}
+        )
+
+    session, err = await session_usecase.get_session(session_id.clean())
+    if err or not session:
+        logger.error(
+            "Session not found for session ID %s during passcode login. IP: %s, User-Agent: %s",
+            session_id,
+            req.ip_address,
+            req.user_agent,
+        )
+        return JSONResponse(status_code=401, content={"message": "Session not found"})
+
+    user, err = await user_usecases.get_user_by_id(session.user_id)
+    if err or not user:
+        logger.error(
+            "User not found for user ID %s during passcode login. Session ID: %s. IP: %s, User-Agent: %s",
+            session.user_id,
+            session_id,
+            req.ip_address,
+            req.user_agent,
+        )
+        return JSONResponse(status_code=401, content={"message": "User not found"})
+
     verified, err = await security_usecase.verify_pkce(
         req.challenge_id, req.code_verifier
     )
     if err or not verified:
+        logger.warning(
+            "PKCE verification failed for passcode login for user ID: %s. IP: %s, User-Agent: %s",
+            user.id,
+            req.authorization.ip_address,
+            req.authorization.user_agent,
+        )
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"message": "Invalid PKCE challenge or verifier"},
         )
 
-    if not session_id:
+    # Check if account is locked
+    is_locked, err = await auth_lock_service.is_account_locked(
+        user.email, "passcode_attempts"
+    )
+    if err or is_locked:
+        logger.warning(
+            "Account locked for user %s (email: %s) due to too many failed passcode attempts. IP: %s, User-Agent: %s",
+            user.id,
+            user.email,
+            req.authorization.ip_address,
+            req.authorization.user_agent,
+        )
         return JSONResponse(
-            status_code=400, content={"message": "X-Session-Id header required"}
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={"message": "Account is locked due to too many failed attempts."},
         )
 
     valid, err = await session_usecase.verify_passcode(session_id.clean(), req.passcode)
     if err or not valid:
+        current_attempts, _ = await auth_lock_service.increment_failed_attempts(
+            user.email, "passcode_attempts"
+        )
+        logger.warning(
+            "Invalid passcode for user %s (email: %s). Failed attempts: %s. IP: %s, User-Agent: %s",
+            user.id,
+            user.email,
+            current_attempts,
+            req.authorization.ip_address,
+            req.authorization.user_agent,
+        )
         return JSONResponse(status_code=401, content={"message": "Invalid passcode"})
 
-    session, err = await session_usecase.get_session(session_id.clean())
-    if err or not session:
-        return JSONResponse(status_code=401, content={"message": "Session not found"})
+    # Reset failed attempts on successful PIN verification
+    await auth_lock_service.reset_failed_attempts(user.email, "passcode_attempts")
 
     access_token_data = AccessToken(
         sub=AccessTokenSub.new(session.id),
@@ -518,10 +614,6 @@ async def passcode_login(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
-    user, err = await user_usecases.get_user_by_id(session.user_id)
-    if err or not user:
-        return JSONResponse(status_code=401, content={"message": "User not found"})
-
     public_user, err = await user_usecases.load_public_user(user.id)
     if err:
         logger.error(
@@ -534,7 +626,13 @@ async def passcode_login(
             content={"message": "Failed to load user data"},
         )
 
-    logger.info("Passcode login successful for session: %s", session.get_prefixed_id())
+    logger.info(
+        "Passcode login successful for session: %s, user: %s. IP: %s, User-Agent: %s",
+        session.get_prefixed_id(),
+        user.id,
+        req.authorization.ip_address,
+        req.authorization.user_agent,
+    )
     return {
         "message": "Passcode login successful",
         "session_id": session.get_prefixed_id(),

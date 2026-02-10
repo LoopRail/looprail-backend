@@ -99,6 +99,8 @@ class UserProfilePublic(Base):
 class LoginRequest(Base):
     email: EmailStr
     password: str
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
 
 
 class RefreshTokenRequest(Base):

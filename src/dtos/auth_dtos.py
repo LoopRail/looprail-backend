@@ -1,6 +1,10 @@
+from typing import Optional
+
 from pydantic import Field
-from src.dtos.user_dtos import UserPublic
+
 from src.dtos.base import Base
+from src.dtos.user_dtos import UserPublic
+from src.dtos.wallet_dtos import AuthorizationDetails
 from src.types.common_types import DeviceID
 
 
@@ -32,12 +36,15 @@ class ChallengeResponse(Base):
 
 class PasscodeSetRequest(Base):
     passcode: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
 
 
 class PasscodeLoginRequest(Base):
     challenge_id: str
     code_verifier: str
     passcode: str = Field(..., pattern=r"^\d{6}$")
+    authorization: AuthorizationDetails
 
 
 class BiometricEnrollRequest(Base):
