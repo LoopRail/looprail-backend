@@ -23,6 +23,8 @@ logger = get_logger(__name__)
 
 router = APIRouter(prefix="/wallets", tags=["Wallets"])
 
+withdraw_auth_lock = get_auth_lock_service("withdrawals")
+
 
 @router.post("/withdraw", status_code=status.HTTP_200_OK)
 @custom_rate_limiter(
@@ -36,7 +38,7 @@ async def withdraw(
     config: Config = Depends(get_config),
     rq_manager: RQManager = Depends(get_rq_manager),
     user_usecase: UserUseCase = Depends(get_user_usecases),
-    auth_lock_service: AuthLockService = Depends(get_auth_lock_service("withdrawals")),
+    auth_lock_service: AuthLockService = Depends(withdraw_auth_lock),
 ):
     withdrawal_request.authorization.ip_address = request.client.host
     withdrawal_request.authorization.user_agent = request.headers.get("user-agent")

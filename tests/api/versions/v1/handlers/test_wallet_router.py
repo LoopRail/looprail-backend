@@ -1,57 +1,103 @@
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
 from starlette import status
 
-from src.api.dependencies import get_current_user, get_wallet_manager_usecase
+from src.api.versions.v1.handlers.wallet_router import withdraw_auth_lock
+from src.api.rate_limiters.rate_limiter import get_custom_rate_limiter
+from src.api.dependencies import (
+    get_current_user,
+    get_wallet_manager_usecase,
+    get_config,
+    get_user_usecases,
+)
+from src.api.dependencies.extra_deps import get_rq_manager
+from src.api.rate_limiters.rate_limiter import get_custom_rate_limiter
 from src.main import app
 from src.models import User
-from src.usecases import WalletManagerUsecase
-from src.api.dependencies.extra_deps import get_rq_manager
+from src.infrastructure.config_settings import Config
 from src.infrastructure.redis import RQManager
+from src.infrastructure.services import AuthLockService
+from src.usecases import UserUseCase, WalletManagerUsecase
 
 
 @pytest.fixture
-def mock_wallet_manager_usecase() -> MagicMock:
-    mock = MagicMock(spec=WalletManagerUsecase)
-    app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock
-    yield mock
-    if get_wallet_manager_usecase in app.dependency_overrides:
-        del app.dependency_overrides[get_wallet_manager_usecase]
+def mock_wallet_manager() -> MagicMock:
+    return MagicMock(spec=WalletManagerUsecase)
 
 
 @pytest.fixture
 def mock_rq_manager() -> MagicMock:
-    mock = MagicMock(spec=RQManager)
-    app.dependency_overrides[get_rq_manager] = lambda: mock
-    yield mock
-    if get_rq_manager in app.dependency_overrides:
-        del app.dependency_overrides[get_rq_manager]
+    return MagicMock(spec=RQManager)
+
+
+@pytest.fixture
+def mock_user_usecase() -> MagicMock:
+    return MagicMock(spec=UserUseCase)
+
+
+@pytest.fixture
+def mock_auth_lock_service() -> MagicMock:
+    return MagicMock(spec=AuthLockService)
+
+
+@pytest.fixture
+def mock_custom_limiter() -> MagicMock:
+    mock = MagicMock()
+    mock.check_limit = AsyncMock(return_value=(True, "", 0, None))
+    return mock
 
 
 @pytest.fixture
 def mock_current_user() -> MagicMock:
     mock_user = MagicMock(spec=User)
     mock_user.id = uuid4()
+    mock_user.email = "test@example.com"
     mock_user.get_prefixed_id.return_value = f"usr_{mock_user.id}"
-    app.dependency_overrides[get_current_user] = lambda: mock_user
-    yield mock_user
-    if get_current_user in app.dependency_overrides:
-        del app.dependency_overrides[get_current_user]
+    return mock_user
+
+
+@pytest.fixture
+def mock_config() -> MagicMock:
+    mock = MagicMock()
+    # Mocking block_rader.wallets.wallets[0].wallet_id etc.
+    mock_block_rader = MagicMock()
+    mock_block_rader.wallets = MagicMock()
+    mock_block_rader.wallets.wallets = [MagicMock(wallet_id="wallet_123")]
+    mock.block_rader = mock_block_rader
+
+    mock_ledger = MagicMock()
+    mock_ledger.ledgers = MagicMock()
+    mock_ledger.ledgers.ledgers = [MagicMock(ledger_id="ledger_123")]
+    mock.ledger = mock_ledger
+    return mock
 
 
 @pytest.mark.asyncio
-async def test_initiate_withdraw_bank_transfer_success(
-    client: TestClient,
-    mock_current_user: MagicMock,
-    mock_wallet_manager_usecase: MagicMock,
+async def test_withdraw_success(
+    mock_current_user,
+    mock_wallet_manager,
+    mock_rq_manager,
+    mock_user_usecase,
+    mock_auth_lock_service,
+    mock_config,
+    mock_custom_limiter,
 ):
-    # Arrange
+    # Setup mocks
+    mock_auth_lock_service.is_account_locked = AsyncMock(return_value=(False, None))
+    mock_user_usecase.verify_transaction_pin = AsyncMock(return_value=(True, None))
+    mock_auth_lock_service.reset_failed_attempts = AsyncMock()
+    
+    mock_wallet_manager.initiate_withdrawal = AsyncMock(return_value=({"transaction_id": "txn_123"}, None))
+    
+    # Payload
     withdrawal_data = {
         "asset_id": f"ast_{uuid4()}",
-        "amount": 100.00,
+        "amount": 100.0,
+        "currency": "usd",
         "narration": "Test withdrawal",
         "destination": {
             "event": "withdraw:bank-transfer",
@@ -61,120 +107,149 @@ async def test_initiate_withdraw_bank_transfer_success(
                 "account_name": "Test User",
             },
         },
+        "authorization": {
+            "authorizationMethod": 1,
+            "localTime": 123456789,
+            "pin": "123456",
+            "amount": 100,
+        }
     }
 
-    mock_wallet_manager_usecase.initiate_withdrawal.return_value = (
-        {"transaction_id": f"txn_{uuid4()}", "status": "pending"},
-        None,
-    )
+    # Dependency Overrides
+    app.dependency_overrides[get_current_user] = lambda: mock_current_user
+    app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
+    app.dependency_overrides[get_config] = lambda: mock_config
+    app.dependency_overrides[get_rq_manager] = lambda: mock_rq_manager
+    app.dependency_overrides[get_user_usecases] = lambda: mock_user_usecase
+    app.dependency_overrides[withdraw_auth_lock] = lambda: mock_auth_lock_service
+    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_custom_limiter
 
-    # Act
-    response = client.post("/api/v1/wallets/inititate-withdraw", json=withdrawal_data)
+    with TestClient(app) as client:
+        response = client.post("/api/v1/wallets/withdraw", json=withdrawal_data)
 
-    # Assert
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json()["data"]["status"] == "pending"
-    mock_wallet_manager_usecase.initiate_withdrawal.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_initiate_withdraw_invalid_destination(
-    client: TestClient,
-    mock_current_user: MagicMock,
-    mock_wallet_manager_usecase: MagicMock,
-):
-    # Arrange
-    withdrawal_data = {
-        "asset_id": f"ast_{uuid4()}",
-        "amount": 100.00,
-        "narration": "Test withdrawal",
-        "destination": {
-            "event": "withdraw:invalid-event",
-            "data": {},
-        },
-    }
-
-    # Act
-    # Using GenericWithdrawalRequest.to_specific_event internally which might fail validation
-    # But let's see how our mock handles it.
-    response = client.post("/api/v1/wallets/inititate-withdraw", json=withdrawal_data)
-
-    # Assert
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-
-@pytest.mark.asyncio
-async def test_initiate_withdraw_usecase_error(
-    client: TestClient,
-    mock_current_user: MagicMock,
-    mock_wallet_manager_usecase: MagicMock,
-):
-    # Arrange
-    withdrawal_data = {
-        "asset_id": f"ast_{uuid4()}",
-        "amount": 100.00,
-        "narration": "Test withdrawal",
-        "destination": {
-            "event": "withdraw:bank-transfer",
-            "data": {
-                "bank_code": "044",
-                "account_number": "1234567890",
-                "account_name": "Test User",
-            },
-        },
-    }
-
-    from src.types.error import error
-
-    mock_wallet_manager_usecase.initiate_withdrawal.return_value = (
-        None,
-        error("Insufficient balance"),
-    )
-
-    # Act
-    response = client.post("/api/v1/wallets/inititate-withdraw", json=withdrawal_data)
-
-    # Assert
-    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-    assert response.json()["error"] == "Insufficient balance"
-
-
-@pytest.mark.asyncio
-async def test_process_withdraw_success(
-    client: TestClient,
-    mock_current_user: MagicMock,
-    mock_rq_manager: MagicMock,
-    mock_security_usecase: MagicMock,
-    mock_user_usecases: MagicMock,
-):
-    # Arrange
-    from src.api.dependencies import get_current_session
-    from src.models import Session
-    from uuid import UUID
-
-    session_id_raw = str(uuid4())
-    mock_session = MagicMock(spec=Session)
-    mock_session.id = UUID(session_id_raw)
-    mock_session.get_prefixed_id.return_value = f"ses_{session_id_raw}"
-    app.dependency_overrides[get_current_session] = lambda: mock_session
-
-    process_data = {
-        "transaction_id": f"txn_{uuid4()}",
-        "transation_pin": "123456",
-        "challenge_id": "chl_test",
-        "code_verifier": "cv_test",
-    }
-
-    mock_security_usecase.verify_pkce.return_value = (True, None)
-    mock_user_usecases.verify_transaction_pin.return_value = (True, None)
-
-    # Act
-    response = client.post("/api/v1/wallets/process-withdraw", json=process_data)
-
-    # Assert
+    # Assertions
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["message"] == "Withdrawal processing initiated successfully."
+    
+    mock_auth_lock_service.is_account_locked.assert_called_once_with(mock_current_user.email)
+    mock_user_usecase.verify_transaction_pin.assert_called_once()
+    mock_wallet_manager.initiate_withdrawal.assert_called_once()
     mock_rq_manager.get_queue().enqueue.assert_called_once()
 
-    # Clean up
-    del app.dependency_overrides[get_current_session]
+    # Cleanup
+    app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_withdraw_invalid_pin(
+    mock_current_user,
+    mock_wallet_manager,
+    mock_rq_manager,
+    mock_user_usecase,
+    mock_auth_lock_service,
+    mock_config,
+    mock_custom_limiter,
+):
+    # Setup mocks
+    mock_auth_lock_service.is_account_locked = AsyncMock(return_value=(False, None))
+    mock_user_usecase.verify_transaction_pin = AsyncMock(return_value=(False, None))
+    mock_auth_lock_service.increment_failed_attempts = AsyncMock(return_value=(1, None))
+    
+    # Payload
+    withdrawal_data = {
+        "asset_id": f"ast_{uuid4()}",
+        "amount": 100.0,
+        "currency": "usd",
+        "narration": "Test withdrawal",
+        "destination": {
+            "event": "withdraw:bank-transfer",
+            "data": {
+                "bank_code": "044",
+                "account_number": "1234567890",
+                "account_name": "Test User",
+            },
+        },
+        "authorization": {
+            "authorizationMethod": 1,
+            "localTime": 123456789,
+            "pin": "wrong_pin",
+            "amount": 100,
+        }
+    }
+
+    # Dependency Overrides
+    app.dependency_overrides[get_current_user] = lambda: mock_current_user
+    app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
+    app.dependency_overrides[get_config] = lambda: mock_config
+    app.dependency_overrides[get_rq_manager] = lambda: mock_rq_manager
+    app.dependency_overrides[get_user_usecases] = lambda: mock_user_usecase
+    app.dependency_overrides[withdraw_auth_lock] = lambda: mock_auth_lock_service
+    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_custom_limiter
+
+    with TestClient(app) as client:
+        response = client.post("/api/v1/wallets/withdraw", json=withdrawal_data)
+
+    # Assertions
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["message"] == "Invalid transaction PIN"
+    
+    mock_auth_lock_service.increment_failed_attempts.assert_called_once_with(mock_current_user.email)
+
+    # Cleanup
+    app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_withdraw_account_locked(
+    mock_current_user,
+    mock_wallet_manager,
+    mock_rq_manager,
+    mock_user_usecase,
+    mock_auth_lock_service,
+    mock_config,
+    mock_custom_limiter,
+):
+    # Setup mocks
+    mock_auth_lock_service.is_account_locked = AsyncMock(return_value=(True, None))
+    
+    # Payload
+    withdrawal_data = {
+        "asset_id": f"ast_{uuid4()}",
+        "amount": 100.0,
+        "currency": "usd",
+        "narration": "Test withdrawal",
+        "destination": {
+            "event": "withdraw:bank-transfer",
+            "data": {
+                "bank_code": "044",
+                "account_number": "1234567890",
+                "account_name": "Test User",
+            },
+        },
+        "authorization": {
+            "authorizationMethod": 1,
+            "localTime": 123456789,
+            "pin": "123456",
+            "amount": 100,
+        }
+    }
+
+    # Dependency Overrides
+    app.dependency_overrides[get_current_user] = lambda: mock_current_user
+    app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
+    app.dependency_overrides[get_config] = lambda: mock_config
+    app.dependency_overrides[get_rq_manager] = lambda: mock_rq_manager
+    app.dependency_overrides[get_user_usecases] = lambda: mock_user_usecase
+    app.dependency_overrides[withdraw_auth_lock] = lambda: mock_auth_lock_service
+    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_custom_limiter
+
+    with TestClient(app) as client:
+        response = client.post("/api/v1/wallets/withdraw", json=withdrawal_data)
+
+    # Assertions
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json()["message"] == "Account is locked due to too many failed attempts."
+
+    # Cleanup
+    app.dependency_overrides.clear()
+
