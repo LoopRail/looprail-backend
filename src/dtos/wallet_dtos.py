@@ -64,19 +64,24 @@ class GenericWithdrawalRequest(Base):
         return event_class(event=self.event, data=self.data), None
 
 
+class AuthorizationDetails(Base):
+    authorizationMethod: int
+    localTime: int
+    pin: str
+    isWeb: bool
+    amount: int
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    fingerprint: Optional[str] = None
+
+
 class WithdrawalRequest(Base):
     asset_id: AssetId
     amount: Decimal
     currency: Currency
     narration: str
     destination: GenericWithdrawalRequest
-
-
-class ProcessWithdrawalRequest(Base):
-    transaction_id: str
-    transation_pin: str
-    challenge_id: str
-    code_verifier: str
+    authorization: AuthorizationDetails
 
 
 class AssetPublic(Base):
