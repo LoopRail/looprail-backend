@@ -39,6 +39,9 @@ def custom_rate_limiter(
             custom_limiter: CustomRateLimiter = Depends(get_custom_rate_limiter),
             **kwargs,
         ):
+            if os.getenv("ENVIRONMENT") == ENVIRONMENT.TEST.value:
+                return await func(request, *args, **kwargs)
+
             identifier_object = kwargs.get(identifier_arg)
             if not identifier_object:
                 logger.error(
