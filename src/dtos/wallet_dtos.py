@@ -68,11 +68,9 @@ class AuthorizationDetails(Base):
     authorizationMethod: int
     localTime: int
     pin: str
-    isWeb: bool
     amount: int
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
-    fingerprint: Optional[str] = None
 
 
 class WithdrawalRequest(Base):

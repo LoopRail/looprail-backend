@@ -9,9 +9,7 @@ from src.api.dependencies import (
     get_wallet_manager_usecase,
 )
 from src.api.dependencies.extra_deps import get_rq_manager
-from src.api.rate_limiters.rate_limiter import (
-    custom_rate_limiter,
-)
+from src.api.rate_limiters.rate_limiter import custom_rate_limiter
 from src.dtos.wallet_dtos import WithdrawalRequest
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
@@ -38,8 +36,11 @@ async def withdraw(
     config: Config = Depends(get_config),
     rq_manager: RQManager = Depends(get_rq_manager),
     user_usecase: UserUseCase = Depends(get_user_usecases),
-    auth_lock_service: AuthLockService = Depends(get_auth_lock_service),
+    auth_lock_service: AuthLockService = Depends(get_auth_lock_service("withdrawals")),
 ):
+    withdrawal_request.authorization.ip_address = request.client.host
+    withdrawal_request.authorization.user_agent = request.headers.get("user-agent")
+
     logger.info(
         "Withdrawal attempt for user %s, asset ID: %s, amount: %s, IP: %s, User-Agent: %s",
         user.get_prefixed_id(),
@@ -48,9 +49,6 @@ async def withdraw(
         withdrawal_request.authorization.ip_address,
         withdrawal_request.authorization.user_agent,
     )
-
-    withdrawal_request.authorization.ip_address = request.client.host
-    withdrawal_request.authorization.user_agent = request.headers.get("user-agent")
 
     # Check if account is locked
     is_locked, err = await auth_lock_service.is_account_locked(user.email)
