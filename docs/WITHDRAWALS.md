@@ -4,13 +4,9 @@ This document provides a comprehensive overview of the withdrawal process in the
 
 ## Withdrawal Workflow
 
-The withdrawal process is a two-phase operation designed for security and reliability. It involves initiating a withdrawal request and then processing it after user verification.
+The withdrawal process is a single-phase operation designed for security and reliability. It involves initiating a withdrawal request, authorizing it with a transaction PIN, and then processing it in the background.
 
-### Phase 1: Initiate Withdrawal
-
-This phase creates a withdrawal request and a corresponding transaction record in a `PENDING` state.
-
-**Endpoint:** `POST /api/v1/wallets/inititate-withdraw`
+**Endpoint:** `POST /api/v1/wallets/withdraw`
 
 **Authentication:** Requires a valid `access-token`.
 
@@ -36,46 +32,19 @@ The request body should be a JSON object with the following structure:
       "address": "0x...",
       "chain": "base"
     }
+  },
+  "authorization": {
+    "authorizationMethod": 1,
+    "localTime": 1678886400,
+    "pin": "123456",
+    "amount": 100
   }
 }
 ```
 
 **Response:**
 
-A successful initiation request returns a JSON object containing the `transaction_id`, `paycrest_rate`, and `blockrader_fee`.
-
-```json
-{
-  "data": {
-    "transaction_id": "txn_xxxxxxxxxxxxxxxx",
-    "paycrest_rate": { ... },
-    "blockrader_fee": { ... }
-  }
-}
-```
-
-### Phase 2: Process Withdrawal
-
-After initiating the withdrawal, the user must authorize the transaction by providing their transaction PIN and a PKCE code verifier. This phase executes the actual transfer of funds.
-
-**Endpoint:** `POST /api/v1/wallets/process-withdraw`
-
-**Authentication:** Requires a valid `access-token`.
-
-**Request Body:**
-
-```json
-{
-  "transaction_id": "txn_xxxxxxxxxxxxxxxx",
-  "transation_pin": "123456",
-  "challenge_id": "...",
-  "code_verifier": "..."
-}
-```
-
-**Response:**
-
-A successful processing request will enqueue a background task to handle the withdrawal and return a confirmation message.
+A successful withdrawal request will enqueue a background task to handle the withdrawal and return a confirmation message.
 
 ```json
 {
