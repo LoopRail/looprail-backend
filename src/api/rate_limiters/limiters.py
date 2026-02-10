@@ -44,9 +44,9 @@ class IpRateLimitConfig:
 
 @dataclass
 class ProgressiveDelayConfig:
-    delays: Dict[int, int] = field(default_factory=dict)
     attempts_redis_expiry_seconds: int
     last_time_redis_expiry_seconds: int
+    delays: Dict[int, int] = field(default_factory=dict)
 
 
 @dataclass
