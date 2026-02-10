@@ -66,6 +66,8 @@ logger = get_logger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
+login_auth_lock = get_auth_lock_service("logins")
+
 
 @router.post("/create-user", response_model=CreateUserResponse)
 @limiter.limit("5/minute")
@@ -267,7 +269,7 @@ async def login(
     platform: Platform = Header(..., alias="X-Platform"),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
-    auth_lock_service: AuthLockService = Depends(get_auth_lock_service("logins")),
+    auth_lock_service: AuthLockService = Depends(login_auth_lock),
 ):
     logger.info("Received login request for email: %s", login_request.email)
     login_request.ip_address = request.client.host
@@ -304,6 +306,7 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"message": "Invalid credentials"},
         )
+    await auth_lock_service.reset_failed_attempts(user.email)
 
     public_user, err = await user_usecases.load_public_user(user.id)
     if err:
@@ -507,7 +510,7 @@ async def passcode_login(
     user_usecases: UserUseCase = Depends(get_user_usecases),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
     security_usecase: SecurityUseCase = Depends(get_security_usecase),
-    auth_lock_service: AuthLockService = Depends(get_auth_lock_service),
+    auth_lock_service: AuthLockService = Depends(login_auth_lock),
     device_id: DeviceID = Header(..., alias="X-Device-ID"),
     platform: Platform = Header(..., alias="X-Platform"),
     session_id: SessionId = Header(alias="X-Session-Id"),
@@ -569,7 +572,7 @@ async def passcode_login(
 
     # Check if account is locked
     is_locked, err = await auth_lock_service.is_account_locked(
-        user.email, "passcode_attempts"
+        user.email,
     )
     if err or is_locked:
         logger.warning(
@@ -587,7 +590,7 @@ async def passcode_login(
     valid, err = await session_usecase.verify_passcode(session_id.clean(), req.passcode)
     if err or not valid:
         current_attempts, _ = await auth_lock_service.increment_failed_attempts(
-            user.email, "passcode_attempts"
+            user.email,
         )
         logger.warning(
             "Invalid passcode for user %s (email: %s). Failed attempts: %s. IP: %s, User-Agent: %s",
@@ -600,7 +603,7 @@ async def passcode_login(
         return JSONResponse(status_code=401, content={"message": "Invalid passcode"})
 
     # Reset failed attempts on successful PIN verification
-    await auth_lock_service.reset_failed_attempts(user.email, "passcode_attempts")
+    await auth_lock_service.reset_failed_attempts(user.email)
 
     access_token_data = AccessToken(
         sub=AccessTokenSub.new(session.id),
