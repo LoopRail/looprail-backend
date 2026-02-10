@@ -21,8 +21,8 @@ from src.dtos import (
 from src.dtos.account_dtos import VerifyAccountRequest
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import AssetRepository, WalletRepository
-from src.infrastructure.services import LedgerService, PaycrestService, PaystackService
-from src.types import AccessToken, error
+from src.infrastructure.services import LedgerService, PaystackService
+from src.types import AccessToken
 from src.usecases import UserUseCase
 
 logger = get_logger(__name__)

@@ -1,4 +1,4 @@
-from fastapi import Depends, Request
+from fastapi import Request
 
 from src.infrastructure.config_settings import Config, load_config
 from src.infrastructure.redis import RQManager

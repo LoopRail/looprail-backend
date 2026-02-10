@@ -4,7 +4,6 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.dependencies import BearerToken
 from src.main import app
 from src.models import User
 from src.dtos import UserPublic

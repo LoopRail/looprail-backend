@@ -3,16 +3,10 @@ from unittest.mock import AsyncMock, MagicMock
 from types import SimpleNamespace
 from fastapi import status
 from uuid import UUID, uuid4
-from datetime import date, datetime
+from datetime import date
 
-from src.models import User, Session, RefreshToken
-from src.models.user_model import UserProfile
+from src.models import Session
 from src.types import (
-    AccessToken,
-    TokenType,
-    AccessTokenSub,
-    RefreshTokenId,
-    UserId,
     Gender,
     KYCStatus,
 )

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Tuple
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select

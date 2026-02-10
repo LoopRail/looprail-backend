@@ -8,14 +8,6 @@ from starlette import status
 from src.api.dependencies import get_current_user, get_wallet_manager_usecase
 from src.main import app
 from src.models import User
-from src.dtos.wallet_dtos import (
-    WithdrawalRequest,
-    GenericWithdrawalRequest,
-    BankTransferData,
-    TransferType,
-    ProcessWithdrawalRequest,
-)
-from src.types.types import WithdrawalMethod
 from src.usecases import WalletManagerUsecase
 from src.api.dependencies.extra_deps import get_rq_manager
 from src.infrastructure.redis import RQManager

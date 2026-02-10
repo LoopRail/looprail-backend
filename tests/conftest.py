@@ -32,9 +32,7 @@ from src.api.dependencies import (
     get_wallet_manager_usecase,
 )
 from src.api.dependencies.services import get_redis_service
-from src.infrastructure.config_settings import Config
 from src.infrastructure.settings import ENVIRONMENT, JWTConfig
-from src.infrastructure.db import get_session as get_app_session
 from src.main import app
 from src.models import Otp, User
 from src.types import OtpType
@@ -75,7 +73,6 @@ async def test_db_session_fixture():
     await engine.dispose()
 
 
-import httpx
 from fastapi.testclient import TestClient  # Add TestClient import
 
 

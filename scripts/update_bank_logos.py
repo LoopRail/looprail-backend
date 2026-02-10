@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 # Load the URLs
 with open("scripts/urls.json", "r") as f:

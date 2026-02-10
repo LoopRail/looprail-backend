@@ -4,9 +4,7 @@ from src.dtos.transaction_dtos import (BankTransferParams,
                                        CreateTransactionParams)
 from src.dtos.wallet_dtos import BankTransferData, WithdrawalRequest
 from src.infrastructure.logger import get_logger
-from src.models import Asset, Transaction, User
-from src.types.blnk import RecordTransactionRequest
-from src.types.common_types import WorldLedger
+from src.models import Transaction, User
 from src.types.error import Error, error
 from src.types.types import WithdrawalMethod
 from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry

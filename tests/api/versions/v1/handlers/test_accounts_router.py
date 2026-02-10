@@ -1,4 +1,3 @@
-from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -12,8 +11,6 @@ from src.api.dependencies import (
     get_user_usecases,
     get_wallet_repository,
 )
-from src.dtos.account_dtos import AssetBalance, UserAccountResponse
-from src.dtos.user_dtos import UserPublic
 from src.infrastructure.repositories import AssetRepository, WalletRepository
 from src.infrastructure.services import LedgerService
 from src.main import app

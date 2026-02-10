@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.models import Otp, User
-from src.types import error, NotFoundError, OtpType
+from src.types import error, NotFoundError
 
 
 import httpx
