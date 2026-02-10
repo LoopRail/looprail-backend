@@ -2,13 +2,11 @@ import json
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
-from src.infrastructure.redis import RedisClient
-from src.infrastructure.constants import (
-    ACCOUNT_LOCKOUT_DURATION_MINUTES,
-    MAX_FAILED_OTP_ATTEMPTS,
-)
-from src.types import Error, FailedAttemptError, LockedAccount
+from src.infrastructure.constants import (ACCOUNT_LOCKOUT_DURATION_MINUTES,
+                                          MAX_FAILED_OTP_ATTEMPTS)
 from src.infrastructure.logger import get_logger
+from src.infrastructure.redis import RedisClient
+from src.types import Error, FailedAttemptError, LockedAccount
 
 logger = get_logger(__name__)
 
@@ -18,12 +16,20 @@ class AuthLockService:
 
     def __init__(self, redis_client: RedisClient):
         self.redis_client = redis_client
-        self.prefix = "auth_lock:"
+        self.prefix = "auth_lock"
+        self.subject = None
         logger.debug("AuthLockService initialized with prefix: %s", self.prefix)
+
+    def set_subject(self, subject: str) -> None:
+        self.subject = subject
+        return None
 
     async def _get_key(self, user_email: str) -> str:
         """Generates the Redis key for a given user email."""
-        key = f"{self.prefix}{user_email}"
+        if self.subject:
+            key = f"{self.prefix}:{self.subject}:{user_email}"
+        else:
+            key = f"{self.prefix}:{user_email}"
         logger.debug("Generated Redis key for user %s: %s", user_email, key)
         return key
 

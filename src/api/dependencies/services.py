@@ -1,14 +1,9 @@
 from fastapi import Depends, Request
 
 from src.infrastructure import RedisClient
-from src.infrastructure.services import (
-    AuthLockService,
-    LedgerService,
-    LockService,
-    PaycrestService,
-    PaystackService,
-    ResendService,
-)
+from src.infrastructure.services import (AuthLockService, LedgerService,
+                                         LockService, PaycrestService,
+                                         PaystackService, ResendService)
 from src.infrastructure.settings import BlockRaderConfig
 
 
@@ -40,8 +35,11 @@ def get_redis_service(request: Request) -> RedisClient:
     return request.app.state.redis
 
 
-def get_auth_lock_service(request: Request) -> AuthLockService:
-    return request.app.state.auth_lock
+def get_auth_lock_service(subject) -> AuthLockService:
+    def func(request: Request):
+        return request.app.state.auth_lock.set_subject(subject)
+
+    return func
 
 
 def get_lock_service(
