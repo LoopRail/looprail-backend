@@ -8,7 +8,7 @@ from redis import Redis as SyncRedis
 from rq import Queue
 
 from src.infrastructure.settings import RedisConfig
-from src.types import Error, error
+from src.types import Error, NotFoundError, error
 
 T = TypeVar("T")
 
@@ -138,7 +138,7 @@ class RedisClient:
         """Retrieve an object from Redis."""
         data = await self._instance.get(key)
         if data is None:
-            return None, error("Not found")
+            return None, NotFoundError
         try:
             deserialized_data = json.loads(data)
             if object_class:
@@ -190,16 +190,10 @@ class RedisClient:
         """Update multiple objects in a batch operation."""
         return await self.batch_create(items)
 
-    async def delete(self, key: str) -> bool:
+    async def delete(self, key: List[str]) -> bool:
         """Delete an object from Redis."""
         deleted_count = await self._instance.delete(key)
         return deleted_count > 0
-
-    async def delete_many(self, keys: List[str]) -> int:
-        """Delete multiple objects from Redis."""
-        if not keys:
-            return 0
-        return await self._instance.delete(*keys)
 
     async def delete_all(self, pattern: str = "*") -> int:
         """Delete all objects matching a pattern."""

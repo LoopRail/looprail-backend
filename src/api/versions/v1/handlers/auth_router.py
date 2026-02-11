@@ -27,6 +27,7 @@ from src.types import (AccessToken, AccessTokenSub, OnBoardingToken,
                        OnBoardingTokenSub, Platform, TokenType,
                        UserAlreadyExistsError, UserId)
 from src.types.common_types import DeviceID, SessionId
+from src.types.error import FailedAttemptError, NotFoundError
 from src.usecases import (JWTUsecase, OtpUseCase, SecurityUseCase,
                           SessionUseCase, UserUseCase)
 from src.utils.auth_utils import create_refresh_token
@@ -245,7 +246,10 @@ async def login(
     login_request.user_agent = request.headers.get("user-agent")
 
     is_locked, err = await auth_lock_service.is_account_locked(login_request.email)
-    if err or is_locked:
+
+    if (err and err != NotFoundError) or is_locked:
+        if err:
+            logger.error(err)
         logger.warning(
             "Account locked for user %s due to too many failed attempts. IP: %s, User-Agent: %s",
             login_request.email,
@@ -256,13 +260,36 @@ async def login(
             status_code=status.HTTP_403_FORBIDDEN,
             content={"message": "Account is locked due to too many failed attempts."},
         )
+    current_attempts, err = await auth_lock_service.increment_failed_attempts(
+        login_request.email
+    )
+    if err:
+        if isinstance(err, FailedAttemptError):
+            logger.warning(
+                "Invalid password for user %s. Failed attempts: %s. IP: %s, User-Agent: %s",
+                login_request.email,
+                current_attempts,
+                login_request.ip_address,
+                login_request.user_agent,
+            )
+            logger.error(
+                "Authentication failed for user %s: %s", login_request.email, err
+            )
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"message": "Invalid credentials"},
+            )
+        logger.error("Authentication failed for user %s: %s", login_request.email, err)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Internal server error"},
+        )
+
     user, err = await user_usecases.authenticate_user(
         email=login_request.email, password=login_request.password
     )
+
     if err:
-        current_attempts, _ = await auth_lock_service.increment_failed_attempts(
-            user.email
-        )
         logger.warning(
             "Invalid password for user %s. Failed attempts: %s. IP: %s, User-Agent: %s",
             login_request.email,
