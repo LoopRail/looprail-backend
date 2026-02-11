@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Self
 
 from src.infrastructure.constants import (ACCOUNT_LOCKOUT_DURATION_MINUTES,
                                           MAX_FAILED_OTP_ATTEMPTS)
@@ -20,9 +20,9 @@ class AuthLockService:
         self.subject = None
         logger.debug("AuthLockService initialized with prefix: %s", self.prefix)
 
-    def set_subject(self, subject: str) -> None:
+    def set_subject(self, subject: str) -> Self:
         self.subject = subject
-        return None
+        return self
 
     async def _get_key(self, user_email: str) -> str:
         """Generates the Redis key for a given user email."""

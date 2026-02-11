@@ -38,7 +38,6 @@ def get_redis_service(request: Request) -> RedisClient:
 def get_auth_lock_service(subject) -> AuthLockService:
     def func(request: Request):
         return request.app.state.auth_lock.set_subject(subject)
-
     return func
 
 

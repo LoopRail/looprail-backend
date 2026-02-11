@@ -28,7 +28,7 @@ from src.usecases import UserUseCase
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/account", tags=["Auth"])
+router = APIRouter(prefix="/account", tags=["Accounts"])
 
 
 async def _get_wallet_with_assets(
