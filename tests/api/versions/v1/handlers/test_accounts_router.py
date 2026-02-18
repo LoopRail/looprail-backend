@@ -69,9 +69,9 @@ async def test_get_user_account_success(mock_deps):
                     "balance": "1.0",
                     "network": "mainnet",
                     "address": "0x...",
-                    "is-active": True
+                    "is-active": True,
                 }
-            ]
+            ],
         },
         None,
     )
@@ -88,7 +88,9 @@ async def test_get_user_account_success(mock_deps):
     # Overrides
     app.dependency_overrides[get_current_user_token] = lambda: token
     app.dependency_overrides[get_user_usecases] = lambda: mock_deps["user_usecase"]
-    app.dependency_overrides[get_blockrader_wallet_service] = lambda: mock_deps["wallet_service"]
+    app.dependency_overrides[get_blockrader_wallet_service] = lambda: mock_deps[
+        "wallet_service"
+    ]
 
     with TestClient(app) as client:
         response = client.get("/api/v1/account/me")
@@ -129,9 +131,9 @@ async def test_get_user_balance_success(mock_deps):
                     "balance": "1.0",
                     "network": "mainnet",
                     "address": "0x...",
-                    "is-active": True
+                    "is-active": True,
                 }
-            ]
+            ],
         },
         None,
     )
@@ -147,7 +149,9 @@ async def test_get_user_balance_success(mock_deps):
 
     # Overrides
     app.dependency_overrides[get_current_user_token] = lambda: token
-    app.dependency_overrides[get_blockrader_wallet_service] = lambda: mock_deps["wallet_service"]
+    app.dependency_overrides[get_blockrader_wallet_service] = lambda: mock_deps[
+        "wallet_service"
+    ]
 
     with TestClient(app) as client:
         response = client.get("/api/v1/account/balance")
@@ -180,7 +184,7 @@ async def test_get_asset_balance_success(mock_deps):
             "balance": "1.0",
             "network": "mainnet",
             "address": "0x...",
-            "is-active": True
+            "is-active": True,
         },
         None,
     )
@@ -196,7 +200,9 @@ async def test_get_asset_balance_success(mock_deps):
 
     # Overrides
     app.dependency_overrides[get_current_user_token] = lambda: token
-    app.dependency_overrides[get_blockrader_wallet_service] = lambda: mock_deps["wallet_service"]
+    app.dependency_overrides[get_blockrader_wallet_service] = lambda: mock_deps[
+        "wallet_service"
+    ]
 
     with TestClient(app) as client:
         response = client.get(f"/api/v1/account/balance/ast_{asset_id}")
@@ -217,7 +223,10 @@ async def test_get_asset_balance_not_found(mock_deps):
     asset_id = uuid4()
 
     # Mock Asset Not Found
-    mock_deps["wallet_service"].get_asset_balance.return_value = (None, error("Asset not found"))
+    mock_deps["wallet_service"].get_asset_balance.return_value = (
+        None,
+        error("Asset not found"),
+    )
 
     # Token
     token = AccessToken(
@@ -230,7 +239,9 @@ async def test_get_asset_balance_not_found(mock_deps):
 
     # Overrides
     app.dependency_overrides[get_current_user_token] = lambda: token
-    app.dependency_overrides[get_blockrader_wallet_service] = lambda: mock_deps["wallet_service"]
+    app.dependency_overrides[get_blockrader_wallet_service] = lambda: mock_deps[
+        "wallet_service"
+    ]
 
     with TestClient(app) as client:
         response = client.get(f"/api/v1/account/balance/ast_{asset_id}")

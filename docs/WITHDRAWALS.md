@@ -34,8 +34,7 @@ The request body should be a JSON object with the following structure:
     }
   },
   "authorization": {
-    "authorizationMethod": 1,
-    "localTime": 1678886400,
+    "authorization_method": 1,
     "pin": "123456",
     "amount": 100
   }

@@ -65,10 +65,8 @@ class GenericWithdrawalRequest(Base):
 
 
 class AuthorizationDetails(Base):
-    authorizationMethod: int
-    localTime: int
+    authorization_method: int
     pin: str
-    amount: int
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
 

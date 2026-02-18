@@ -110,8 +110,7 @@ async def test_withdraw_success(
             },
         },
         "authorization": {
-            "authorizationMethod": 1,
-            "localTime": 123456789,
+            "authorization_method": 1,
             "pin": "123456",
             "amount": 100,
         },
@@ -174,8 +173,7 @@ async def test_withdraw_invalid_pin(
             },
         },
         "authorization": {
-            "authorizationMethod": 1,
-            "localTime": 123456789,
+            "authorization_method": 1,
             "pin": "wrong_pin",
             "amount": 100,
         },
@@ -233,8 +231,7 @@ async def test_withdraw_account_locked(
             },
         },
         "authorization": {
-            "authorizationMethod": 1,
-            "localTime": 123456789,
+            "authorization_method": 1,
             "pin": "123456",
             "amount": 100,
         },
