@@ -17,9 +17,11 @@ logger = get_logger(__name__)
 
 
 def get_custom_rate_limiter(
-    redis_client: RedisClient = Depends(get_redis_service),
+    request: Request,
 ) -> CustomRateLimiter:
-    return CustomRateLimiter(redis_client)
+    redis_client: RedisClient = (get_redis_service(request),)
+    rate_limiter = CustomRateLimiter(redis_client[0])
+    return rate_limiter
 
 
 def custom_rate_limiter(
@@ -36,9 +38,9 @@ def custom_rate_limiter(
         async def wrapper_function(
             request: Request,
             *args,
-            custom_limiter: CustomRateLimiter = Depends(get_custom_rate_limiter),
             **kwargs,
         ):
+            custom_limiter: CustomRateLimiter = get_custom_rate_limiter(request)
             if os.getenv("ENVIRONMENT") == ENVIRONMENT.TEST.value:
                 return await func(request, *args, **kwargs)
 
@@ -91,7 +93,7 @@ def custom_rate_limiter(
                     headers=headers,
                 )
 
-            return await func(request, custom_limiter, *args, **kwargs)
+            return await func(request, *args, **kwargs)
 
         return wrapper_function
 

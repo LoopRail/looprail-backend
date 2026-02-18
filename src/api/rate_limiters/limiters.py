@@ -178,7 +178,7 @@ class CustomRateLimiter:
 
         if not data:
             await self.redis.hset(
-                key, mapping={"tokens": capacity - 1, "last_update": now}
+                key, field_values={"tokens": capacity - 1, "last_update": now}
             )
             await self.redis.expire(key, redis_expiry_seconds)
             return True, None, None
@@ -197,7 +197,7 @@ class CustomRateLimiter:
                 retry_after,
             )
 
-        await self.redis.hset(key, mapping={"tokens": tokens - 1, "last_update": now})
+        await self.redis.hset(key, field_values={"tokens": tokens - 1, "last_update": now})
 
         return True, None, None
 
