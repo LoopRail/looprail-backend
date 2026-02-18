@@ -1,32 +1,55 @@
+from decimal import Decimal
 from typing import Any, Dict, Optional, Self, Tuple
 from uuid import UUID
 
-from src.dtos.transaction_dtos import (BankTransferParams,
-                                       CreateTransactionParams,
-                                       CryptoTransactionParams)
-from src.dtos.wallet_dtos import (BankTransferData, ExternalWalletTransferData,
-                                  TransferType, WithdrawalRequest)
+from src.dtos.transaction_dtos import (
+    BankTransferParams,
+    CreateTransactionParams,
+    CryptoTransactionParams,
+)
+from src.dtos import AssetBalance, WalletWithAssets
+from src.dtos.wallet_dtos import (
+    BankTransferData,
+    ExternalWalletTransferData,
+    TransferType,
+    WithdrawalRequest,
+)
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import (AssetRepository, UserRepository,
-                                             WalletRepository)
-from src.infrastructure.services import (LedgerService, PaycrestService,
-                                         WalletManager)
+from src.infrastructure.repositories import (
+    AssetRepository,
+    UserRepository,
+    WalletRepository,
+)
+from src.infrastructure.services import LedgerService, PaycrestService, WalletManager
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, Transaction, User, Wallet
-from src.types import (AssetType, Error, IdentiyType, PaymentMethod, Provider,
-                       TransactionStatus, TransactionType, WalletConfig, error)
-from src.types.blnk import (CreateBalanceRequest, CreateIdentityRequest,
-                            IdentityResponse)
-from src.types.blockrader import (CreateAddressRequest, NetworkFeeRequest,
-                                  WalletAddressResponse)
+from src.types import (
+    AssetType,
+    Error,
+    IdentiyType,
+    PaymentMethod,
+    Provider,
+    TransactionStatus,
+    TransactionType,
+    WalletConfig,
+    error,
+)
+from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse
+from src.types.blockrader import (
+    CreateAddressRequest,
+    NetworkFeeRequest,
+    WalletAddressResponse,
+)
 from src.types.common_types import AssetId, UserId
 from src.types.ledger_types import Ledger
 from src.types.types import WithdrawalMethod
 from src.usecases.transaction_usecases import TransactionUsecase
 from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry
-from src.utils.country_utils import (get_country_code_by_currency,
-                                     get_country_name_by_currency)
+from src.utils.country_utils import (
+    get_country_code_by_currency,
+    get_country_name_by_currency,
+)
 
 logger = get_logger(__name__)
 
@@ -131,6 +154,119 @@ class WalletService:
             user.email,
         )
         return ledger_identity, None
+
+    async def get_wallet_with_assets(
+        self, user_id: UserId
+    ) -> Tuple[Optional[WalletWithAssets], Error]:
+        logger.debug("Fetching wallet with assets for user: %s", user_id)
+        wallet, err = await self.repo.get_wallet_by_user_id(user_id=user_id.clean())
+        if not wallet:
+            logger.warning("Wallet not found for user: %s", user_id)
+            return None, None
+
+        assets, err = await self._asset_repository.get_assets_by_wallet_id(
+            wallet_id=wallet.id
+        )
+        if err:
+            logger.error(
+                "Error fetching assets for wallet %s: %s", wallet.id, err.message
+            )
+            assets = []
+
+        asset_balances = []
+        for asset in assets:
+            balance_data = Decimal("0")
+
+            if asset.ledger_balance_id:
+                bal_resp, err = await self.ledger_service.balances.get_balance(
+                    asset.ledger_balance_id
+                )
+                if err:
+                    logger.error(
+                        "Error fetching balance for asset %s (ledger_id: %s): %s",
+                        asset.id,
+                        asset.ledger_balance_id,
+                        err.message,
+                    )
+                    continue
+                balance_data = Decimal(str(bal_resp.balance)) / 100
+
+            asset_balances.append(
+                AssetBalance(
+                    asset_id=asset.get_prefixed_id(),
+                    name=asset.name,
+                    symbol=asset.symbol,
+                    decimals=asset.decimals,
+                    asset_type=asset.asset_type,
+                    balance=balance_data,
+                    network=asset.network,
+                    address=asset.address,
+                    standard=asset.standard,
+                    is_active=asset.is_active,
+                )
+            )
+
+        wallet_with_assets = WalletWithAssets(
+            id=wallet.get_prefixed_id(),
+            address=wallet.address,
+            chain=wallet.chain,
+            provider=wallet.provider.name
+            if hasattr(wallet.provider, "name")
+            else str(wallet.provider),
+            is_active=wallet.is_active,
+            assets=asset_balances,
+        )
+
+        return wallet_with_assets, None
+
+    async def get_asset_balance(
+        self, user_id: UserId, asset_id: AssetId
+    ) -> Tuple[Optional[AssetBalance], Error]:
+        logger.debug(
+            "Fetching specific asset balance for user: %s, asset: %s", user_id, asset_id
+        )
+        wallet, err = await self.repo.get_wallet_by_user_id(user_id=user_id.clean())
+        if not wallet:
+            logger.warning("Wallet not found for user: %s", user_id)
+            return None, error("Wallet not found")
+
+        asset, err = await self._asset_repository.find_one(
+            id=asset_id.clean(),
+            wallet_id=wallet.id,
+        )
+        if err:
+            logger.warning("Asset %s not found for wallet %s", asset_id, wallet.id)
+            return None, error("Asset not found")
+
+        balance_data = Decimal("0")
+        if asset.ledger_balance_id:
+            bal_resp, err = await self.ledger_service.balances.get_balance(
+                asset.ledger_balance_id
+            )
+            if err:
+                logger.error(
+                    "Error fetching balance for asset %s (ledger_id: %s): %s",
+                    asset.id,
+                    asset.ledger_balance_id,
+                    err.message,
+                )
+                return None, error("Error fetching balance")
+            balance_data = Decimal(str(bal_resp.balance)) / 100
+
+        asset_balance = AssetBalance(
+            asset_id=asset.get_prefixed_id(),
+            name=asset.name,
+            symbol=asset.symbol,
+            decimals=asset.decimals,
+            asset_type=asset.asset_type,
+            balance=balance_data,
+            network=asset.network,
+            address=asset.address,
+            standard=asset.standard,
+            is_active=asset.is_active,
+        )
+
+        return asset_balance, None
 
 
 class WalletManagerUsecase:
