@@ -63,7 +63,7 @@ async def _get_wallet_with_assets(
                     err.message,
                 )
                 continue
-            balance_data = Decimal(str(bal_resp.balance))
+            balance_data = Decimal(str(bal_resp.balance)) /100
 
         asset_balances.append(
             AssetBalance(

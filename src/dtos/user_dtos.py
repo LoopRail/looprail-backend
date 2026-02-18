@@ -71,8 +71,6 @@ class UserPublic(Base):
     gender: Gender
     is_email_verified: bool
     has_completed_onboarding: bool
-    profile: Optional["UserProfilePublic"] = None
-    wallets: Optional[List[WalletPublic]] = None
 
 
 class UserProfileCreate(Base):

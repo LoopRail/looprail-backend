@@ -4,7 +4,8 @@
       "chain": "base",
           "wallet_id": "41a16225-11ca-45c8-9ce2-b8c606df0168",
           "wallet_address": "0xEa16b5109A51bBC42D725e24BEA750AD9708C1ec",
-          "wallet_name": "master_base_wallet",      "active": true,
+          "wallet_name": "master_base_wallet",
+          "active": true,
       "assets": [
         {
           "id": "5fc6d9fe-ad4a-4d80-af29-7e8e5ceea203",
