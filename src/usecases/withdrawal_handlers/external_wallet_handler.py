@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional, Tuple
 
-from src.dtos.transaction_dtos import (CreateTransactionParams,
-                                       CryptoTransactionParams)
+from src.dtos.transaction_dtos import CreateTransactionParams, CryptoTransactionParams
 from src.dtos.wallet_dtos import ExternalWalletTransferData, WithdrawalRequest
 from src.infrastructure.logger import get_logger
 from src.models import Transaction, User

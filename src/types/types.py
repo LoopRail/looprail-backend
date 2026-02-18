@@ -11,7 +11,7 @@ from src.types.error import Error, error
 class Bank(BaseModel):
     name: str
     code: str
-    type: str # This could be an Enum like 'bank' or 'mobile_money'
+    type: str  # This could be an Enum like 'bank' or 'mobile_money'
     logo: Optional[str] = None
     id: Optional[str] = None
 

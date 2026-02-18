@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, Optional, Tuple
 
-from src.dtos.transaction_dtos import (BankTransferParams,
-                                       CreateTransactionParams)
+from src.dtos.transaction_dtos import BankTransferParams, CreateTransactionParams
 from src.dtos.wallet_dtos import BankTransferData, WithdrawalRequest
 from src.infrastructure.logger import get_logger
 from src.models import Transaction, User
