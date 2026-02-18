@@ -3,33 +3,64 @@ import hashlib
 from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from fastapi.responses import JSONResponse
 
-from src.api.dependencies import (BearerToken, get_app_environment,
-                                  get_auth_lock_service, get_config,
-                                  get_current_session, get_jwt_usecase,
-                                  get_otp_usecase, get_resend_service,
-                                  get_security_usecase, get_session_usecase,
-                                  get_user_usecases)
-from src.api.internals import (send_otp_internal, set_send_otp_config,
-                               set_user_create_config)
+from src.api.dependencies import (
+    BearerToken,
+    get_app_environment,
+    get_auth_lock_service,
+    get_config,
+    get_current_session,
+    get_jwt_usecase,
+    get_otp_usecase,
+    get_resend_service,
+    get_security_usecase,
+    get_session_usecase,
+    get_user_usecases,
+)
+from src.api.internals import (
+    send_otp_internal,
+    set_send_otp_config,
+    set_user_create_config,
+)
 from src.api.rate_limiters import custom_rate_limiter, limiter
-from src.dtos import (AuthTokensResponse, AuthWithTokensAndUserResponse,
-                      ChallengeResponse, CompleteOnboardingRequest,
-                      CreateUserResponse, LoginRequest, MessageResponse,
-                      OtpCreate, PasscodeLoginRequest, PasscodeSetRequest,
-                      RefreshTokenRequest, SetTransactionPinRequest,
-                      UserCreate)
+from src.dtos import (
+    AuthTokensResponse,
+    AuthWithTokensAndUserResponse,
+    ChallengeResponse,
+    CompleteOnboardingRequest,
+    CreateUserResponse,
+    LoginRequest,
+    MessageResponse,
+    OtpCreate,
+    PasscodeLoginRequest,
+    PasscodeSetRequest,
+    RefreshTokenRequest,
+    SetTransactionPinRequest,
+    UserCreate,
+)
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services import AuthLockService, ResendService
 from src.infrastructure.settings import ENVIRONMENT
 from src.models import Session
-from src.types import (AccessToken, AccessTokenSub, OnBoardingToken,
-                       OnBoardingTokenSub, Platform, TokenType,
-                       UserAlreadyExistsError, UserId)
+from src.types import (
+    AccessToken,
+    AccessTokenSub,
+    OnBoardingToken,
+    OnBoardingTokenSub,
+    Platform,
+    TokenType,
+    UserAlreadyExistsError,
+    UserId,
+)
 from src.types.common_types import DeviceID, SessionId
 from src.types.error import FailedAttemptError, NotFoundError
-from src.usecases import (JWTUsecase, OtpUseCase, SecurityUseCase,
-                          SessionUseCase, UserUseCase)
+from src.usecases import (
+    JWTUsecase,
+    OtpUseCase,
+    SecurityUseCase,
+    SessionUseCase,
+    UserUseCase,
+)
 from src.utils.auth_utils import create_refresh_token
 
 logger = get_logger(__name__)

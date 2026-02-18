@@ -90,9 +90,11 @@ async def test_withdraw_success(
     mock_auth_lock_service.is_account_locked = AsyncMock(return_value=(False, None))
     mock_user_usecase.verify_transaction_pin = AsyncMock(return_value=(True, None))
     mock_auth_lock_service.reset_failed_attempts = AsyncMock()
-    
-    mock_wallet_manager.initiate_withdrawal = AsyncMock(return_value=({"transaction_id": "txn_123"}, None))
-    
+
+    mock_wallet_manager.initiate_withdrawal = AsyncMock(
+        return_value=({"transaction_id": "txn_123"}, None)
+    )
+
     # Payload
     withdrawal_data = {
         "asset_id": f"ast_{uuid4()}",
@@ -112,7 +114,7 @@ async def test_withdraw_success(
             "localTime": 123456789,
             "pin": "123456",
             "amount": 100,
-        }
+        },
     }
 
     # Dependency Overrides
@@ -130,8 +132,10 @@ async def test_withdraw_success(
     # Assertions
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["message"] == "Withdrawal processing initiated successfully."
-    
-    mock_auth_lock_service.is_account_locked.assert_called_once_with(mock_current_user.email)
+
+    mock_auth_lock_service.is_account_locked.assert_called_once_with(
+        mock_current_user.email
+    )
     mock_user_usecase.verify_transaction_pin.assert_called_once()
     mock_wallet_manager.initiate_withdrawal.assert_called_once()
     mock_rq_manager.get_queue().enqueue.assert_called_once()
@@ -154,7 +158,7 @@ async def test_withdraw_invalid_pin(
     mock_auth_lock_service.is_account_locked = AsyncMock(return_value=(False, None))
     mock_user_usecase.verify_transaction_pin = AsyncMock(return_value=(False, None))
     mock_auth_lock_service.increment_failed_attempts = AsyncMock(return_value=(1, None))
-    
+
     # Payload
     withdrawal_data = {
         "asset_id": f"ast_{uuid4()}",
@@ -174,7 +178,7 @@ async def test_withdraw_invalid_pin(
             "localTime": 123456789,
             "pin": "wrong_pin",
             "amount": 100,
-        }
+        },
     }
 
     # Dependency Overrides
@@ -192,8 +196,10 @@ async def test_withdraw_invalid_pin(
     # Assertions
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["message"] == "Invalid transaction PIN"
-    
-    mock_auth_lock_service.increment_failed_attempts.assert_called_once_with(mock_current_user.email)
+
+    mock_auth_lock_service.increment_failed_attempts.assert_called_once_with(
+        mock_current_user.email
+    )
 
     # Cleanup
     app.dependency_overrides.clear()
@@ -211,7 +217,7 @@ async def test_withdraw_account_locked(
 ):
     # Setup mocks
     mock_auth_lock_service.is_account_locked = AsyncMock(return_value=(True, None))
-    
+
     # Payload
     withdrawal_data = {
         "asset_id": f"ast_{uuid4()}",
@@ -231,7 +237,7 @@ async def test_withdraw_account_locked(
             "localTime": 123456789,
             "pin": "123456",
             "amount": 100,
-        }
+        },
     }
 
     # Dependency Overrides
@@ -248,8 +254,10 @@ async def test_withdraw_account_locked(
 
     # Assertions
     assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert response.json()["message"] == "Account is locked due to too many failed attempts."
+    assert (
+        response.json()["message"]
+        == "Account is locked due to too many failed attempts."
+    )
 
     # Cleanup
     app.dependency_overrides.clear()
-
