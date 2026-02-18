@@ -128,8 +128,10 @@ class CustomRateLimiter:
         """Sliding window: Configurable requests per hour for an email"""
         config = RATE_LIMIT_CONFIG.get(subject)
         if not config:
-            logger.warning("Rate limit configuration not found for subject: %s", subject)
-            return True, None # Allow by default if config is missing
+            logger.warning(
+                "Rate limit configuration not found for subject: %s", subject
+            )
+            return True, None  # Allow by default if config is missing
 
         limit_config = config.email
         limit_count = limit_config.count
@@ -159,8 +161,10 @@ class CustomRateLimiter:
         """Token bucket: Configurable capacity and refill rate for an IP"""
         config = RATE_LIMIT_CONFIG.get(subject)
         if not config:
-            logger.warning("Rate limit configuration not found for subject: %s", subject)
-            return True, None, None # Allow by default if config is missing
+            logger.warning(
+                "Rate limit configuration not found for subject: %s", subject
+            )
+            return True, None, None  # Allow by default if config is missing
 
         limit_config = config.ip
         capacity = limit_config.capacity
@@ -203,8 +207,10 @@ class CustomRateLimiter:
         """Progressive delays based on attempts."""
         config = RATE_LIMIT_CONFIG.get(subject)
         if not config:
-            logger.warning("Rate limit configuration not found for subject: %s", subject)
-            return True, None, None # Allow by default if config is missing
+            logger.warning(
+                "Rate limit configuration not found for subject: %s", subject
+            )
+            return True, None, None  # Allow by default if config is missing
 
         limit_config = config.progressive_delay
         delays = limit_config.delays
@@ -237,8 +243,10 @@ class CustomRateLimiter:
         """Global: Configurable requests per minute."""
         config = RATE_LIMIT_CONFIG.get(subject)
         if not config:
-            logger.warning("Rate limit configuration not found for subject: %s", subject)
-            return True, None # Allow by default if config is missing
+            logger.warning(
+                "Rate limit configuration not found for subject: %s", subject
+            )
+            return True, None  # Allow by default if config is missing
 
         limit_config = config.global_limit
         limit_count = limit_config.count

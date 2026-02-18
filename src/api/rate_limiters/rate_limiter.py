@@ -103,4 +103,3 @@ def add_rate_limiter(app: FastAPI):
         return
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
