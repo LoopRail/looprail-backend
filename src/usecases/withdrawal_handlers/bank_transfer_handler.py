@@ -30,16 +30,8 @@ async def handle_bank_transfer(
         transfer_data.account_number,
     )
 
-    # Populate the existing CreateTransactionParams with method-specific details
     bank_transfer_specific_params = BankTransferParams(
-        **create_transaction_params.model_dump(),  # Start with common params
-        external_reference=None,  # Not available at this stage
-        bank_code=transfer_data.bank_code,
-        bank_name=transfer_data.bank_name,
-        account_number=transfer_data.account_number,
-        account_name=transfer_data.account_name,
-        provider=None,
-        session_id=None,
+        **create_transaction_params.model_dump(),
     )
 
     logger.debug(

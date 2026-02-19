@@ -35,6 +35,7 @@ from src.types import (
     WalletConfig,
     error,
 )
+from src.types import types
 from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse
 from src.types.blockrader import (
     CreateAddressRequest,
@@ -100,18 +101,14 @@ class WalletService:
             wallet_id,
             ledger.name,
         )
-        wallet_config = next(
-            (
-                w
-                for w in self.blockrader_config.wallets.wallets
-                if w.wallet_id == wallet_id
-            ),
-            None,
+        wallet_config, err = self.blockrader_config.wallets.get_wallet(
+            wallet_id=wallet_id
         )
-        if not wallet_config:
+        if err:
             logger.error(
-                "BlockRader WalletConfig not found for wallet_id %s",
+                "BlockRader WalletConfig not found for wallet_id %s, Error: %s",
                 wallet_id,
+                err.message,
             )
             return None, error("BlockRader WalletConfig not found")
         logger.debug("Found wallet config for wallet ID: %s", wallet_id)
@@ -274,7 +271,7 @@ class WalletManagerUsecase:
         self,
         service: WalletService,
         manager: WalletManager,
-        wallet_config: WalletConfig,
+        wallet_config: types.Wallet,
         ledger_config: Ledger,
     ) -> None:
         self.service = service
@@ -696,8 +693,8 @@ class WalletManagerUsecase:
             # Update transaction status to failed due to rate fetch error
             await self.service.transaction_usecase.update_transaction_status(
                 transaction_id=transaction.id,
-                new_status=TransactionStatus.FAILED.value,
-                message=f"Failed to fetch paycrest rate: {err.message}",
+                new_status=TransactionStatus.FAILED,
+                error_message=f"Failed to fetch paycrest rate: {err.message}",
             )
             return None, error("Could not fetch paycrest rate")
         if hasattr(paycrest_rate, "data"):
@@ -705,8 +702,17 @@ class WalletManagerUsecase:
         else:
             logger.debug("Paycrest rate fetched: %s", paycrest_rate)
 
+        blockrader_asset, err = self.wallet_config.get(asset_id=str(asset.asset_id))
+        if err:
+            logger.error(
+                "Could not fetch blockrader network fee for user %s, amount %s: %s",
+                user.id,
+                withdrawal_request.amount,
+                err.message,
+            )
+            return None, error("Could not fetch blockrader network fee")
         network_fee_request = NetworkFeeRequest(
-            assetId="ff8a28d1-2454-4a1d-ba77-21e08a67d78b",
+            assetId=blockrader_asset.blockrader_asset_id,
             amount=str(withdrawal_request.amount),
             address=user_wallet.address,
         )
@@ -727,21 +733,23 @@ class WalletManagerUsecase:
             # Update transaction status to failed due to network fee fetch error
             await self.service.transaction_usecase.update_transaction_status(
                 transaction_id=transaction.id,
-                new_status=TransactionStatus.FAILED.value,
-                message="Failed to fetch blockrader network fee",
+                new_status=TransactionStatus.FAILED,
+                error_message=err.message,
             )
             return None, error("Could not fetch blockrader network fee")
-        logger.debug("Blockrader network fee fetched: %s", blockrader_fee.fee)
+        logger.debug(
+            "Blockrader network fee fetched: %s", blockrader_fee.data.networkFee
+        )
 
         # Update fee in the transaction
-        if blockrader_fee and blockrader_fee.fee:
+        if blockrader_fee and blockrader_fee.data.networkFee:
             logger.debug(
                 "Updating transaction %s with fee: %s",
                 transaction.id,
-                blockrader_fee.fee,
+                blockrader_fee.data.networkFee,
             )
             update_err = await self.service.transaction_usecase.update_transaction_fee(
-                transaction_id=transaction.id, fee=blockrader_fee.fee
+                transaction_id=transaction.id, fee=blockrader_fee.data.networkFee
             )
             if update_err:
                 logger.warning(
@@ -753,7 +761,7 @@ class WalletManagerUsecase:
                 logger.info(
                     "Transaction %s fee updated to %s.",
                     transaction.id,
-                    blockrader_fee.fee,
+                    blockrader_fee.data.networkFee,
                 )
 
         return {
@@ -823,7 +831,7 @@ class WalletManagerUsecase:
             await self.service.transaction_usecase.update_transaction_status(
                 transaction_id=transaction.id,
                 new_status=TransactionStatus.FAILED.value,
-                message="Invalid asset ID in transaction",
+                error_message="Invalid asset ID in transaction",
             )
             return error("Invalid asset ID in transaction")
 
@@ -843,8 +851,8 @@ class WalletManagerUsecase:
             )
             await self.service.transaction_usecase.update_transaction_status(
                 transaction_id=transaction.id,
-                new_status=TransactionStatus.FAILED.value,
-                message=f"Ledger debit failed: {err.message}",
+                new_status=TransactionStatus.FAILED,
+                error_message=f"Ledger debit failed: {err.message}",
             )
             return error(f"Ledger debit failed: {err.message}")
         logger.info(
@@ -856,7 +864,7 @@ class WalletManagerUsecase:
         return None
 
     async def _update_withdrawal_transaction_status(
-        self, transaction_id: str, new_status: TransactionStatus, message: str
+        self, transaction_id: str, new_status: TransactionStatus
     ) -> Optional[Error]:
         logger.debug(
             "Updating transaction %s status to '%s'", transaction_id, new_status.value
@@ -864,7 +872,6 @@ class WalletManagerUsecase:
         err = await self.service.transaction_usecase.update_transaction_status(
             transaction_id=transaction_id,
             new_status=new_status.value,
-            message=message,
         )
         if err:
             logger.error(
@@ -904,7 +911,6 @@ class WalletManagerUsecase:
         err = await self._update_withdrawal_transaction_status(
             transaction_id,
             TransactionStatus.COMPLETED,
-            "Withdrawal processed successfully",
         )
         if err:
             return err

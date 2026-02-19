@@ -745,3 +745,6 @@ async def send_otp(
     response.headers["X-OTP-Token"] = token
     logger.info("OTP sent successfully to email: %s", otp_data.email)
     return {"message": "OTP sent successfully"}
+
+
+# TODO device id check against session

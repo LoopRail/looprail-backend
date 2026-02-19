@@ -237,13 +237,13 @@ class TransactionUsecase:
         *,
         transaction_id: TransactionId,
         new_status: str,
-        message: Optional[str] = None,
+        error_message: Optional[str] = None,
     ) -> Optional[Error]:
         logger.debug(
             "Updating status of transaction %s to %s with message: %s",
             transaction_id,
             new_status,
-            message,
+            error_message,
         )
         transaction, err = await self.get_transaction_by_id(
             transaction_id=transaction_id
@@ -258,8 +258,8 @@ class TransactionUsecase:
         logger.debug("Transaction %s found for status update.", transaction_id)
 
         transaction.status = new_status
-        if message:
-            transaction.reason = message
+        if error_message:
+            transaction.error_message = error_message
 
         _, err = await self.repo.update(transaction)
         if err:
@@ -277,8 +277,8 @@ class TransactionUsecase:
         self, *, transaction_id: TransactionId, fee: Decimal
     ) -> Optional[Error]:
         logger.debug("Updating fee for transaction %s to %s", transaction_id, fee)
-        transaction, err = await self.repo.get_transaction_by_id(
-            transaction_id=transaction_id
+        transaction, err = await self.repo.get(
+            transaction_id
         )
         if err:
             logger.error(
