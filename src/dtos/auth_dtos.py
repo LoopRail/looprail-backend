@@ -47,6 +47,7 @@ class PasscodeLoginRequest(Base):
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
 
+
 class BiometricEnrollRequest(Base):
     public_key: str
     device_id: DeviceID

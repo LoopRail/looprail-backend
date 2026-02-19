@@ -88,6 +88,8 @@ class Transaction(Base, table=True):
         default={}, sa_column=Column(JSONB, nullable=False, server_default="{}")
     )
 
+    error_message: Optional[str] = Field(default=None)
+
     asset: "Asset" = Relationship(back_populates="transactions")
     wallet: "Wallet" = Relationship(back_populates="transactions")
 

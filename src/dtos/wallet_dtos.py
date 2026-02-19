@@ -22,6 +22,7 @@ class ExternalWalletTransferData(Base):
 
 class BankTransferData(Base):
     bank_code: str
+    bank_name: str
     account_number: str
     account_name: str
 

@@ -117,7 +117,6 @@ class TransactionRead(Base):
 
     # General
     narration: Optional[str] = None
-    note: Optional[str] = None  # Keeping for backward compatibility
 
     # Timestamps
     created_at: datetime = Field(alias="created-at")
@@ -252,14 +251,10 @@ class TransactionResponseBuilder:
             "fee": transaction.fee,
             "reference": transaction.reference,
             "external_reference": getattr(transaction, "external_reference", None),
-            "narration": getattr(transaction, "narration", None) or transaction.note,
-            "note": transaction.note,
+            "narration": transaction.narration,
             "created_at": transaction.created_at,
             "updated_at": getattr(transaction, "updated_at", None),
             "completed_at": getattr(transaction, "completed_at", None),
-            "metadata": getattr(transaction, "metadata", {}),
-            "error_code": getattr(transaction, "error_code", None),
-            "error_message": getattr(transaction, "error_message", None),
         }
 
         # Add blockchain fields if present

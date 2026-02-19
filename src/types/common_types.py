@@ -63,6 +63,8 @@ class Chain(StrEnum):
 
 
 def _validate_id_with_prefix(v: str, expected_prefix: str) -> str:
+    if isinstance(v, UUID):
+        return str(v)
     if not isinstance(v, str):
         raise TypeError("string required")
     if not v.startswith(expected_prefix):
