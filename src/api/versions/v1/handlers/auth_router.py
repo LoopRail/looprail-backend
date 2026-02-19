@@ -451,6 +451,20 @@ async def refresh_token(
             content={"message": "Session not found."},
         )
 
+    # Device ID check
+    if session.device_id != device_id:
+        logger.warning(
+            "Refresh token used by a different device. Session ID: %s, Expected Device ID: %s, Request Device ID: %s",
+            session.id,
+            session.device_id,
+            device_id,
+        )
+        await session_usecase.revoke_session(session.id) # Revoke session on device mismatch
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"message": "Device ID mismatch. Please log in again."},
+        )
+
     # Issue a new access token
     access_token_data = AccessToken(
         sub=AccessTokenSub.new(session.id),
@@ -570,6 +584,20 @@ async def passcode_login(
             req.user_agent,
         )
         return JSONResponse(status_code=401, content={"message": "Session not found"})
+
+    # Device ID check
+    if session.device_id != device_id:
+        logger.warning(
+            "Passcode login attempt from a different device. Session ID: %s, Expected Device ID: %s, Request Device ID: %s",
+            session.id,
+            session.device_id,
+            device_id,
+        )
+        # Optionally, revoke the session here or just deny access
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"message": "Device ID mismatch. Please log in again."},
+        )
 
     user, err = await user_usecases.get_user_by_id(session.user_id)
     if err or not user:

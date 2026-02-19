@@ -683,10 +683,10 @@ class WalletManagerUsecase:
         )
         ledger_txn_request = RecordTransactionRequest(
             amount=int(withdrawal_request.amount * 100),  
-            currency=withdrawal_request.currency.value.lower(),
+            currency=withdrawal_request.currency.lower(),
             source=asset.ledger_balance_id,
             destination=WorldLedger.WORLD_OUT,
-            description=f"In-flight withdrawal for {user.id} to {withdrawal_method.value}",
+            description=f"Withdrawal for {user.id} to {withdrawal_method}",
             reference=transaction.reference,
             inflight=True,
             expires_at=datetime.now() + timedelta(hours=24),  
@@ -954,7 +954,6 @@ class WalletManagerUsecase:
                 new_status=TransactionStatus.FAILED,
                 error_message=err.message,
             )
-            return None, error("Could not fetch blockrader network fee")
             return error("Failed to commit in-flight ledger transaction")
 
         logger.info(

@@ -102,6 +102,7 @@ async def get_current_user(
 
 
 async def get_current_session(
+    request: Request,
     access_token: AccessToken = Depends(get_current_user_token),
     session_usecase: SessionUseCase = Depends(get_session_usecase),
 ) -> Session:
@@ -111,6 +112,25 @@ async def get_current_session(
     session, err = await session_usecase.get_session(access_token.session_id.clean())
     if err or not session:
         raise AuthError(code=401, message="Session not found")
+
+    # Extract device_id from request headers
+    request_device_id = request.headers.get("X-Device-Id")
+    if not request_device_id:
+        logger.warning(
+            "Request for session %s missing X-Device-Id header", access_token.session_id
+        )
+        raise AuthError(code=401, message="Device ID missing from request")
+
+    # Compare with session's device_id
+    if session.device_id != request_device_id:
+        logger.warning(
+            "Device ID mismatch for session %s: Request device_id %s, Session device_id %s",
+            access_token.session_id,
+            request_device_id,
+            session.device_id,
+        )
+        raise AuthError(code=401, message="Device ID mismatch, session invalid")
+
     return session
 
 
