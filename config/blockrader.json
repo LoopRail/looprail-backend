@@ -9,6 +9,7 @@
       "assets": [
         {
           "id": "ff8a28d1-2454-4a1d-ba77-21e08a67d78b",
+          "asset_id": "5fc6d9fe-ad4a-4d80-af29-7e8e5ceea203",
           "name": "USDC Coin",
           "symbol": "usdc",
           "decimals": 6,

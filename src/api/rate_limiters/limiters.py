@@ -197,7 +197,9 @@ class CustomRateLimiter:
                 retry_after,
             )
 
-        await self.redis.hset(key, field_values={"tokens": tokens - 1, "last_update": now})
+        await self.redis.hset(
+            key, field_values={"tokens": tokens - 1, "last_update": now}
+        )
 
         return True, None, None
 
