@@ -44,8 +44,8 @@ class PasscodeLoginRequest(Base):
     challenge_id: str
     code_verifier: str
     passcode: str = Field(..., pattern=r"^\d{6}$")
-    authorization: AuthorizationDetails
-
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
 
 class BiometricEnrollRequest(Base):
     public_key: str

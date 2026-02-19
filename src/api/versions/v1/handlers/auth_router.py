@@ -589,8 +589,8 @@ async def passcode_login(
         logger.warning(
             "PKCE verification failed for passcode login for user ID: %s. IP: %s, User-Agent: %s",
             user.id,
-            req.authorization.ip_address,
-            req.authorization.user_agent,
+            req.ip_address,
+            req.user_agent,
         )
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -606,8 +606,8 @@ async def passcode_login(
             "Account locked for user %s (email: %s) due to too many failed passcode attempts. IP: %s, User-Agent: %s",
             user.id,
             user.email,
-            req.authorization.ip_address,
-            req.authorization.user_agent,
+            req.ip_address,
+            req.user_agent,
         )
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -624,8 +624,8 @@ async def passcode_login(
             user.id,
             user.email,
             current_attempts,
-            req.authorization.ip_address,
-            req.authorization.user_agent,
+            req.ip_address,
+            req.user_agent,
         )
         return JSONResponse(status_code=401, content={"message": "Invalid passcode"})
 
@@ -660,8 +660,8 @@ async def passcode_login(
         "Passcode login successful for session: %s, user: %s. IP: %s, User-Agent: %s",
         session.get_prefixed_id(),
         user.id,
-        req.authorization.ip_address,
-        req.authorization.user_agent,
+        req.ip_address,
+        req.user_agent,
     )
     return {
         "message": "Passcode login successful",
