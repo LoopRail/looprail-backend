@@ -32,11 +32,14 @@ from src.types import (
     Provider,
     TransactionStatus,
     TransactionType,
-    WalletConfig,
+    WorldLedger,
     error,
 )
 from src.types import types
-from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse
+from datetime import datetime, timedelta
+
+from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse, RecordTransactionRequest
+from src.types.blnk.dtos import UpdateInflightTransactionRequest
 from src.types.blockrader import (
     CreateAddressRequest,
     NetworkFeeRequest,
@@ -674,6 +677,69 @@ class WalletManagerUsecase:
             user.id,
         )
 
+        # Create in-flight transaction on the ledger
+        logger.debug(
+            "Creating in-flight ledger transaction for withdrawal %s", transaction.id
+        )
+        ledger_txn_request = RecordTransactionRequest(
+            amount=int(withdrawal_request.amount * 100),  
+            currency=withdrawal_request.currency.value.lower(),
+            source=asset.ledger_balance_id,
+            destination=WorldLedger.WORLD_OUT,
+            description=f"In-flight withdrawal for {user.id} to {withdrawal_method.value}",
+            reference=transaction.reference,
+            inflight=True,
+            expires_at=datetime.now() + timedelta(hours=24),  
+        )
+        ledger_inflight_txn, err = (
+            await self.service.ledger_service.transactions.record_transaction(
+                ledger_txn_request
+            )
+        )
+        if err:
+            logger.error(
+                "Failed to create in-flight ledger transaction for withdrawal %s: %s",
+                transaction.id,
+                err.message,
+            )
+            await self.service.transaction_usecase.update_transaction_status(
+                transaction_id=transaction.id,
+                new_status=TransactionStatus.FAILED,
+                error_message=f"Failed to create in-flight ledger transaction: {err.message}",
+            )
+            return None, error("Failed to create in-flight ledger transaction")
+
+        transaction.ledger_transaction_id = ledger_inflight_txn.transaction_id
+        _, err = await self.service.transaction_usecase.repo.update(transaction)
+        if err:
+            logger.error(
+                "Failed to update local transaction %s with ledger transaction ID %s: %s",
+                transaction.id,
+                ledger_inflight_txn.transaction_id,
+                err.message,
+            )
+            logger.error(
+                "Attempting to void in-flight ledger transaction %s due to local transaction update failure",
+                ledger_inflight_txn.transaction_id,
+            )
+            void_req = UpdateInflightTransactionRequest(status="void")
+            void_err = await self.service.ledger_service.transactions.update_inflight_transaction(
+                ledger_inflight_txn.transaction_id, void_req
+            )
+            if void_err:
+                logger.critical(
+                    "Failed to void in-flight ledger transaction %s after local transaction update failure: %s",
+                    ledger_inflight_txn.transaction_id,
+                    void_err.message,
+                )
+            return None, error("Failed to update local transaction with ledger ID")
+        logger.info(
+            "In-flight ledger transaction %s created and linked to local transaction %s",
+            ledger_inflight_txn.transaction_id,
+            transaction.id,
+        )
+
+
         logger.debug(
             "Fetching paycrest rate for user %s, amount %s",
             user.id,
@@ -696,6 +762,21 @@ class WalletManagerUsecase:
                 new_status=TransactionStatus.FAILED,
                 error_message=f"Failed to fetch paycrest rate: {err.message}",
             )
+            # Cancel in-flight ledger transaction
+            logger.error(
+                "Attempting to void in-flight ledger transaction %s due to paycrest rate fetch failure",
+                transaction.ledger_transaction_id,
+            )
+            void_req = UpdateInflightTransactionRequest(status="void")
+            void_err = await self.service.ledger_service.transactions.update_inflight_transaction(
+                transaction.ledger_transaction_id, void_req
+            )
+            if void_err:
+                logger.critical(
+                    "Failed to void in-flight ledger transaction %s after paycrest rate fetch failure: %s",
+                    transaction.ledger_transaction_id,
+                    void_err.message,
+                )
             return None, error("Could not fetch paycrest rate")
         if hasattr(paycrest_rate, "data"):
             logger.debug("Paycrest rate fetched: %s", paycrest_rate.data)
@@ -804,65 +885,6 @@ class WalletManagerUsecase:
         )
         return (transaction, user), None
 
-    async def _perform_ledger_debit(
-        self, transaction: Transaction, user: User
-    ) -> Optional[Error]:
-        logger.debug(
-            "Performing ledger debit for user %s, transaction %s, amount %s %s",
-            user.id,
-            transaction.id,
-            transaction.amount,
-            transaction.currency.value,
-        )
-
-        try:
-            asset_id_enum = AssetId(str(transaction.asset_id))
-            logger.debug(
-                "Asset ID %s from transaction converted to enum: %s",
-                transaction.asset_id,
-                asset_id_enum.value,
-            )
-        except ValueError:
-            logger.error(
-                "Invalid Asset ID in transaction %s: %s",
-                transaction.id,
-                transaction.asset_id,
-            )
-            await self.service.transaction_usecase.update_transaction_status(
-                transaction_id=transaction.id,
-                new_status=TransactionStatus.FAILED.value,
-                error_message="Invalid asset ID in transaction",
-            )
-            return error("Invalid asset ID in transaction")
-
-        debit_result, err = await self.service.ledger_service.balances.debit_balance(
-            identity_id=user.ledger_identity_id,
-            currency=transaction.currency.value.lower(),
-            amount=transaction.amount,
-            reference=str(transaction.id),
-            narration=transaction.note,
-        )
-        if err:
-            logger.error(
-                "Failed to debit ledger for user %s, transaction %s: %s",
-                user.id,
-                transaction.id,
-                err.message,
-            )
-            await self.service.transaction_usecase.update_transaction_status(
-                transaction_id=transaction.id,
-                new_status=TransactionStatus.FAILED,
-                error_message=f"Ledger debit failed: {err.message}",
-            )
-            return error(f"Ledger debit failed: {err.message}")
-        logger.info(
-            "Ledger debited for user %s, transaction %s. Debit result: %s",
-            user.id,
-            transaction.id,
-            debit_result,
-        )
-        return None
-
     async def _update_withdrawal_transaction_status(
         self, transaction_id: str, new_status: TransactionStatus
     ) -> Optional[Error]:
@@ -904,9 +926,42 @@ class WalletManagerUsecase:
             return err
         transaction, user = data
 
-        err = await self._perform_ledger_debit(transaction, user)
+        if not transaction.ledger_transaction_id:
+            logger.error(
+                "Cannot process withdrawal execution for transaction %s without a ledger transaction ID",
+                transaction.id,
+            )
+            return error("Missing ledger transaction ID for withdrawal")
+
+        logger.info(
+            "Committing in-flight ledger transaction %s for withdrawal %s",
+            transaction.ledger_transaction_id,
+            transaction.id,
+        )
+        update_req = UpdateInflightTransactionRequest(status="commit")
+        _, err = await self.service.ledger_service.transactions.update_inflight_transaction(
+            transaction.ledger_transaction_id, update_req
+        )
         if err:
-            return err
+            logger.error(
+                "Failed to commit in-flight ledger transaction %s for withdrawal %s: %s",
+                transaction.ledger_transaction_id,
+                transaction.id,
+                err.message,
+            )
+            await self.service.transaction_usecase.update_transaction_status(
+                transaction_id=transaction.id,
+                new_status=TransactionStatus.FAILED,
+                error_message=err.message,
+            )
+            return None, error("Could not fetch blockrader network fee")
+            return error("Failed to commit in-flight ledger transaction")
+
+        logger.info(
+            "Successfully committed in-flight ledger transaction %s for withdrawal %s",
+            transaction.ledger_transaction_id,
+            transaction.id,
+        )
 
         err = await self._update_withdrawal_transaction_status(
             transaction_id,
