@@ -136,9 +136,11 @@ async def withdraw(
 
     rq_manager.get_queue().enqueue(
         process_withdrawal_task,
+        ledger_config=config.ledger,
+        paycrest_config=config.paycrest,
+        blockrader_config=config.block_rader,
         user_id=user.id,
         pin=withdrawal_request.authorization.pin,
-        config=config,
         transaction_id=transaction_id,
         wallet_name=config.block_rader.wallets.wallets[0].wallet_id,
         ledger_id=config.ledger.ledgers.ledgers[0].ledger_id,
