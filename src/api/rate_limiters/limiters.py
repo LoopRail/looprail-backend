@@ -1,5 +1,7 @@
 import os
 import time
+from dataclasses import dataclass, field
+from typing import Dict
 
 from fastapi import Request
 from slowapi import Limiter
@@ -7,9 +9,6 @@ from slowapi.util import get_remote_address
 
 from src.infrastructure import RedisClient, get_logger
 from src.infrastructure.settings import ENVIRONMENT
-
-from dataclasses import dataclass, field
-from typing import Dict
 
 logger = get_logger(__name__)
 
@@ -111,7 +110,7 @@ RATE_LIMIT_CONFIG: Dict[str, RateLimitSubjectConfig] = {
 
 limiter = Limiter(
     key_func=get_remote_address,
-    enabled=os.getenv("ENVIRONMENT") != ENVIRONMENT.TEST.value,
+    enabled=os.getenv("ENVIRONMENT") not in (ENVIRONMENT.TEST.value, ENVIRONMENT.STAGING.value),
 )
 logger.debug("Limiter enabled status: %s", limiter.enabled)
 
