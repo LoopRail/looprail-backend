@@ -21,10 +21,12 @@ async def send_otp_internal(
     logger.info("Initiating internal OTP send for email: %s", email)
     _, err = await otp_usecases.get_user_token(user_email=email)
     if err and err != "Not found":
+        logger.error("Error sending OTP: %s ", err)
         raise HTTPException(status_code=500, detail="Server Error")
 
     err = await otp_usecases.delete_otp(user_email=email)
     if err and err != "Not found":
+        logger.error("Error sending OTP: %s ", err)
         raise HTTPException(status_code=500, detail="Server Error")
 
     otp_code, token, err = await otp_usecases.generate_otp(user_email=email)
