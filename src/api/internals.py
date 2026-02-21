@@ -6,7 +6,7 @@ from src.infrastructure import PRODUCTION_DOMAIN, STAGING_DOMAIN, get_logger
 from src.infrastructure.config_settings import Config
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
-from src.types.error import NotFound
+from src.types.error import NotFoundError
 from src.usecases import OtpUseCase
 
 logger = get_logger(__name__)
@@ -21,12 +21,12 @@ async def send_otp_internal(
 ) -> str:
     logger.info("Initiating internal OTP send for email: %s", email)
     _, err = await otp_usecases.get_user_token(user_email=email)
-    if err and err != NotFound:
+    if err and err != NotFoundError:
         logger.error("Error sending OTP: %s ", err)
         raise HTTPException(status_code=500, detail="Server Error")
 
     err = await otp_usecases.delete_otp(user_email=email)
-    if err and err != NotFound:
+    if err and err != NotFoundError:
         logger.error("Error sending OTP: %s ", err)
         raise HTTPException(status_code=500, detail="Server Error")
 
