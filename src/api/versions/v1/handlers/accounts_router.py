@@ -2,26 +2,20 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from src.api.dependencies import (
-    get_asset_repository,
     get_blockrader_wallet_service,
     get_current_user_token,
-    get_ledger_service,
     get_paystack_service,
     get_user_usecases,
-    get_wallet_repository,
 )
 from src.dtos import (
-    AssetBalance,
     UserAccountResponse,
     UserPublic,
     VerifyAccountResponse,
-    WalletWithAssets,
 )
 from src.dtos.account_dtos import VerifyAccountRequest
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import AssetRepository, WalletRepository
-from src.infrastructure.services import LedgerService, PaystackService
-from src.types import AccessToken, AssetId
+from src.infrastructure.services import PaystackService
+from src.types import AccessToken
 from src.usecases import UserUseCase, WalletService
 
 logger = get_logger(__name__)
@@ -43,7 +37,7 @@ async def get_user_account(
     if err:
         return JSONResponse(status_code=404, content={"message": "User not found"})
 
-    wallet_with_assets, err = await wallet_service.get_wallet_with_assets(
+    wallet_dict, err = await wallet_service.get_wallet_with_assets(
         user_id=token.user_id
     )
 
@@ -52,48 +46,7 @@ async def get_user_account(
 
     user_public = UserPublic.model_validate(user.model_dump())
 
-    return UserAccountResponse(user=user_public, wallet=wallet_with_assets)
-
-
-@router.get(
-    "/balance",
-    response_model=WalletWithAssets,
-    summary="Get current user wallet balance",
-)
-async def get_user_balance(
-    token: AccessToken = Depends(get_current_user_token),
-    wallet_service: WalletService = Depends(get_blockrader_wallet_service),
-):
-    wallet_with_assets, err = await wallet_service.get_wallet_with_assets(
-        user_id=token.user_id
-    )
-
-    if err:
-        return JSONResponse(status_code=500, content={"message": err.message})
-
-    if not wallet_with_assets:
-        return JSONResponse(status_code=404, content={"message": "Wallet not found"})
-
-    return wallet_with_assets
-
-
-@router.get(
-    "/balance/{asset_id}",
-    response_model=AssetBalance,
-    summary="Get current user specific asset balance",
-)
-async def get_asset_balance(
-    asset_id: AssetId,
-    token: AccessToken = Depends(get_current_user_token),
-    wallet_service: WalletService = Depends(get_blockrader_wallet_service),
-):
-    asset_balance, err = await wallet_service.get_asset_balance(
-        user_id=token.user_id, asset_id=asset_id
-    )
-    if err:
-        return JSONResponse(status_code=404, content={"message": err.message})
-
-    return asset_balance
+    return UserAccountResponse(user=user_public, wallet=wallet_dict)
 
 
 @router.post("/verify", response_model=VerifyAccountResponse)

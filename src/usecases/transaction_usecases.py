@@ -277,9 +277,7 @@ class TransactionUsecase:
         self, *, transaction_id: TransactionId, fee: Decimal
     ) -> Optional[Error]:
         logger.debug("Updating fee for transaction %s to %s", transaction_id, fee)
-        transaction, err = await self.repo.get(
-            transaction_id
-        )
+        transaction, err = await self.repo.get(transaction_id)
         if err:
             logger.error(
                 "Transaction with ID %s not found for fee update: %s",

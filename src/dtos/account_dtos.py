@@ -1,13 +1,10 @@
-from decimal import Decimal
-from typing import List, Optional
-
+from typing import Optional
 from pydantic import Field, field_validator
-import pydantic
 
 from src.dtos.base import Base
 from src.dtos.user_dtos import UserPublic
-from src.types.common_types import AssetId, WalletId
-from src.types.types import AssetType, InstitutionCountry, TokenStandard
+from src.dtos.wallet_dtos import WalletPublic
+from src.types.types import InstitutionCountry
 
 
 class VerifyAccountRequest(Base):
@@ -32,36 +29,6 @@ class VerifyAccountResponse(Base):
         return value
 
 
-class AssetBalance(Base):
-    asset_id: AssetId = Field(alias="asset-id")
-    name: str
-    symbol: str
-    decimals: int
-    asset_type: AssetType = Field(alias="asset-type")
-
-    # Balance info
-    balance: Decimal = Field(default=Decimal("0"))
-
-    # Metadata
-    network: str
-    address: str
-    standard: Optional[TokenStandard] = None
-    is_active: bool = Field(alias="is-active")
-
-    model_config = pydantic.ConfigDict(populate_by_name=True)
-
-
-class WalletWithAssets(Base):
-    id: WalletId
-    address: str
-    chain: str
-    provider: str
-    is_active: bool = Field(alias="is-active")
-    assets: List[AssetBalance]
-
-    model_config = pydantic.ConfigDict(populate_by_name=True)
-
-
 class UserAccountResponse(Base):
     user: UserPublic
-    wallet: Optional[WalletWithAssets] = None
+    wallet: Optional[WalletPublic] = None

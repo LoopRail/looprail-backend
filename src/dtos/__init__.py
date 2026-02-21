@@ -1,9 +1,7 @@
 from src.dtos.account_dtos import (
-    AssetBalance,
     UserAccountResponse,
     VerifyAccountRequest,
     VerifyAccountResponse,
-    WalletWithAssets,
 )
 from src.dtos.auth_dtos import (
     AuthTokensResponse,
@@ -28,7 +26,14 @@ from src.dtos.user_dtos import (
     UserCreate,
     UserPublic,
 )
-from src.dtos.wallet_dtos import BankTransferRequest, WithdrawalRequest
+from src.dtos.wallet_dtos import (
+    AssetPublic,
+    WalletPublic,
+    AssetBalance,
+    BankTransferRequest,
+    WalletWithAssets,
+    WithdrawalRequest,
+)
 
 __all__ = [
     "CompleteOnboardingRequest",
@@ -44,6 +49,8 @@ __all__ = [
     "OTPSuccessResponse",
     "VerifyAccountResponse",
     "AssetBalance",
+    "AssetPublic",
+    "WalletPublic",
     "UserAccountResponse",
     "WalletWithAssets",
     "CreateTransactionParams",

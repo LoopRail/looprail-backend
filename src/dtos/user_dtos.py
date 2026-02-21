@@ -6,7 +6,6 @@ from pydantic import EmailStr, Field, field_validator
 from pydantic_extra_types.country import CountryShortName
 
 from src.dtos.base import Base
-from src.dtos.wallet_dtos import WalletPublic
 from src.types.common_types import PhoneNumber, RefreshTokenId, UserId
 from src.types.error import error
 from src.types.types import Gender, KYCStatus

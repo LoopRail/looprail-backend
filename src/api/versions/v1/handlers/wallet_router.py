@@ -3,13 +3,16 @@ from fastapi.responses import JSONResponse
 
 from src.api.dependencies import (
     get_auth_lock_service,
+    get_blockrader_wallet_service,
     get_config,
     get_current_user,
+    get_current_user_token,
     get_user_usecases,
     get_wallet_manager_usecase,
 )
 from src.api.dependencies.extra_deps import get_rq_manager
 from src.api.rate_limiters.rate_limiter import custom_rate_limiter
+from src.dtos import AssetBalance, WalletPublic
 from src.dtos.wallet_dtos import WithdrawalRequest
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
@@ -17,13 +20,55 @@ from src.infrastructure.redis import RQManager
 from src.infrastructure.services import AuthLockService
 from src.infrastructure.tasks.withdrawal_tasks import process_withdrawal_task
 from src.models import User
-from src.usecases import UserUseCase, WalletManagerUsecase
+from src.types import AccessToken, AssetId
+from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
 
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/wallets", tags=["Wallets"])
 
 withdraw_auth_lock = get_auth_lock_service("withdrawals")
+
+
+@router.get(
+    "/",
+    response_model=WalletPublic,
+    summary="Get current user wallet info",
+)
+async def get_user_wallet_info(
+    token: AccessToken = Depends(get_current_user_token),
+    wallet_service: WalletService = Depends(get_blockrader_wallet_service),
+):
+    wallet_dict, err = await wallet_service.get_wallet_with_assets(
+        user_id=token.user_id
+    )
+
+    if err:
+        return JSONResponse(status_code=500, content={"message": err.message})
+
+    if not wallet_dict:
+        return JSONResponse(status_code=404, content={"message": "Wallet not found"})
+
+    return wallet_dict
+
+
+@router.get(
+    "/balance/{asset_id}",
+    response_model=AssetBalance,
+    summary="Get current user specific asset balance",
+)
+async def get_asset_balance(
+    asset_id: AssetId,
+    token: AccessToken = Depends(get_current_user_token),
+    wallet_service: WalletService = Depends(get_blockrader_wallet_service),
+):
+    asset_balance, err = await wallet_service.get_asset_balance(
+        user_id=token.user_id, asset_id=asset_id
+    )
+    if err:
+        return JSONResponse(status_code=404, content={"message": err.message})
+
+    return asset_balance
 
 
 @router.post("/withdraw", status_code=status.HTTP_200_OK)

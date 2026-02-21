@@ -1,13 +1,12 @@
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple, Type
-from uuid import UUID
 
-from pydantic import field_serializer, field_validator
+from pydantic import Field, field_validator
 
 from src.dtos.base import Base
 from src.types.common_types import Address, AssetId, Chain, WalletId
 from src.types.error import Error, error
-from src.types.types import Currency, WithdrawalMethod
+from src.types.types import AssetType, Currency, TokenStandard, WithdrawalMethod
 
 
 class TransferType(Base):
@@ -82,26 +81,47 @@ class WithdrawalRequest(Base):
 
 
 class AssetPublic(Base):
-    id: AssetId
+    asset_id: AssetId = Field(alias="asset-id")
     name: str
     symbol: str
     decimals: int
-    asset_type: str
+    asset_type: AssetType = Field(alias="asset-type")
     network: str
     address: str
-
-    @field_serializer("id")
-    def serialise_id(self, asset_id: UUID) -> AssetId:
-        return AssetId.new(asset_id)
+    standard: Optional[TokenStandard] = None
+    is_active: bool = Field(alias="is-active")
 
 
 class WalletPublic(Base):
     id: WalletId
     address: str
     chain: str
-    name: str | None = None
-    assets: List[AssetPublic] = []
+    provider: str
+    is_active: bool = Field(alias="is-active")
+    assets: List[AssetPublic]
 
-    @field_serializer("id")
-    def serialise_id(self, wallet_id: UUID) -> WalletId:
-        return WalletId.new(wallet_id)
+
+class AssetBalance(Base):
+    asset_id: AssetId = Field(alias="asset-id")
+    name: str
+    symbol: str
+    decimals: int
+    asset_type: AssetType = Field(alias="asset-type")
+
+    # Balance info
+    balance: Optional[Decimal] = None
+
+    # Metadata
+    network: str
+    address: str
+    standard: Optional[TokenStandard] = None
+    is_active: bool = Field(alias="is-active")
+
+
+class WalletWithAssets(Base):
+    id: WalletId
+    address: str
+    chain: str
+    provider: str
+    is_active: bool = Field(alias="is-active")
+    assets: List[AssetBalance]

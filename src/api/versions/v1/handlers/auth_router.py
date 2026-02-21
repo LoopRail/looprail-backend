@@ -459,7 +459,9 @@ async def refresh_token(
             session.device_id,
             device_id,
         )
-        await session_usecase.revoke_session(session.id) # Revoke session on device mismatch
+        await session_usecase.revoke_session(
+            session.id
+        )  # Revoke session on device mismatch
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"message": "Device ID mismatch. Please log in again."},

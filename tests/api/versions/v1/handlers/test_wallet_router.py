@@ -7,9 +7,10 @@ from fastapi.testclient import TestClient
 from starlette import status
 
 from src.api.versions.v1.handlers.wallet_router import withdraw_auth_lock
-from src.api.rate_limiters.rate_limiter import get_custom_rate_limiter
 from src.api.dependencies import (
+    get_blockrader_wallet_service,
     get_current_user,
+    get_current_user_token,
     get_wallet_manager_usecase,
     get_config,
     get_user_usecases,
@@ -21,12 +22,191 @@ from src.models import User
 from src.infrastructure.config_settings import Config
 from src.infrastructure.redis import RQManager
 from src.infrastructure.services import AuthLockService
-from src.usecases import UserUseCase, WalletManagerUsecase
+from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
+from src.types import AccessToken, TokenType, error
+
+
+@pytest.fixture
+def mock_wallet_service() -> AsyncMock:
+    return AsyncMock(spec=WalletService)
 
 
 @pytest.fixture
 def mock_wallet_manager() -> MagicMock:
     return MagicMock(spec=WalletManagerUsecase)
+
+
+@pytest.mark.asyncio
+async def test_get_user_wallet_info_success(
+    mock_wallet_service,
+):
+    user_id = uuid4()
+    wallet_id = uuid4()
+
+    # Mock Wallet Output
+    mock_wallet_service.get_wallet_with_assets.return_value = (
+        {
+            "id": f"wlt_{wallet_id}",
+            "address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+            "chain": "ethereum",
+            "provider": "paycrest",
+            "is-active": True,
+            "assets": [
+                {
+                    "asset-id": "ast_123",
+                    "name": "USDT",
+                    "symbol": "USDT",
+                    "decimals": 18,
+                    "asset-type": "usdt",
+                    "balance": "0.0",
+                    "network": "mainnet",
+                    "address": "0x...",
+                    "is-active": True,
+                }
+            ],
+        },
+        None,
+    )
+
+    # Token
+    token = AccessToken(
+        sub="access_ses_123",
+        user_id=f"usr_{user_id}",
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id="ses_123",
+        platform="web",
+    )
+
+    # Overrides
+    app.dependency_overrides[get_current_user_token] = lambda: token
+    app.dependency_overrides[get_blockrader_wallet_service] = (
+        lambda: mock_wallet_service
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/wallets/")
+
+    # Assertions
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["address"] == "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+    assert len(data["assets"]) == 1
+    assert data["assets"][0]["symbol"] == "USDT"
+
+    mock_wallet_service.get_wallet_with_assets.assert_called_once()
+
+    # Cleanup
+    app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_get_user_balance_success(
+    mock_wallet_service,
+):
+    user_id = uuid4()
+    wallet_id = uuid4()
+
+    # Mock Wallet Output
+    mock_wallet_service.get_wallet_with_assets.return_value = (
+        {
+            "id": f"wlt_{wallet_id}",
+            "address": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+            "chain": "ethereum",
+            "provider": "paycrest",
+            "is-active": True,
+            "assets": [
+                {
+                    "asset-id": "ast_123",
+                    "name": "USDT",
+                    "symbol": "USDT",
+                    "decimals": 18,
+                    "asset-type": "usdt",
+                    "balance": "1.0",
+                    "network": "mainnet",
+                    "address": "0x...",
+                    "is-active": True,
+                }
+            ],
+        },
+        None,
+    )
+
+    # Token
+    token = AccessToken(
+        sub="access_ses_123",
+        user_id=f"usr_{user_id}",
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id="ses_123",
+        platform="web",
+    )
+
+    # Overrides
+    app.dependency_overrides[get_current_user_token] = lambda: token
+    app.dependency_overrides[get_blockrader_wallet_service] = (
+        lambda: mock_wallet_service
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/wallets/balance")
+
+    # Assertions
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["assets"][0]["balance"] == "1.0"
+
+    # Cleanup
+    app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_get_asset_balance_success(
+    mock_wallet_service,
+):
+    user_id = uuid4()
+    asset_id = uuid4()
+
+    # Mock Asset Output
+    mock_wallet_service.get_asset_balance.return_value = (
+        {
+            "asset-id": f"ast_{asset_id}",
+            "name": "USDT",
+            "symbol": "USDT",
+            "decimals": 18,
+            "asset-type": "usdt",
+            "balance": "1.0",
+            "network": "mainnet",
+            "address": "0x...",
+            "is-active": True,
+        },
+        None,
+    )
+
+    # Token
+    token = AccessToken(
+        sub="access_ses_123",
+        user_id=f"usr_{user_id}",
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id="ses_123",
+        platform="web",
+    )
+
+    # Overrides
+    app.dependency_overrides[get_current_user_token] = lambda: token
+    app.dependency_overrides[get_blockrader_wallet_service] = (
+        lambda: mock_wallet_service
+    )
+
+    with TestClient(app) as client:
+        response = client.get(f"/api/v1/wallets/balance/ast_{asset_id}")
+
+    # Assertions
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["symbol"] == "USDT"
+    assert data["balance"] == "1.0"
+
+    # Cleanup
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture

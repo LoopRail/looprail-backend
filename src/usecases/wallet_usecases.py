@@ -1,13 +1,14 @@
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Dict, Optional, Self, Tuple
 from uuid import UUID
 
+from src.dtos import AssetBalance, AssetPublic
 from src.dtos.transaction_dtos import (
     BankTransferParams,
     CreateTransactionParams,
     CryptoTransactionParams,
 )
-from src.dtos import AssetBalance, WalletWithAssets
 from src.dtos.wallet_dtos import (
     BankTransferData,
     ExternalWalletTransferData,
@@ -34,11 +35,14 @@ from src.types import (
     TransactionType,
     WorldLedger,
     error,
+    types,
 )
-from src.types import types
-from datetime import datetime, timedelta
-
-from src.types.blnk import CreateBalanceRequest, CreateIdentityRequest, IdentityResponse, RecordTransactionRequest
+from src.types.blnk import (
+    CreateBalanceRequest,
+    CreateIdentityRequest,
+    IdentityResponse,
+    RecordTransactionRequest,
+)
 from src.types.blnk.dtos import UpdateInflightTransactionRequest
 from src.types.blockrader import (
     CreateAddressRequest,
@@ -157,8 +161,11 @@ class WalletService:
 
     async def get_wallet_with_assets(
         self, user_id: UserId
-    ) -> Tuple[Optional[WalletWithAssets], Error]:
-        logger.debug("Fetching wallet with assets for user: %s", user_id)
+    ) -> Tuple[Optional[Dict[str, Any]], Error]:
+        logger.debug(
+            "Fetching wallet with assets for user: %s",
+            user_id,
+        )
         wallet, err = await self.repo.get_wallet_by_user_id(user_id=user_id.clean())
         if not wallet:
             logger.warning("Wallet not found for user: %s", user_id)
@@ -173,51 +180,35 @@ class WalletService:
             )
             assets = []
 
-        asset_balances = []
+        asset_data_list = []
         for asset in assets:
-            balance_data = Decimal("0")
-
-            if asset.ledger_balance_id:
-                bal_resp, err = await self.ledger_service.balances.get_balance(
-                    asset.ledger_balance_id
-                )
-                if err:
-                    logger.error(
-                        "Error fetching balance for asset %s (ledger_id: %s): %s",
-                        asset.id,
-                        asset.ledger_balance_id,
-                        err.message,
-                    )
-                    continue
-                balance_data = Decimal(str(bal_resp.balance)) / 100
-
-            asset_balances.append(
-                AssetBalance(
-                    asset_id=asset.get_prefixed_id(),
-                    name=asset.name,
-                    symbol=asset.symbol,
-                    decimals=asset.decimals,
-                    asset_type=asset.asset_type,
-                    balance=balance_data,
-                    network=asset.network,
-                    address=asset.address,
-                    standard=asset.standard,
-                    is_active=asset.is_active,
-                )
+            asset_obj = AssetPublic(
+                asset_id=asset.get_prefixed_id(),
+                name=asset.name,
+                symbol=asset.symbol,
+                decimals=asset.decimals,
+                asset_type=asset.asset_type,
+                network=asset.network,
+                address=asset.address,
+                standard=asset.standard,
+                is_active=asset.is_active,
+            )
+            asset_data_list.append(
+                asset_obj.model_dump(exclude_none=True, by_alias=True)
             )
 
-        wallet_with_assets = WalletWithAssets(
-            id=wallet.get_prefixed_id(),
-            address=wallet.address,
-            chain=wallet.chain,
-            provider=wallet.provider.name
+        wallet_dict = {
+            "id": wallet.get_prefixed_id(),
+            "address": wallet.address,
+            "chain": wallet.chain,
+            "provider": wallet.provider.name
             if hasattr(wallet.provider, "name")
             else str(wallet.provider),
-            is_active=wallet.is_active,
-            assets=asset_balances,
-        )
+            "is-active": wallet.is_active,
+            "assets": asset_data_list,
+        }
 
-        return wallet_with_assets, None
+        return wallet_dict, None
 
     async def get_asset_balance(
         self, user_id: UserId, asset_id: AssetId
@@ -682,19 +673,20 @@ class WalletManagerUsecase:
             "Creating in-flight ledger transaction for withdrawal %s", transaction.id
         )
         ledger_txn_request = RecordTransactionRequest(
-            amount=int(withdrawal_request.amount * 100),  
+            amount=int(withdrawal_request.amount * 100),
             currency=withdrawal_request.currency.lower(),
             source=asset.ledger_balance_id,
             destination=WorldLedger.WORLD_OUT,
             description=f"Withdrawal for {user.id} to {withdrawal_method}",
             reference=transaction.reference,
             inflight=True,
-            expires_at=datetime.now() + timedelta(hours=24),  
+            expires_at=datetime.now() + timedelta(hours=24),
         )
-        ledger_inflight_txn, err = (
-            await self.service.ledger_service.transactions.record_transaction(
-                ledger_txn_request
-            )
+        (
+            ledger_inflight_txn,
+            err,
+        ) = await self.service.ledger_service.transactions.record_transaction(
+            ledger_txn_request
         )
         if err:
             logger.error(
@@ -738,7 +730,6 @@ class WalletManagerUsecase:
             ledger_inflight_txn.transaction_id,
             transaction.id,
         )
-
 
         logger.debug(
             "Fetching paycrest rate for user %s, amount %s",
@@ -939,7 +930,10 @@ class WalletManagerUsecase:
             transaction.id,
         )
         update_req = UpdateInflightTransactionRequest(status="commit")
-        _, err = await self.service.ledger_service.transactions.update_inflight_transaction(
+        (
+            _,
+            err,
+        ) = await self.service.ledger_service.transactions.update_inflight_transaction(
             transaction.ledger_transaction_id, update_req
         )
         if err:

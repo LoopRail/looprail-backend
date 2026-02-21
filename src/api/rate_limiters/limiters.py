@@ -110,7 +110,8 @@ RATE_LIMIT_CONFIG: Dict[str, RateLimitSubjectConfig] = {
 
 limiter = Limiter(
     key_func=get_remote_address,
-    enabled=os.getenv("ENVIRONMENT") not in (ENVIRONMENT.TEST.value, ENVIRONMENT.STAGING.value),
+    enabled=os.getenv("ENVIRONMENT")
+    not in (ENVIRONMENT.TEST.value, ENVIRONMENT.STAGING.value),
 )
 logger.debug("Limiter enabled status: %s", limiter.enabled)
 
