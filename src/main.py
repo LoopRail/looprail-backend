@@ -51,9 +51,6 @@ async def lifespan(app_: FastAPI):
 
     yield
 
-    # --- SHUTDOWN ---
-    # await app_.state.redis.close()  # if async
-
 
 app = FastAPI(
     title="Looprail Backend",
