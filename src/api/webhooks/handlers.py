@@ -87,7 +87,9 @@ async def handle_deposit_swept_success(
         )
         return
 
-    transaction_request = UpdateInflightTransactionRequest(status="commit")
+    transaction_request = UpdateInflightTransactionRequest(
+        status="commit", amount=amount_in_minor_units
+    )
     logger.debug("Recording transaction on ledger for event %s", event.data.id)
     _, err = await ledger_service.transactions.update_inflight_transaction(
         txn.ledger_transaction_id, transaction_request

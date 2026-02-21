@@ -8,8 +8,7 @@ from sqlmodel import Column, Field, Relationship
 
 from src.models.base import Base
 from src.types.common_types import Address, ReferenceId, UserId
-from src.types.types import (Currency, PaymentMethod, TransactionStatus,
-                             TransactionType)
+from src.types.types import Currency, PaymentMethod, TransactionStatus, TransactionType
 from src.utils.app_utils import generate_transaction_reference
 
 if TYPE_CHECKING:
