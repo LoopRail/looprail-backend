@@ -1,18 +1,23 @@
 from src.api.webhooks.registry import register
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import (AssetRepository,
-                                             TransactionRepository,
-                                             WalletRepository)
+from src.infrastructure.repositories import (
+    AssetRepository,
+    TransactionRepository,
+    WalletRepository,
+)
 from src.infrastructure.services import LedgerService, LockService
 from src.types import NotFoundError, TransactionType, WorldLedger
 from src.types.blnk import RecordTransactionRequest
 from src.types.blnk.dtos import UpdateInflightTransactionRequest
-from src.types.blockrader import (WebhookDepositSuccess,
-                                  WebhookDepositSweptSuccess, WebhookEventType,
-                                  WebhookWithdrawCancelled,
-                                  WebhookWithdrawFailed,
-                                  WebhookWithdrawSuccess)
+from src.types.blockrader import (
+    WebhookDepositSuccess,
+    WebhookDepositSweptSuccess,
+    WebhookEventType,
+    WebhookWithdrawCancelled,
+    WebhookWithdrawFailed,
+    WebhookWithdrawSuccess,
+)
 from src.usecases import TransactionUsecase
 from src.utils import create_transaction_params_from_event
 
@@ -63,7 +68,7 @@ async def handle_deposit_swept_success(
     logger.debug("Processing swept transaction for asset %s", source_asset.name)
 
     txn, err = await transaction_repo.find_one(external_reference=event.data.reference)
-    if err:
+    if err or txn is None:
         logger.error(
             "Error getting transaction with reference %s Error: %s",
             event.data.reference,
@@ -82,21 +87,18 @@ async def handle_deposit_swept_success(
         )
         return
 
-
-    if txn.ledger_transaction_id is not None:
-        transaction_request = UpdateInflightTransactionRequest(status="commit")
-        logger.debug("Recording transaction on ledger for event %s", event.data.id)
-        _, err = await ledger_service.transactions.update_inflight_transaction(
-            txn.ledger_transaction_id, transaction_request
+    transaction_request = UpdateInflightTransactionRequest(status="commit")
+    logger.debug("Recording transaction on ledger for event %s", event.data.id)
+    _, err = await ledger_service.transactions.update_inflight_transaction(
+        txn.ledger_transaction_id, transaction_request
+    )
+    if err:
+        logger.error(
+            "Failed to record deposit swept transaction on ledger for event %s: %s",
+            event.data.id,
+            err.message,
         )
-        if err:
-            logger.error(
-                "Failed to record deposit swept transaction on ledger for event %s: %s",
-                event.data.id,
-                err.message,
-            )
-            return
-
+        return
     err = await lock.release(event.data.hash, lock_id)
     if err:
         logger.error(err)
