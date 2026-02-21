@@ -1,23 +1,18 @@
 from src.api.webhooks.registry import register
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
-from src.infrastructure.repositories import (
-    AssetRepository,
-    TransactionRepository,
-    WalletRepository,
-)
+from src.infrastructure.repositories import (AssetRepository,
+                                             TransactionRepository,
+                                             WalletRepository)
 from src.infrastructure.services import LedgerService, LockService
-from src.types import NotFoundError, TransactionType, WorldLedger
+from src.types import NotFoundError, TransactionStatus, TransactionType, WorldLedger
 from src.types.blnk import RecordTransactionRequest
 from src.types.blnk.dtos import UpdateInflightTransactionRequest
-from src.types.blockrader import (
-    WebhookDepositSuccess,
-    WebhookDepositSweptSuccess,
-    WebhookEventType,
-    WebhookWithdrawCancelled,
-    WebhookWithdrawFailed,
-    WebhookWithdrawSuccess,
-)
+from src.types.blockrader import (WebhookDepositSuccess,
+                                  WebhookDepositSweptSuccess, WebhookEventType,
+                                  WebhookWithdrawCancelled,
+                                  WebhookWithdrawFailed,
+                                  WebhookWithdrawSuccess)
 from src.usecases import TransactionUsecase
 from src.utils import create_transaction_params_from_event
 
@@ -74,6 +69,7 @@ async def handle_deposit_swept_success(
             event.data.reference,
             err,
         )
+        return
     try:
         amount_in_minor_units = int(float(event.data.amount) * 100)
         logger.debug(
@@ -99,6 +95,18 @@ async def handle_deposit_swept_success(
             err.message,
         )
         return
+
+    txn.status = TransactionStatus.COMPLETED
+    _, err = await transaction_repo.update(txn)
+    if err:
+        logger.error(
+            "Failed to update transaction %s status to completed for event %s Error: %s",
+            txn.get_prefixed_id(),
+            event.data.id,
+            err.message,
+        )
+        return
+
     err = await lock.release(event.data.hash, lock_id)
     if err:
         logger.error(err)
@@ -120,7 +128,7 @@ async def handle_deposit_success(
     config: Config,
     **kwargs,
 ):
-    logger.info("Handling deposit swept success event: %s", event.data.id)
+    logger.info("Handling deposit success event: %s", event.data.id)
 
     logger.debug(
         "Attempting to get source wallet for recipient address: %s",
