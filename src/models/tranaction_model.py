@@ -8,7 +8,8 @@ from sqlmodel import Column, Field, Relationship
 
 from src.models.base import Base
 from src.types.common_types import Address, ReferenceId, UserId
-from src.types.types import Currency, PaymentMethod, TransactionStatus, TransactionType
+from src.types.types import (Currency, PaymentMethod, TransactionStatus,
+                             TransactionType)
 from src.utils.app_utils import generate_transaction_reference
 
 if TYPE_CHECKING:
@@ -41,7 +42,7 @@ class Transaction(Base, table=True):
     country: Optional[str] = Field(default=None, sa_column_kwargs={"index": True})
 
     # Parties
-    sender: UserId = Field(nullable=False)
+    sender: str = Field(nullable=False)
     receiver: str = Field(nullable=False)
 
     # Amounts
