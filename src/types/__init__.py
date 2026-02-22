@@ -34,6 +34,7 @@ from src.types.error import (
     ProtectedModelError,
     UpdatingProtectedFieldError,
     UserAlreadyExistsError,
+    ValidationError,
     error,
     httpError,
 )
@@ -117,4 +118,5 @@ __all__ = [
     "OnBoardingTokenSub",
     "ChallengeId",
     "DeviceID",
+    "ValidationError",
 ]

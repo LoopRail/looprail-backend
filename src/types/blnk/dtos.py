@@ -38,6 +38,9 @@ class BalanceResponse(BlnkBase):
     inflight_credit_balance: float
     debit_balance: float
     inflight_debit_balance: float
+    queued_balance: float = 0.0
+    queued_credit_balance: float = 0.0
+    queued_debit_balance: float = 0.0
     precision: Optional[int] = None
     ledger_id: str
     identity_id: str
@@ -125,10 +128,10 @@ class RecordTransactionRequest(BlnkBase):
     effective_date: Optional[datetime] = None
     meta_data: Optional[Dict[str, Any]] = None
 
-    @field_serializer('expires_at')
+    @field_serializer("expires_at")
     def serialize_expires_at(self, dt: Optional[datetime]) -> Optional[str]:
         if dt:
-            return dt.isoformat(timespec='seconds')
+            return dt.isoformat(timespec="seconds")
         return None
 
 

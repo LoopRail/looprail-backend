@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Any, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, RootModel
 
 from src.types.blockrader.types import AssetData
 from src.types.common_types import Chain

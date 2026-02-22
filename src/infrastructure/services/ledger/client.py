@@ -130,12 +130,14 @@ class BalanceManager(BlnkClient):
         )
 
     async def get_balance(
-        self, balance_id: str
+        self, balance_id: str, with_queued: bool = False
     ) -> Tuple[Optional[BalanceResponse], Error]:
-        logger.debug("Getting balance with ID: %s", balance_id)
+        logger.debug(
+            "Getting balance with ID: %s (with_queued=%s)", balance_id, with_queued
+        )
+        params = {"with_queued": "true"} if with_queued else None
         return await self._get(
-            BalanceResponse,
-            path_suffix=f"/{balance_id}",
+            BalanceResponse, path_suffix=f"/{balance_id}", req_params=params
         )
 
     async def take_balance_snapshots(self) -> Tuple[Any, Error]:
