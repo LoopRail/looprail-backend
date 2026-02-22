@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from src.types.common_types import IdentiyType
 
@@ -121,6 +121,7 @@ class RecordTransactionRequest(BlnkBase):
     allow_overdraft: bool = False
     skip_queue: bool = False
     inflight: bool = False
+    expires_at: Optional[datetime] = Field(default=None, alias="inflight_expiry_date")
     effective_date: Optional[datetime] = None
     meta_data: Optional[Dict[str, Any]] = None
 
