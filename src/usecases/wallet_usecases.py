@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Dict, Optional, Self, Tuple
 from uuid import UUID
@@ -705,7 +705,7 @@ class WalletManagerUsecase:
             description=f"Withdrawal for {user.id} to {withdrawal_method}",
             reference=transaction.reference,
             inflight=True,
-            expires_at=datetime.now() + timedelta(hours=24),
+            expires_at=(datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(timespec='seconds'),
         )
 
         if withdrawal_fee > 0:
