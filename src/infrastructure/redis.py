@@ -42,7 +42,7 @@ class RQManager:
             port=settings.redis_port,
             username=settings.redis_username,
             password=settings.redis_password,
-            decode_responses=True,
+            decode_responses=False,
         )
 
     def get_queue(self) -> Queue:
