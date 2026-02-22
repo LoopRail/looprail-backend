@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Any, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 from src.types.blockrader.types import AssetData
 from src.types.common_types import Chain
@@ -9,11 +9,9 @@ from src.types.error import Error, error
 
 
 class Bank(BaseModel):
+    model_config = ConfigDict(extra='ignore')
     name: str
-    code: str
-    type: str  # This could be an Enum like 'bank' or 'mobile_money'
     logo: Optional[str] = None
-    id: Optional[str] = None
 
 
 class BanksData(RootModel[Dict[str, List[Bank]]]):
