@@ -45,21 +45,21 @@ class UserRepository(Base[User]):
     async def get_user_by_id(self, *, user_id: UserId) -> Tuple[Optional[User], Error]:
         # return await self.get(User, user_id)
         query = select(User).options(selectinload("*")).where(User.id == user_id)
-        result = await self.session.exec(query)
+        result = await self.session.execute(query)
         return result.scalars().first(), None
 
     async def get_user_by_email(
         self, *, email: EmailStr
     ) -> Tuple[Optional[User], Error]:
         query = select(User).options(selectinload("*")).where(User.email == email)
-        result = await self.session.exec(query)
+        result = await self.session.execute(query)
         return result.scalars().first(), None
 
     async def get_user_by_username(
         self, *, username: str
     ) -> Tuple[Optional[User], Error]:
         query = select(User).options(selectinload("*")).where(User.username == username)
-        result = await self.session.exec(query)
+        result = await self.session.execute(query)
         return result.scalars().first(), None
 
     async def list_users(
@@ -67,7 +67,7 @@ class UserRepository(Base[User]):
     ) -> Tuple[list[User], Error]:
         try:
             statement = select(User).offset(offset).limit(limit)
-            result = await self.session.exec(statement)
+            result = await self.session.execute(statement)
             return result.scalars().all(), None
         except SQLAlchemyError as e:
             return [], error(str(e))
@@ -108,7 +108,7 @@ class UserRepository(Base[User]):
         self, *, phone_number: str
     ) -> Tuple[Optional[UserProfile], Error]:
         stmt = select(UserProfile).where(UserProfile.phone_number == phone_number)
-        result = await self.session.exec(stmt)
+        result = await self.session.execute(stmt)
         profile = result.scalars().first()
         if not profile:
             return None, NotFoundError
