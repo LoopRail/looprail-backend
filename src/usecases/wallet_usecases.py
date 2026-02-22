@@ -233,7 +233,7 @@ class WalletService:
             logger.warning("Asset %s not found for wallet %s", asset_id, wallet.id)
             return None, error("Asset not found")
 
-        balance_data = Decimal("0")
+        available_balance = Decimal("0")
         if asset.ledger_balance_id:
             bal_resp, err = await self.ledger_service.balances.get_balance(
                 asset.ledger_balance_id
@@ -246,15 +246,18 @@ class WalletService:
                     err.message,
                 )
                 return None, error("Error fetching balance")
-            balance_data = Decimal(str(bal_resp.balance)) / 100
-
+            available_balance = (
+                bal_resp.balance
+                - bal_resp.inflight_debit_balance
+                - bal_resp.queued_debit_balance
+            ) / 100
         asset_balance = AssetBalance(
             asset_id=asset.get_prefixed_id(),
             name=asset.name,
             symbol=asset.symbol,
             decimals=asset.decimals,
             asset_type=asset.asset_type,
-            balance=balance_data,
+            balance=available_balance,
             network=asset.network,
             address=asset.address,
             standard=asset.standard,
