@@ -767,7 +767,7 @@ class WalletManagerUsecase:
         logger.info(
             "In-flight ledger transaction %s created and linked to local transaction %s",
             ledger_inflight_txn.transaction_id,
-            transaction.id,
+            transaction.get_prefixed_id(),
         )
 
         logger.debug(
@@ -823,7 +823,7 @@ class WalletManagerUsecase:
             )
             return None, error("Could not fetch blockrader network fee")
         network_fee_request = NetworkFeeRequest(
-            assetId=blockrader_asset.blockrader_asset_id,
+            assetId=blockrader_asset.asset_id,
             amount=str(withdrawal_request.amount),
             address=user_wallet.address,
         )
