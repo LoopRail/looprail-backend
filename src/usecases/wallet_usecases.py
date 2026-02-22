@@ -15,6 +15,7 @@ from src.dtos.wallet_dtos import (
     TransferType,
     WithdrawalRequest,
 )
+from src.infrastructure import BANK_TRASNFER_WITHDRAWAL_FEE
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import (
@@ -40,6 +41,7 @@ from src.types import (
 from src.types.blnk import (
     CreateBalanceRequest,
     CreateIdentityRequest,
+    Destination,
     IdentityResponse,
     RecordTransactionRequest,
 )
@@ -51,6 +53,7 @@ from src.types.blockrader import (
 )
 from src.types.common_types import AssetId, UserId
 from src.types.ledger_types import Ledger
+from src.types.paycrest import PaycrestRecipiant
 from src.types.types import WithdrawalMethod
 from src.usecases.transaction_usecases import TransactionUsecase
 from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry
@@ -589,6 +592,27 @@ class WalletManagerUsecase:
 
         common_transaction_params: CreateTransactionParams
 
+        withdrawal_fee = Decimal("0")
+        if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
+            withdrawal_fee = Decimal(BANK_TRASNFER_WITHDRAWAL_FEE)
+            # For NGN, convert 0.1 USD to NGN if the withdrawal currency is NGN
+            if withdrawal_request.currency == types.Currency.NAIRA:
+                (
+                    rate_resp,
+                    err,
+                ) = await self.service.paycrest_service.fetch_letest_usdc_rate(
+                    amount=float(withdrawal_request.amount),
+                    currency="NGN",
+                )
+                if not err and rate_resp and rate_resp.data:
+                    # We quantize to 2 decimal places for NGN (100 kobo = 1 NGN)
+                    withdrawal_fee = (
+                        Decimal("0.1") * Decimal(rate_resp.data)
+                    ).quantize(Decimal("0.01"))
+                else:
+                    # Fallback to a fixed NGN fee approx equivalent to 0.1 USD
+                    withdrawal_fee = Decimal("150")
+
         base_kwargs = {
             "wallet_id": user_wallet.id,
             "asset_id": asset.id,
@@ -600,7 +624,7 @@ class WalletManagerUsecase:
             "receiver": "N/A",
             "amount": withdrawal_request.amount,
             "narration": withdrawal_request.narration,
-            "fee": None,
+            "fee": withdrawal_fee,
             "country": get_country_name_by_currency(
                 self.service.config.countries,
                 withdrawal_request.currency,
@@ -640,7 +664,6 @@ class WalletManagerUsecase:
             # Default to Crypto params (External Wallet)
             common_transaction_params = CryptoTransactionParams(
                 **base_kwargs,
-                status=TransactionStatus.PENDING,
                 transaction_hash="pending",
                 network="N/A",
                 chain_id=None,
@@ -672,16 +695,32 @@ class WalletManagerUsecase:
         logger.debug(
             "Creating in-flight ledger transaction for withdrawal %s", transaction.id
         )
+
+        total_ledger_amount = withdrawal_request.amount + withdrawal_fee
+
         ledger_txn_request = RecordTransactionRequest(
-            amount=int(withdrawal_request.amount * 100),
+            amount=int(total_ledger_amount * 100),
             currency=withdrawal_request.currency.lower(),
             source=asset.ledger_balance_id,
-            destination=WorldLedger.WORLD_OUT,
             description=f"Withdrawal for {user.id} to {withdrawal_method}",
             reference=transaction.reference,
             inflight=True,
             expires_at=datetime.now() + timedelta(hours=24),
         )
+
+        if withdrawal_fee > 0:
+            ledger_txn_request.destinations = [
+                Destination(
+                    identifier=WorldLedger.WORLD_OUT,
+                    distribution=str(int(withdrawal_request.amount * 100)),
+                ),
+                Destination(
+                    identifier=WorldLedger.PLATFORM_FEES,
+                    distribution=str(int(withdrawal_fee * 100)),
+                ),
+            ]
+        else:
+            ledger_txn_request.destination = WorldLedger.WORLD_OUT
         (
             ledger_inflight_txn,
             err,
@@ -899,9 +938,10 @@ class WalletManagerUsecase:
         )
         return None
 
-    async def process_withdrawal_execution(
+    async def execute_withdrawal_processing(
         self,
         user_id: UserId,
+        withdrawal_request_data: Dict[str, Any],
         transaction_id: str,
     ) -> Optional[Error]:
         logger.info(
@@ -909,6 +949,8 @@ class WalletManagerUsecase:
             user_id,
             transaction_id,
         )
+
+        withdrawal_request = WithdrawalRequest.model_validate(withdrawal_request_data)
 
         data, err = await self._retrieve_withdrawal_transaction_and_user(
             user_id, transaction_id
@@ -944,7 +986,7 @@ class WalletManagerUsecase:
                 err.message,
             )
             await self.service.transaction_usecase.update_transaction_status(
-                transaction_id=transaction.id,
+                transaction_id=transaction.get_prefixed_id(),
                 new_status=TransactionStatus.FAILED,
                 error_message=err.message,
             )
@@ -955,6 +997,59 @@ class WalletManagerUsecase:
             transaction.ledger_transaction_id,
             transaction.id,
         )
+
+        # Handle external payment initiation (e.g., Paycrest for bank transfers)
+        if withdrawal_request.destination.event == WithdrawalMethod.BANK_TRANSFER:
+            logger.info(
+                "Initiating Paycrest payment order for bank transfer withdrawal %s",
+                transaction.id,
+            )
+            transfer_data = BankTransferData.model_validate(
+                withdrawal_request.destination.data
+            )
+
+            recipient = PaycrestRecipiant(
+                institution=transfer_data.bank_code,
+                account_identifier=transfer_data.account_number,
+                account_name=transfer_data.account_name,
+                memo=withdrawal_request.narration,
+                currency=withdrawal_request.currency,
+            )
+
+            user_wallet, err = await self._get_user_wallet(user_id=user.id)
+            if err:
+                return err
+
+            (
+                paycrest_order,
+                err,
+            ) = await self.service.paycrest_service.create_payment_order(
+                amount=withdrawal_request.amount,
+                recipient=recipient,
+                reference=transaction.reference,
+                return_address=user_wallet.address,
+            )
+
+            if err:
+                logger.error(
+                    "Failed to create Paycrest payment order for withdrawal %s: %s",
+                    transaction.id,
+                    err.message,
+                )
+                # NOTE: Since we already committed the ledger transaction, we might need a way to rollback or manually intervene.
+                # For now, we update the local transaction status to FAILED.
+                await self.service.transaction_usecase.update_transaction_status(
+                    transaction_id=transaction.id,
+                    new_status=TransactionStatus.FAILED,
+                    error_message=f"External payment initiation failed: {err.message}",
+                )
+                return error(f"External payment initiation failed: {err.message}")
+
+            logger.info(
+                "Paycrest payment order %s created successfully for withdrawal %s",
+                paycrest_order.data.payment_id,
+                transaction.id,
+            )
 
         err = await self._update_withdrawal_transaction_status(
             transaction_id,
