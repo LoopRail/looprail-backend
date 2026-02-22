@@ -165,8 +165,12 @@ async def withdraw(
             withdrawal_request.authorization.user_agent,
         )
 
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        if hasattr(err, "code") and err.code:
+            status_code = err.code
+
         return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=status_code,
             content={"error": err.message},
         )
     transaction_id = data.get("transaction_id")
