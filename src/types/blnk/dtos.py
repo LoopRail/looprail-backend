@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
 from src.types.common_types import IdentiyType
 
@@ -124,6 +124,12 @@ class RecordTransactionRequest(BlnkBase):
     expires_at: Optional[datetime] = Field(default=None, alias="inflight_expiry_date")
     effective_date: Optional[datetime] = None
     meta_data: Optional[Dict[str, Any]] = None
+
+    @field_serializer('expires_at')
+    def serialize_expires_at(self, dt: Optional[datetime]) -> Optional[str]:
+        if dt:
+            return dt.isoformat(timespec='seconds')
+        return None
 
 
 class TransactionResponse(BlnkBase):
