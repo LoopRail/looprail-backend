@@ -35,3 +35,5 @@ MASTER_BASE_WALLET = "master_base_wallet"
 
 STAGING_DOMAIN = "staging.looprail.xyz"
 PRODUCTION_DOMAIN = "looprail.xyz"
+
+BANK_TRASNFER_WITHDRAWAL_FEE = "0.1"

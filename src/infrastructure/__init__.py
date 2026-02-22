@@ -2,6 +2,7 @@ from src.infrastructure.config_settings import load_config
 from src.infrastructure.constants import (
     ACCESS_TOKEN_EXP_MINS,
     ACCOUNT_LOCKOUT_DURATION_MINUTES,
+    BANK_TRASNFER_WITHDRAWAL_FEE,
     CUSTOMER_WALLET_LEDGER,
     MASTER_BASE_WALLET,
     MAX_FAILED_OTP_ATTEMPTS,
@@ -30,4 +31,5 @@ __all__ = [
     "MASTER_BASE_WALLET",
     "PRODUCTION_DOMAIN",
     "STAGING_DOMAIN",
+    "BANK_TRASNFER_WITHDRAWAL_FEE",
 ]
