@@ -44,7 +44,9 @@ class UserRepository(Base[User]):
 
     async def get_user_by_id(self, *, user_id: UserId) -> Tuple[Optional[User], Error]:
         # return await self.get(User, user_id)
-        query = select(User).options(selectinload("*")).where(User.id == user_id)
+        query = (
+            select(User).options(selectinload("*")).where(User.id == user_id.clean())
+        )
         result = await self.session.execute(query)
         return result.scalars().first(), None
 

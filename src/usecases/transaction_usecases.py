@@ -187,9 +187,9 @@ class TransactionUsecase:
 
     async def get_transaction_by_id(
         self, *, transaction_id: TransactionId
-    ) -> Tuple[Transaction, Error]:
+    ) -> Tuple[Optional[Transaction], Error]:
         logger.debug("Getting transaction with ID: %s", transaction_id)
-        transaction, err = await self.repo.get(transaction_id)
+        transaction, err = await self.repo.get(transaction_id.clean())
         if err:
             logger.debug("Transaction %s not found: %s", transaction_id, err.message)
             return None, err

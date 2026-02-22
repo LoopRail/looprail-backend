@@ -30,12 +30,14 @@ def validate_address(v: str) -> str:
 
 DeletionFilter = Literal["all", "deleted", "active"]
 
+
 # enabled_country_codes = get_all_country_codes(config.countries)
 
 PhoneNumber = Annotated[
     Union[str, phonenumbers.PhoneNumber],
     PhoneNumberValidator(default_region="US"),
 ]
+
 
 Address = Annotated[str, BeforeValidator(validate_address)]
 
