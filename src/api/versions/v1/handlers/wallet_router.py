@@ -20,7 +20,7 @@ from src.infrastructure.redis import RQManager
 from src.infrastructure.services import AuthLockService
 from src.infrastructure.tasks.withdrawal_tasks import process_withdrawal_task
 from src.models import User
-from src.types import AccessToken, AssetId, UserId
+from src.types import AccessToken, AssetId
 from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
 
 logger = get_logger(__name__)
@@ -114,7 +114,7 @@ async def withdraw(
 
     # 1. Verify Transaction PIN
     valid, err = await user_usecase.verify_transaction_pin(
-        UserId.new(user.id), withdrawal_request.authorization.pin
+        user.id, withdrawal_request.authorization.pin
     )
     if err or not valid:
         current_attempts, _ = await auth_lock_service.increment_failed_attempts(

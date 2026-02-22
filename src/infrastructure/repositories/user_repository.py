@@ -121,3 +121,6 @@ class UserRepository(Base[User]):
         if err:
             return None, err
         return await self.update(user_profile, **kwargs)
+
+
+# TODO fix excecute deprecation
