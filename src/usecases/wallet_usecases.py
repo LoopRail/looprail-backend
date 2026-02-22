@@ -823,7 +823,7 @@ class WalletManagerUsecase:
             )
             return None, error("Could not fetch blockrader network fee")
         network_fee_request = NetworkFeeRequest(
-            assetId=blockrader_asset.asset_id,
+            assetId=blockrader_asset.blockrader_asset_id,
             amount=str(withdrawal_request.amount),
             address=user_wallet.address,
         )
