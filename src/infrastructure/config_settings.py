@@ -165,7 +165,7 @@ def load_banks_data() -> BanksData:
             data = json.load(f)
             logger.debug("JSON parsed successfully.")
             logger.info("Successfully loaded banks data from %s", config_path)
-            return BanksData.parse_obj(data)
+            return BanksData.model_validate(data)
     except FileNotFoundError:
         logger.warning("Banks data file not found: %s", config_path)
     except json.JSONDecodeError:
@@ -173,7 +173,7 @@ def load_banks_data() -> BanksData:
     except Exception as e:
         logger.error("An unexpected error occurred while loading banks data: %s", e)
     logger.debug("Exiting load_banks_data function with empty BanksData.")
-    return BanksData(__root__={})
+    return BanksData(__root__=[])
 
 
 class Config:

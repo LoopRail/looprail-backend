@@ -645,8 +645,9 @@ class WalletManagerUsecase:
                     bank_name = "Unknown Bank"
                 else:
                     found_banks = self.service.config.banks_data.get(
-                        country_code=country_code, code=specific_data.bank_code
+                        country_code=country_code, id=specific_data.bank_code
                     )
+                    logger.info(found_banks)
                     bank_name = found_banks[0].name if found_banks else "Unknown Bank"
 
                 common_transaction_params = BankTransferParams(
@@ -705,7 +706,9 @@ class WalletManagerUsecase:
             description=f"Withdrawal for {user.id} to {withdrawal_method}",
             reference=transaction.reference,
             inflight=True,
-            expires_at=(datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(timespec='seconds'),
+            expires_at=(datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(
+                timespec="seconds"
+            ),
         )
 
         if withdrawal_fee > 0:
