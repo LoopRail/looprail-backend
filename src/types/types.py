@@ -9,9 +9,11 @@ from src.types.error import Error, error
 
 
 class Bank(BaseModel):
-    model_config = ConfigDict(extra='ignore')
     name: str
+    code: Optional[str] = None
+    type: Optional[str] = None
     logo: Optional[str] = None
+    id: Optional[str] = None
 
 
 class BanksData(RootModel[Dict[str, List[Bank]]]):
