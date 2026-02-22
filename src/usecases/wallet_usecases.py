@@ -34,6 +34,7 @@ from src.types import (
     Provider,
     TransactionStatus,
     TransactionType,
+    ValidationError,
     WorldLedger,
     error,
     types,
@@ -573,25 +574,7 @@ class WalletManagerUsecase:
             return None, error("Could not find asset")
         logger.debug("Asset %s retrieved for user %s.", asset.id, user.id)
 
-        # Map WithdrawalMethod to PaymentMethod
-        payment_method = PaymentMethod.BLOCKCHAIN
-        if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
-            payment_method = PaymentMethod.BANK_TRANSFER
-
-        specific_data: BankTransferData | ExternalWalletTransferData
-        if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
-            specific_data = BankTransferData.model_validate(specific_withdrawal.data)
-        elif withdrawal_method == WithdrawalMethod.EXTERNAL_WALLET:
-            specific_data = ExternalWalletTransferData.model_validate(
-                specific_withdrawal.data
-            )
-        else:
-            return None, error(
-                f"Invalid specific withdrawal data for method: {withdrawal_method}"
-            )
-
-        common_transaction_params: CreateTransactionParams
-
+        # Calculate withdrawal fee
         withdrawal_fee = Decimal("0")
         if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
             withdrawal_fee = Decimal(BANK_TRASNFER_WITHDRAWAL_FEE)
@@ -612,6 +595,56 @@ class WalletManagerUsecase:
                 else:
                     # Fallback to a fixed NGN fee approx equivalent to 0.1 USD
                     withdrawal_fee = Decimal("150")
+
+        # Proactive balance verification
+        if asset.ledger_balance_id:
+            bal_resp, err = await self.service.ledger_service.balances.get_balance(
+                asset.ledger_balance_id, with_queued=True
+            )
+            if err:
+                logger.error(
+                    "Error fetching balance for proactive check (balance_id: %s): %s",
+                    asset.ledger_balance_id,
+                    err.message,
+                )
+                return None, error("Error verifying balance")
+
+            # Formula: available_balance = balance - inflight_debit_balance - queued_debit_balance
+            available_balance = (
+                bal_resp.balance
+                - bal_resp.inflight_debit_balance
+                - bal_resp.queued_debit_balance
+            )
+
+            total_needed_minor = int((withdrawal_request.amount + withdrawal_fee) * 100)
+            if available_balance < total_needed_minor:
+                logger.warning(
+                    "Insufficient funds for user %s: available=%s, needed=%s (minor units)",
+                    user.id,
+                    available_balance,
+                    total_needed_minor,
+                )
+
+                return None, ValidationError("Insufficient balance")
+
+        # Map WithdrawalMethod to PaymentMethod
+        payment_method = PaymentMethod.BLOCKCHAIN
+        if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
+            payment_method = PaymentMethod.BANK_TRANSFER
+
+        specific_data: BankTransferData | ExternalWalletTransferData
+        if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
+            specific_data = BankTransferData.model_validate(specific_withdrawal.data)
+        elif withdrawal_method == WithdrawalMethod.EXTERNAL_WALLET:
+            specific_data = ExternalWalletTransferData.model_validate(
+                specific_withdrawal.data
+            )
+        else:
+            return None, error(
+                f"Invalid specific withdrawal data for method: {withdrawal_method}"
+            )
+
+        common_transaction_params: CreateTransactionParams
 
         base_kwargs = {
             "wallet_id": user_wallet.id,
@@ -647,7 +680,6 @@ class WalletManagerUsecase:
                     found_banks = self.service.config.banks_data.get(
                         country_code=country_code, id=specific_data.bank_code
                     )
-                    logger.info(found_banks)
                     bank_name = found_banks[0].name if found_banks else "Unknown Bank"
 
                 common_transaction_params = BankTransferParams(
