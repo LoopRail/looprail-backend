@@ -23,7 +23,9 @@ class BlockchainData(baseBlockRaderType):
 
 class AssetData(baseBlockRaderType):
     asset_id: str = Field(alias="id")
-    blockrader_asset_id: Optional[str] = Field(alias="asset_id")
+    blockrader_asset_id: Optional[str] = Field(
+        alias="blockrader_asset_id", default=None
+    )
     address: Address
     blockNetwork: BlockchainData | None = None
     createdAt: datetime | None = None
