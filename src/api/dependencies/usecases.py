@@ -23,6 +23,7 @@ from src.infrastructure import CUSTOMER_WALLET_LEDGER, MASTER_BASE_WALLET
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RedisClient, RQManager
+from rq import Queue
 from src.infrastructure.repositories import (
     AssetRepository,
     RefreshTokenRepository,
@@ -113,7 +114,6 @@ async def get_notification_usecase(
     logger.debug("Entering get_notification_usecase")
     # We use the 'notifications' queue
     # Let's ensure we use 'notifications' queue if we want it isolated
-    from rq import Queue
     notif_queue = Queue('notifications', connection=rq_manager.get_connection())
     yield NotificationUseCase(notif_queue)
 

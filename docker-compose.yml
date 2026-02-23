@@ -33,7 +33,7 @@ services:
     depends_on:
       - db
       - redis
-    command: uv run -m src.worker
+    command: uv run -m services.withdrawals.worker
     develop:
       watch:
         - action: sync

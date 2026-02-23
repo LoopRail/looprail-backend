@@ -18,7 +18,6 @@ from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RQManager
 from src.infrastructure.services import AuthLockService
-from src.infrastructure.tasks.withdrawal_tasks import process_withdrawal_task
 from src.models import User
 from src.types import AccessToken, AssetId
 from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
@@ -184,7 +183,7 @@ async def withdraw(
     )
 
     rq_manager.get_queue().enqueue(
-        process_withdrawal_task,
+        "services.withdrawals.tasks.process_withdrawal_task",
         ledger_config=config.ledger,
         paycrest_config=config.paycrest,
         blockrader_config=config.block_rader,
