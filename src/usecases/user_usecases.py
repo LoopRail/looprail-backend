@@ -333,7 +333,7 @@ class UserUseCase:
             logger.warning("Invalid transaction pin provided for user %s", user_id)
         return is_valid, None
 
-    async def load_public_user(self, user_id: UserId) -> Tuple[Optional[dict], Error]:
+    async def load_public_user(self, user_id: UserId) -> Tuple[Optional[UserPublic], Error]:
         logger.debug("Loading public user data for user %s", user_id)
         user, err = await self.get_user_by_id(user_id)
         if err or not user:
@@ -363,7 +363,7 @@ class UserUseCase:
 
         try:
             public_user = UserPublic.model_validate(user_data)
-            return public_user.model_dump(exclude_none=True), None
+            return public_user, None
         except ValidationError as e:
             logger.error(
                 "Failed to validate public user data for user %s: %s", user_id, str(e)

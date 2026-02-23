@@ -61,18 +61,8 @@ class UserCreate(Base):
         return v
 
 
-class UserPublic(Base):
-    id: UserId
-    email: EmailStr
-    first_name: str | None = Field(default=None)
-    last_name: str | None = Field(default=None)
-    username: str
-    gender: Gender
-    is_email_verified: bool
-    has_completed_onboarding: bool
-
-
-class UserProfileCreate(Base):
+class UserProfilePublic(Base):
+    kyc_status: KYCStatus
     street: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
@@ -82,8 +72,20 @@ class UserProfileCreate(Base):
     date_of_birth: Optional[date] = None
 
 
-class UserProfilePublic(Base):
-    kyc_status: KYCStatus
+class UserPublic(Base):
+    id: UserId
+    email: EmailStr
+    first_name: str | None = Field(default=None)
+    last_name: str | None = Field(default=None)
+    username: str
+    gender: Gender
+    is_email_verified: bool
+    has_completed_onboarding: bool
+    profile: Optional[UserProfilePublic] = None
+    wallets: Optional[List[dict]] = None # Uses dict to avoid circular importing WalletWithAssets, avoiding cyclic graph
+
+
+class UserProfileCreate(Base):
     street: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
