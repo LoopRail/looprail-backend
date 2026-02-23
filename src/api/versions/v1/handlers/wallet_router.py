@@ -193,6 +193,7 @@ async def withdraw(
         transaction_id=transaction_id,
         wallet_name=config.block_rader.wallets.wallets[0].wallet_id,
         ledger_id=config.ledger.ledgers.ledgers[0].ledger_id,
+        job_id=f"withdraw_{user.id}_{transaction_id}",
     )
 
     logger.info(
