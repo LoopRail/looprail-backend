@@ -1,23 +1,17 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.api.dependencies import (
-    get_asset_repository,
     get_blockrader_wallet_service,
     get_current_user_token,
-    get_ledger_service,
     get_user_usecases,
-    get_wallet_repository,
 )
-from src.infrastructure.repositories import AssetRepository, WalletRepository
-from src.infrastructure.services import LedgerService
 from src.main import app
 from src.models import User
-from src.models.wallet_model import Asset, Wallet
-from src.types import AccessToken, AssetType, TokenType, Gender, error
+from src.types import AccessToken, TokenType, Gender
 from src.usecases import WalletService
 
 

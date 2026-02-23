@@ -1,6 +1,5 @@
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
-from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
@@ -19,11 +18,10 @@ from src.api.dependencies.extra_deps import get_rq_manager
 from src.api.rate_limiters.rate_limiter import get_custom_rate_limiter
 from src.main import app
 from src.models import User
-from src.infrastructure.config_settings import Config
 from src.infrastructure.redis import RQManager
 from src.infrastructure.services import AuthLockService
 from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
-from src.types import AccessToken, TokenType, error
+from src.types import AccessToken, TokenType
 
 
 @pytest.fixture
@@ -256,8 +254,12 @@ def mock_config() -> MagicMock:
     return mock
 
 
+from unittest.mock import patch
+
 @pytest.mark.asyncio
+@patch("src.api.versions.v1.handlers.wallet_router.Queue")
 async def test_withdraw_success(
+    mock_queue_class,
     mock_current_user,
     mock_wallet_manager,
     mock_rq_manager,
@@ -285,6 +287,7 @@ async def test_withdraw_success(
             "event": "withdraw:bank-transfer",
             "data": {
                 "bank_code": "044",
+                "bank_name": "Access Bank",
                 "account_number": "1234567890",
                 "account_name": "Test User",
             },
@@ -317,7 +320,7 @@ async def test_withdraw_success(
     )
     mock_user_usecase.verify_transaction_pin.assert_called_once()
     mock_wallet_manager.initiate_withdrawal.assert_called_once()
-    mock_rq_manager.get_queue().enqueue.assert_called_once()
+    mock_queue_class.return_value.enqueue.assert_called_once()
 
     # Cleanup
     app.dependency_overrides.clear()
@@ -348,6 +351,7 @@ async def test_withdraw_invalid_pin(
             "event": "withdraw:bank-transfer",
             "data": {
                 "bank_code": "044",
+                "bank_name": "Access Bank",
                 "account_number": "1234567890",
                 "account_name": "Test User",
             },
@@ -406,6 +410,7 @@ async def test_withdraw_account_locked(
             "event": "withdraw:bank-transfer",
             "data": {
                 "bank_code": "044",
+                "bank_name": "Access Bank",
                 "account_number": "1234567890",
                 "account_name": "Test User",
             },

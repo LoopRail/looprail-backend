@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import JSONResponse
+from rq import Queue
 
 from src.api.dependencies import (
     get_auth_lock_service,
@@ -182,7 +183,8 @@ async def withdraw(
         withdrawal_request.authorization.user_agent,
     )
 
-    rq_manager.get_queue().enqueue(
+    withdraw_queue = Queue("withdrawals", connection=rq_manager.get_connection())
+    withdraw_queue.enqueue(
         "services.withdrawals.tasks.process_withdrawal_task",
         ledger_config=config.ledger,
         paycrest_config=config.paycrest,

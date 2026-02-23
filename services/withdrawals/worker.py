@@ -1,4 +1,4 @@
-from rq import Worker
+from rq import Worker, Queue
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RQManager
@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 def run_worker():
     redis_config = RedisConfig()
     rq_manager = RQManager(redis_config)
-    queue = rq_manager.get_queue()
+    queue = Queue('withdrawals', connection=rq_manager.get_connection())
     worker = Worker([queue], connection=rq_manager.get_connection())
     worker.work()
 
