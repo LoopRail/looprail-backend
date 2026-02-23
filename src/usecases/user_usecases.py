@@ -341,19 +341,14 @@ class UserUseCase:
 
         user_data = user.model_dump()
 
-        wallet = getattr(user, "wallet", None)
         wallets_data = []
-        if wallet:
-            source_wallets = wallet if isinstance(wallet, list) else [wallet]
-            for w in source_wallets:
-                w_dict = w.model_dump()
-                assets_data = []
-                if hasattr(w, "assets") and w.assets:
-                    for a in w.assets:
-                        a_dict = a.model_dump()
-                        assets_data.append(a_dict)
-                w_dict["assets"] = assets_data
-                wallets_data.append(w_dict)
+        fetched_wallet, err = await self.wallet_service.get_wallet_with_assets(user.id)
+        if err:
+            return None, err
+        if fetched_wallet:
+            wallets_data.append(fetched_wallet)
+        else:
+            return None, NotFoundError
 
         user_data["wallets"] = wallets_data
 
