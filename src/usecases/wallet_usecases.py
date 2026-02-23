@@ -38,6 +38,7 @@ from src.types import (
     WorldLedger,
     error,
     types,
+    Network,
 )
 from src.types.blnk import (
     CreateBalanceRequest,
@@ -661,6 +662,7 @@ class WalletManagerUsecase:
             "amount": withdrawal_request.amount,
             "narration": withdrawal_request.narration,
             "fee": withdrawal_fee,
+            "network": asset.network,
             "country": get_country_name_by_currency(
                 self.service.config.countries,
                 withdrawal_request.currency,
@@ -701,7 +703,7 @@ class WalletManagerUsecase:
             common_transaction_params = CryptoTransactionParams(
                 **base_kwargs,
                 transaction_hash="pending",
-                network="N/A",
+                network=asset.network,
                 chain_id=None,
             )
 
@@ -1038,6 +1040,16 @@ class WalletManagerUsecase:
 
         # Handle external payment initiation (e.g., Paycrest for bank transfers)
         if withdrawal_request.destination.event == WithdrawalMethod.BANK_TRANSFER:
+            if transaction.network == Network.TESTNET:
+                logger.info(
+                    "Skipping Paycrest payment order for testnet transaction %s",
+                    transaction.id,
+                )
+                return await self._update_withdrawal_transaction_status(
+                    transaction_id,
+                    TransactionStatus.COMPLETED,
+                )
+
             logger.info(
                 "Initiating Paycrest payment order for bank transfer withdrawal %s",
                 transaction.id,

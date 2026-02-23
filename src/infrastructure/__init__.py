@@ -14,11 +14,12 @@ from src.infrastructure.constants import (
     USDC_ADDRESS,
 )
 from src.infrastructure.logger import get_logger
-from src.infrastructure.redis import RedisClient
+from src.infrastructure.redis import RedisClient, RQManager
 
 __all__ = [
     "get_logger",
     "RedisClient",
+    "RQManager",
     "load_config",
     "USDC_ADDRESS",
     "ONBOARDING_TOKEN_EXP_MINS",

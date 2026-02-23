@@ -89,9 +89,16 @@ class TaskDependenciesFactory:
 
 
 # Helper function to be used by tasks
-def get_task_wallet_manager_usecase(
-    config: Config, wallet_name: str, ledger_id: str
+async def get_task_wallet_manager_usecase(
+    ledger_config, paycrest_config, blockrader_config, wallet_name: str, ledger_id: str
 ) -> WalletManagerUsecase:
-    session = get_session()
-    factory = TaskDependenciesFactory(session, config)
-    return factory.get_wallet_manager_usecase(wallet_name, ledger_id)
+    config = Config(
+        ledger=ledger_config,
+        paycrest=paycrest_config,
+        block_rader=blockrader_config,
+        banks_data={},  # Not needed for withdrawal processing?
+        countries={},  # Not needed for withdrawal processing?
+    )
+    async for session in get_session():
+        factory = TaskDependenciesFactory(session, config)
+        return factory.get_wallet_manager_usecase(wallet_name, ledger_id)

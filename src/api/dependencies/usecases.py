@@ -17,11 +17,12 @@ from src.api.dependencies.services import (
     get_ledger_service,
     get_paycrest_service,
     get_redis_service,
+    get_rq_manager,
 )
 from src.infrastructure import CUSTOMER_WALLET_LEDGER, MASTER_BASE_WALLET
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
-from src.infrastructure.redis import RedisClient
+from src.infrastructure.redis import RedisClient, RQManager
 from src.infrastructure.repositories import (
     AssetRepository,
     RefreshTokenRepository,
@@ -35,6 +36,7 @@ from src.infrastructure.settings import BlockRaderConfig
 from src.types import LedgerConfig
 from src.usecases import (
     JWTUsecase,
+    NotificationUseCase,
     OtpUseCase,
     SecretsUsecase,
     SecurityUseCase,
@@ -103,6 +105,17 @@ async def get_otp_token(
 async def get_jwt_usecase(config: Config = Depends(get_config)):
     logger.debug("Entering get_jwt_usecase")
     yield JWTUsecase(config.jwt)
+
+
+async def get_notification_usecase(
+    rq_manager: RQManager = Depends(get_rq_manager),
+) -> NotificationUseCase:
+    logger.debug("Entering get_notification_usecase")
+    # We use the 'notifications' queue
+    # Let's ensure we use 'notifications' queue if we want it isolated
+    from rq import Queue
+    notif_queue = Queue('notifications', connection=rq_manager.get_connection())
+    yield NotificationUseCase(notif_queue)
 
 
 def get_transaction_usecase(

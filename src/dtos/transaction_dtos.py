@@ -9,7 +9,13 @@ from pydantic_extra_types.country import CountryShortName
 from src.dtos.base import Base
 from src.models.tranaction_model import Transaction
 from src.types.common_types import Address, AssetId, TransactionId, UserId, WalletId
-from src.types.types import Currency, PaymentMethod, TransactionStatus, TransactionType
+from src.types.types import (
+    Currency,
+    Network,
+    PaymentMethod,
+    TransactionStatus,
+    TransactionType,
+)
 
 
 class BaseTransactionParams(Base):
@@ -26,6 +32,7 @@ class BaseTransactionParams(Base):
     amount: Decimal = Field(gt=0)
     narration: Optional[str] = Field(default=None, max_length=500)
     fee: Optional[Decimal] = Field(default=None, ge=0)
+    network: Optional[Network] = Field(default=None)
     metadata: dict = Field(default_factory=dict)
     country: Optional[CountryShortName] = Field(default=None)
 
@@ -34,7 +41,7 @@ class CryptoTransactionParams(BaseTransactionParams):
     """Params specific to crypto/blockchain transactions"""
 
     transaction_hash: str = Field(min_length=1)
-    network: str = Field(min_length=1)
+    network: Network = Field(min_length=1)
 
     # Optional blockchain fields
     block_hash: Optional[str] = None
@@ -125,7 +132,7 @@ class TransactionRead(Base):
 
     # Blockchain fields (optional - only for crypto transactions)
     transaction_hash: Optional[str] = Field(default=None, alias="transaction-hash")
-    network: Optional[str] = None
+    network: Optional[Network] = None
     confirmations: Optional[int] = Field(default=0)
     confirmed: Optional[bool] = Field(default=False)
     block_hash: Optional[str] = Field(default=None, alias="block-hash")
@@ -199,7 +206,7 @@ class WalletTransferDetailRead(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     wallet_address: str = Field(alias="wallet-address")
-    network: str
+    network: Network
     memo: Optional[str] = None
     address_verified: bool = Field(default=False, alias="address-verified")
     contract_address: Optional[str] = Field(default=None, alias="contract-address")

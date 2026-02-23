@@ -7,8 +7,14 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship
 
 from src.models.base import Base
-from src.types.common_types import Address, ReferenceId, UserId
-from src.types.types import Currency, PaymentMethod, TransactionStatus, TransactionType
+from src.types.common_types import Address, ReferenceId
+from src.types.types import (
+    Currency,
+    Network,
+    PaymentMethod,
+    TransactionStatus,
+    TransactionType,
+)
 from src.utils.app_utils import generate_transaction_reference
 
 if TYPE_CHECKING:
@@ -67,7 +73,7 @@ class Transaction(Base, table=True):
     ledger_transaction_id: Optional[str] = Field(default=None, unique=True)
 
     transaction_hash: Optional[str] = Field(default=None, unique=True, index=True)
-    network: Optional[str] = Field(default=None)
+    network: Optional[Network] = Field(default=None)
     confirmations: int = Field(nullable=False, default=0)
     confirmed: bool = Field(nullable=False, default=False)
     block_hash: Optional[str] = Field(default=None)
@@ -145,7 +151,7 @@ class WalletTransferDetail(Base, table=True):
 
     # Wallet details
     wallet_address: Address = Field(nullable=False, index=True, max_length=200)
-    network: str = Field(nullable=False, max_length=50)
+    network: Network = Field(nullable=False)
     memo: Optional[str] = Field(default=None, max_length=100)
 
     # Blockchain tracking (additional to main transaction table)

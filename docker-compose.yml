@@ -15,7 +15,7 @@ services:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=looprail_backend
-    command: sh -c 'if [ "$ENVIRONMENT" = "dev" ]; then uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug; else uv run gunicorn -c gunicorn.conf.py src.main:app; fi'
+    command: sh -c 'if [ "$ENVIRONMENT" = "dev" ]; then uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir src --log-level debug; else uv run gunicorn -c gunicorn.conf.py src.main:app; fi'
     develop:
       watch:
         - action: sync
@@ -34,6 +34,24 @@ services:
       - db
       - redis
     command: uv run -m src.worker
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+        - action: rebuild
+          path: Dockerfile
+        - action: rebuild
+          path: pyproject.toml
+
+  notification-worker:
+    build: .
+    env_file:
+      - ./config/.env
+    depends_on:
+      - db
+      - redis
+    command: uv run -m services.notifications.worker
     develop:
       watch:
         - action: sync

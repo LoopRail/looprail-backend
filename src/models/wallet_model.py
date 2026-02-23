@@ -6,7 +6,7 @@ from sqlmodel import Field, Relationship
 from src.models.base import Base
 from src.models.user_model import User
 from src.types.common_types import Address, Chain
-from src.types.types import AssetType, TokenStandard
+from src.types.types import AssetType, Network, TokenStandard
 
 if TYPE_CHECKING:
     from src.models.tranaction_model import Transaction
@@ -53,7 +53,7 @@ class Asset(Base, table=True):
     address: Address = Field(nullable=False)
     symbol: str = Field(nullable=False)
     decimals: int = Field(nullable=False)
-    network: str = Field(nullable=False)
+    network: Network = Field(nullable=False)
     standard: Optional[TokenStandard] = Field(default=None)
     is_active: bool = Field(default=True, nullable=False)
 

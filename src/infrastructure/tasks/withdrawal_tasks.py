@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Any, Dict
 
@@ -7,33 +8,30 @@ from src.types.common_types import UserId
 logger = logging.getLogger(__name__)
 
 
-def process_withdrawal_task(
+async def _process_withdrawal_task_async(
     ledger_config,
     paycrest_config,
     blockrader_config,
     user_id: UserId,
     withdrawal_request_data: Dict[str, Any],
-    pin: str,
     transaction_id: str,
     wallet_name: str,
     ledger_id: str,
 ):
     """
-    RQ task to process a withdrawal request asynchronously.
+    Internal async task to process a withdrawal request.
     """
     logger.info(
         "Starting withdrawal processing task for user %s, transaction %s",
         user_id,
         transaction_id,
     )
-    # wallet_name and ledger_id are now direct arguments, no need to extract from withdrawal_request_data
-    wallet_manager_usecase = get_task_wallet_manager_usecase(
+    wallet_manager_usecase = await get_task_wallet_manager_usecase(
         ledger_config, paycrest_config, blockrader_config, wallet_name, ledger_id
     )
-    err = wallet_manager_usecase.execute_withdrawal_processing(
+    err = await wallet_manager_usecase.execute_withdrawal_processing(
         user_id=user_id,
         withdrawal_request_data=withdrawal_request_data,
-        pin=pin,
         transaction_id=transaction_id,
     )
     if err:
@@ -49,4 +47,30 @@ def process_withdrawal_task(
         user_id,
         transaction_id,
     )
-    return
+
+
+def process_withdrawal_task(
+    ledger_config,
+    paycrest_config,
+    blockrader_config,
+    user_id: UserId,
+    withdrawal_request_data: Dict[str, Any],
+    transaction_id: str,
+    wallet_name: str,
+    ledger_id: str,
+):
+    """
+    RQ task to process a withdrawal request asynchronously.
+    """
+    asyncio.run(
+        _process_withdrawal_task_async(
+            ledger_config,
+            paycrest_config,
+            blockrader_config,
+            user_id,
+            withdrawal_request_data,
+            transaction_id,
+            wallet_name,
+            ledger_id,
+        )
+    )

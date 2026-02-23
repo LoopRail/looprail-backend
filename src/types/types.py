@@ -8,6 +8,11 @@ from src.types.common_types import Chain
 from src.types.error import Error, error
 
 
+class Network(StrEnum):
+    MAINNET = "mainnet"
+    TESTNET = "testnet"
+
+
 class Bank(BaseModel):
     name: str
     code: Optional[str] = None

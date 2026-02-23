@@ -6,7 +6,13 @@ from pydantic import Field, field_validator
 from src.dtos.base import Base
 from src.types.common_types import Address, AssetId, Chain, WalletId
 from src.types.error import Error, error
-from src.types.types import AssetType, Currency, TokenStandard, WithdrawalMethod
+from src.types.types import (
+    AssetType,
+    Currency,
+    Network,
+    TokenStandard,
+    WithdrawalMethod,
+)
 
 
 class TransferType(Base):
@@ -86,7 +92,7 @@ class AssetPublic(Base):
     symbol: str
     decimals: int
     asset_type: AssetType = Field(alias="asset-type")
-    network: str
+    network: Network
     address: str
     standard: Optional[TokenStandard] = None
     is_active: bool = Field(alias="is-active")
@@ -112,7 +118,7 @@ class AssetBalance(Base):
     balance: Optional[Decimal] = None
 
     # Metadata
-    network: str
+    network: Network
     address: str
     standard: Optional[TokenStandard] = None
     is_active: bool = Field(alias="is-active")

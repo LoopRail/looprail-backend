@@ -1,6 +1,6 @@
 from fastapi import Depends, Request
 
-from src.infrastructure import RedisClient
+from src.infrastructure.redis import RQManager, RedisClient
 from src.infrastructure.services import (
     AuthLockService,
     LedgerService,
@@ -38,6 +38,10 @@ def get_resend_service(request: Request) -> ResendService:
 
 def get_redis_service(request: Request) -> RedisClient:
     return request.app.state.redis
+
+
+def get_rq_manager(request: Request) -> RQManager:
+    return request.app.state.rq_manager
 
 
 def get_auth_lock_service(subject) -> AuthLockService:

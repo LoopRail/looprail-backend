@@ -1,4 +1,5 @@
 from src.usecases.jwt_usecases import JWTUsecase
+from src.usecases.notification_usecases import NotificationUseCase
 from src.usecases.otp_usecases import OtpUseCase
 from src.usecases.secrets_usecases import SecretsUsecase
 from src.usecases.security_usecases import SecurityUseCase
@@ -17,4 +18,5 @@ __all__ = [
     "SecretsUsecase",
     "TransactionUsecase",
     "SecurityUseCase",
+    "NotificationUseCase",
 ]
