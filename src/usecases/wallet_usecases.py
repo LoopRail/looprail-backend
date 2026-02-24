@@ -171,7 +171,7 @@ class WalletService:
             "Fetching wallet with assets for user: %s",
             user_id,
         )
-        wallet, err = await self.repo.get_wallet_by_user_id(user_id=user_id.clean())
+        wallet, err = await self.repo.get_wallet_by_user_id(user_id=user_id)
         if not wallet:
             logger.warning("Wallet not found for user: %s", user_id)
             return None, None
