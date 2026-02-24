@@ -350,7 +350,7 @@ class UserUseCase:
         else:
             logger.warning("Wallet not found for user: %s", user_id)
 
-        user_data["wallets"] = wallets_data
+        user_data["wallets"] = wallets_data if wallets_data else None
 
         # Ensure profile is included in user_data and populated with necessary fields
         if hasattr(user, "profile") and user.profile:
