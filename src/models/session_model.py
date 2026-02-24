@@ -16,6 +16,7 @@ class Session(Base, table=True):
     device_id: DeviceID
     ip_address: str
     allow_notifications: bool = Field(default=False)
+    fcm_token: Optional[str] = Field(default=None)
     revoked_at: Optional[datetime] = Field(default=None, index=True)
     last_seen_at: datetime = Field(default_factory=datetime.utcnow, index=True)
     passcode_hash: Optional[str] = Field(default=None)

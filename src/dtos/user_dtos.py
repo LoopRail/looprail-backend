@@ -20,6 +20,7 @@ class SetTransactionPinRequest(Base):
 
 class CompleteOnboardingRequest(Base):
     allow_notifications: bool
+    fcm_token: Optional[str] = None
     questioner: list[str]
 
 
