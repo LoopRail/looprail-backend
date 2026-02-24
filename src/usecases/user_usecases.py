@@ -348,7 +348,7 @@ class UserUseCase:
         if fetched_wallet:
             wallets_data.append(fetched_wallet)
         else:
-            return None, NotFoundError
+            logger.warning("Wallet not found for user: %s", user_id)
 
         user_data["wallets"] = wallets_data
 
