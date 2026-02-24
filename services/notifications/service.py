@@ -30,20 +30,23 @@ class NotificationService:
                 cred_dict = {
                     "type": "service_account",
                     "project_id": self.firebase_config.firebase_project_id,
+                    "client_id": self.firebase_config.firebase_client_id,
                     "private_key": self.firebase_config.firebase_private_key.replace(
                         "\\n", "\n"
                     )
                     if self.firebase_config.firebase_private_key
                     else None,
                     "client_email": self.firebase_config.firebase_client_email,
+                    "client_x509_cert_url": self.firebase_config.firebase_client_x509_cert_url,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
                 }
                 # Filter out None values
                 cred_dict = {k: v for k, v in cred_dict.items() if v is not None}
                 
                 cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(
-                    cred, {"databaseURL": self.firebase_config.firebase_database_url}
-                )
+                firebase_admin.initialize_app(cred)
                 logger.info("Firebase app initialized successfully")
             else:
                 logger.warning("Firebase config missing project_id, skipping initialization")
