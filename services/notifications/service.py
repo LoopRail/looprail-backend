@@ -14,9 +14,10 @@ logger = get_logger(__name__)
 
 
 class NotificationService:
-    def __init__(self, resend_service: ResendService, firebase_config: FirebaseConfig):
+    def __init__(self, resend_service: ResendService, firebase_config: FirebaseConfig, app_logo_url: Optional[str] = None):
         self.resend_service = resend_service
         self.firebase_config = firebase_config
+        self.app_logo_url = app_logo_url
         self._initialize_firebase()
 
     def _initialize_firebase(self):
@@ -55,7 +56,7 @@ class NotificationService:
             notification=messaging.Notification(
                 title=notification.title,
                 body=notification.body,
-                image=notification.image_url,
+                image=notification.image_url or self.app_logo_url,
             ),
             data={
                 **(notification.data or {}),
@@ -71,7 +72,7 @@ class NotificationService:
                     click_action='android.intent.action.VIEW',
                     icon=notification.icon,
                     color='#4CAF50',
-                    image=notification.image_url,
+                    image=notification.image_url or self.app_logo_url,
                 ),
             ),
             apns=messaging.APNSConfig(
@@ -83,8 +84,8 @@ class NotificationService:
                     )
                 ),
                 fcm_options=messaging.APNSFCMOptions(
-                    image=notification.image_url,
-                ) if notification.image_url else None,
+                    image=notification.image_url or self.app_logo_url,
+                ) if (notification.image_url or self.app_logo_url) else None,
             ),
             fcm_options=messaging.FCMOptions(
                 analytics_label=notification.campaign_name or 'default',

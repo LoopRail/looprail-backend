@@ -5,15 +5,20 @@ from src.dtos.notification_dtos import PushNotificationDTO
 from src.infrastructure.logger import get_logger
 from services.notifications.service import NotificationService
 from src.infrastructure.services.resend_service import ResendService
-from src.infrastructure.settings import ResendConfig
+from src.infrastructure.settings import ResendConfig, AppSettings, FirebaseConfig
 
 logger = get_logger(__name__)
 
 # Initialize service
 resend_config = ResendConfig()
 firebase_config = FirebaseConfig()
+app_settings = AppSettings()
 resend_service = ResendService(resend_config)
-notification_service = NotificationService(resend_service, firebase_config)
+notification_service = NotificationService(
+    resend_service, 
+    firebase_config, 
+    app_logo_url=app_settings.logo_url
+)
 
 
 def send_push_notification_task(notification_data: Dict[str, Any]):
