@@ -1,5 +1,5 @@
 from rq import Queue
-from src.dtos.notification_dtos import EmailNotificationDTO, PushNotificationDTO
+from src.dtos.notification_dtos import PushNotificationDTO
 
 
 class NotificationUseCase:
@@ -14,10 +14,3 @@ class NotificationUseCase:
             job_id=f"push_{notification.user_id}_{notification.type}",
         )
 
-    def enqueue_email(self, notification: EmailNotificationDTO):
-        """Enqueues an email notification task."""
-        self.queue.enqueue(
-            "services.notifications.tasks.send_email_notification_task",
-            notification.model_dump(),
-            job_id=f"email_{notification.user_id}_{notification.email}",
-        )
