@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_valid
 from src.types.common_types import AccessTokenSub, OnBoardingTokenSub, SessionId, UserId
 from src.types.error import ValidationError
 from src.types.types import Platform, TokenType
-from src.utils.app_utils import kebab_case
+from src.utils.string_utils import kebab_case
 
 
 class Token(BaseModel):

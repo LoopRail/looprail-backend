@@ -1,11 +1,10 @@
 from src.utils.app_utils import (
-    camel_case,
     get_dir_at_level,
     is_valid_email,
-    kebab_case,
     load_html_template,
     return_base_dir,
 )
+from src.utils.string_utils import camel_case, kebab_case
 from src.utils.auth_utils import (
     compute_pkce_challenge,
     create_refresh_token,

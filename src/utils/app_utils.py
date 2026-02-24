@@ -7,7 +7,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from src.types.error import Error, error
 from src.types.common_types import ReferenceId
-
+from src.utils.string_utils import camel_case, kebab_case
 
 def get_dir_at_level(level=1, file: str = __file__):
     current_path = os.path.dirname(file)
@@ -20,15 +20,6 @@ def get_dir_at_level(level=1, file: str = __file__):
 
 def return_base_dir():
     return get_dir_at_level(2)
-
-
-def kebab_case(s: str) -> str:
-    return s.replace("_", "-")
-
-
-def camel_case(s: str) -> str:
-    parts = s.split("_")
-    return parts[0] + "".join(word.capitalize() for word in parts[1:])
 
 
 def return_templates_dir():
