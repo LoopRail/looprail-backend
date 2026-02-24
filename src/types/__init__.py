@@ -40,6 +40,7 @@ from src.types.error import (
 )
 from src.types.http_types import HTTPMethod
 from src.types.ledger_types import LedgerConfig
+from src.types.notification_types import NotificationType
 from src.types.token_types import AccessToken, OnBoardingToken, Token
 from src.types.types import (
     AssetType,
@@ -97,6 +98,7 @@ __all__ = [
     "Provider",
     "TokenStandard",
     "TokenType",
+    "NotificationType",
     "TransactionStatus",
     "TransactionType",
     "WalletConfig",

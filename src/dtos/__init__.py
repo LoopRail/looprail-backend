@@ -3,6 +3,7 @@ from src.dtos.account_dtos import (
     VerifyAccountRequest,
     VerifyAccountResponse,
 )
+from src.dtos.notification_dtos import PushNotificationDTO
 from src.dtos.auth_dtos import (
     AuthTokensResponse,
     AuthWithTokensAndUserResponse,
@@ -65,4 +66,5 @@ __all__ = [
     "ChallengeResponse",
     "PasscodeSetRequest",
     "PasscodeLoginRequest",
+    "PushNotificationDTO",
 ]

@@ -1,17 +1,20 @@
 from enum import Enum
-from typing import NewType
-
-
-NotificationId = NewType("NotificationId", str)
-NotificationToken = NewType("NotificationToken", str)
-
-
-class NotificationProvider(str, Enum):
-    FCM = "fcm"
-    SES = "ses"  # Assuming AWS SES for email, or generic
-    SMTP = "smtp"
 
 
 class NotificationType(str, Enum):
     PUSH = "push"
-    EMAIL = "email"
+
+
+class NotificationAction(str, Enum):
+
+    # Deposit lifecycle
+    DEPOSIT_RECEIVED = "DEPOSIT_RECEIVED"       # deposit hit the chain, pending sweep
+    DEPOSIT_CONFIRMED = "DEPOSIT_CONFIRMED"     # deposit swept and balance updated
+
+    # Withdrawal lifecycle
+    WITHDRAWAL_INITIATED = "WITHDRAWAL_INITIATED"   # withdrawal enqueued by user
+    WITHDRAWAL_PROCESSED = "WITHDRAWAL_PROCESSED"   # withdrawal executed by worker
+
+    # Generic fallback
+    NONE = "NONE"
+
