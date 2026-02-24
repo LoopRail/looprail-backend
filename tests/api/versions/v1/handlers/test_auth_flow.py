@@ -20,14 +20,17 @@ def authenticated_client_fixture(
     mock_session_usecase: MagicMock,
     mock_jwt_usecase: MagicMock,
 ) -> tuple[TestClient, str, str]:
-    user, _ = test_user
+    user, password = test_user
+
     # Mock user authentication
     mock_user_usecases.authenticate_user.return_value = (user, None)
+    user_public_data = UserPublic.model_validate(user).model_dump(exclude_none=True)
+    mock_user_usecases.load_public_user.return_value = (user_public_data, None)
 
     # Mock session creation
     session_id = f"ses_{uuid4()}"
     mock_session = MagicMock()
-    mock_session.id = session_id
+    mock_session.id = session_id.replace("ses_", "")
     mock_session.user_id = user.id
     mock_session.get_prefixed_id.return_value = session_id
     raw_refresh_token = f"rft_{uuid4()}"
@@ -36,7 +39,6 @@ def authenticated_client_fixture(
     mock_access_token = "mock_access_token"
     mock_jwt_usecase.create_token.return_value = mock_access_token
 
-    # Mock other dependencies to avoid unawaited coroutine errors
     mock_auth_lock = AsyncMock()
     mock_auth_lock.is_account_locked.return_value = (False, None)
     mock_auth_lock.increment_failed_attempts.return_value = (1, None)
@@ -46,14 +48,24 @@ def authenticated_client_fixture(
     mock_geo = AsyncMock()
     mock_geo.get_location.return_value = (None, None)
     app.dependency_overrides[get_geolocation_service] = lambda: mock_geo
-    
+
     mock_notif = MagicMock()
     app.dependency_overrides[get_notification_usecase] = lambda: mock_notif
 
     mock_resend = MagicMock()
     app.dependency_overrides[get_resend_service] = lambda: mock_resend
 
-    return client, mock_access_token, raw_refresh_token
+    # Perform actual login so the refresh token is real
+    device_id = f"device_{uuid4()}"
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": user.email, "password": password, "allow_notifications": False},
+        headers={"X-Device-ID": device_id, "X-Platform": "web"},
+    )
+    assert response.status_code == 200, f"Login failed in fixture: {response.json()}"
+    issued_refresh_token = response.json()["refresh-token"]
+
+    return client, mock_access_token, issued_refresh_token
 
 
 def test_login_success(
