@@ -25,7 +25,8 @@ class ResendService:
         """
         resend.api_key = config.resend_api_key
         self.environment = environment
-        logger.debug("ResendService initialized in %s environment.", environment.value)
+        self.default_sender_domain = config.default_sender_domain
+        logger.debug("ResendService initialized in %s environment with domain %s.", environment.value, self.default_sender_domain)
 
     async def send(
         self,
@@ -92,8 +93,8 @@ class ResendService:
     async def send_otp(
         self,
         to: str,
-        _from: str,
         otp_code: str,
+        _from: Optional[str] = None,
         subject: str = "Your One-Time Password",
         app_logo_url: Optional[str] = None,
     ) -> Tuple[Optional[dict], Error]:
@@ -108,6 +109,12 @@ class ResendService:
         Returns:
             A tuple containing the Resend API response (dict) and an error, if any.
         """
+        if _from is None:
+            if self.default_sender_domain:
+                _from = f"noreply@{self.default_sender_domain}"
+            else:
+                _from = "noreply@looprail.com"  # Hard fallback
+
         logger.debug("Attempting to send OTP email to: %s from: %s", to, _from)
         if self.environment == ENVIRONMENT.DEVELOPMENT:
             logger.info("OTP Code for %s: %s", to, otp_code)

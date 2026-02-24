@@ -30,9 +30,11 @@ async def send_transactional_email(
             logger.error("Failed to load email template '%s': %s", template_name, err)
             return
 
+        sender = f"notifications@{resend_service.default_sender_domain}" if resend_service.default_sender_domain else SENDER_EMAIL
+        
         _, err = await resend_service.send(
             to=to,
-            _from=SENDER_EMAIL,
+            _from=sender,
             subject=subject,
             html_content=html_content,
             text_content=None,

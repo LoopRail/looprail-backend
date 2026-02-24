@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException
 
 from src.api.dependencies import get_config
 from src.dtos import OtpCreate, UserCreate
-from src.infrastructure import PRODUCTION_DOMAIN, STAGING_DOMAIN, get_logger
+from src.infrastructure import get_logger
 from src.infrastructure.config_settings import Config
 from src.infrastructure.services import ResendService
 from src.infrastructure.settings import ENVIRONMENT
@@ -35,12 +35,8 @@ async def send_otp_internal(
     if err:
         raise HTTPException(status_code=400, detail=err.message)
 
-    domain = (
-        STAGING_DOMAIN if environment == ENVIRONMENT.STAGING else PRODUCTION_DOMAIN
-    )
     _, err = await resend_service.send_otp(
         to=email,
-        _from=f"noreply@{domain}",
         otp_code=otp_code,
         app_logo_url=app_logo_url,
     )
