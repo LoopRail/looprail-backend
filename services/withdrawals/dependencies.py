@@ -96,8 +96,6 @@ async def get_task_wallet_manager_usecase(
         ledger=ledger_config,
         paycrest=paycrest_config,
         block_rader=blockrader_config,
-        banks_data={},  # Not needed for withdrawal processing?
-        countries={},  # Not needed for withdrawal processing?
     )
     async for session in get_session():
         factory = TaskDependenciesFactory(session, config)

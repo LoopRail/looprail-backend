@@ -8,6 +8,8 @@ from src.api.dependencies import (
     get_config,
     get_current_user,
     get_current_user_token,
+    get_notification_usecase,
+    get_session_repository,
     get_user_usecases,
     get_wallet_manager_usecase,
 )
@@ -18,10 +20,14 @@ from src.dtos.wallet_dtos import WithdrawalRequest
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RQManager
+from src.infrastructure.repositories import SessionRepository
 from src.infrastructure.services import AuthLockService
 from src.models import User
 from src.types import AccessToken, AssetId
+from src.types.notification_types import NotificationAction
 from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
+from src.usecases.notification_usecases import NotificationUseCase
+from src.utils.notification_helpers import enqueue_notifications_for_user
 
 logger = get_logger(__name__)
 
@@ -84,6 +90,8 @@ async def withdraw(
     rq_manager: RQManager = Depends(get_rq_manager),
     user_usecase: UserUseCase = Depends(get_user_usecases),
     auth_lock_service: AuthLockService = Depends(withdraw_auth_lock),
+    session_repo: SessionRepository = Depends(get_session_repository),
+    notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
 ):
     withdrawal_request.authorization.ip_address = request.client.host
     withdrawal_request.authorization.user_agent = request.headers.get("user-agent")
@@ -206,6 +214,18 @@ async def withdraw(
         withdrawal_request.authorization.ip_address,
         withdrawal_request.authorization.user_agent,
     )
+
+    # Notify user their withdrawal has been submitted
+    await enqueue_notifications_for_user(
+        user_id=str(user.id),
+        session_repo=session_repo,
+        notification_usecase=notification_usecase,
+        title="Withdrawal Submitted 📤",
+        body=f"Your withdrawal request has been submitted and is being processed.",
+        action=NotificationAction.WITHDRAWAL_INITIATED,
+        data={"transaction_id": transaction_id or ""},
+    )
+
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"message": "Withdrawal processing initiated successfully."},
