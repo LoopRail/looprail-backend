@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import resend
 from resend.exceptions import ResendError
 
-from src.infrastructure.settings import ResendConfig
+from src.infrastructure.settings import ResendConfig, ENVIRONMENT
 from src.types import Error, httpError
 from src.utils.app_utils import load_html_template
 from src.infrastructure.logger import get_logger
@@ -16,14 +16,16 @@ resend.api_key = ""
 class ResendService:
     """A service for sending emails via the Resend API."""
 
-    def __init__(self, config: ResendConfig) -> None:
+    def __init__(self, config: ResendConfig, environment: ENVIRONMENT = ENVIRONMENT.PRODUCTION) -> None:
         """Initializes the ResendService.
 
-        Args:s
+        Args:
             config: The Resend configuration.
+            environment: The application environment.
         """
         resend.api_key = config.resend_api_key
-        logger.debug("ResendService initialized.")
+        self.environment = environment
+        logger.debug("ResendService initialized in %s environment.", environment.value)
 
     async def send(
         self,
@@ -51,6 +53,14 @@ class ResendService:
             _from,
             subject,
         )
+        if self.environment == ENVIRONMENT.DEVELOPMENT:
+            logger.info(
+                "Skipping email send in DEVELOPMENT environment to: %s with subject: %s",
+                to,
+                subject,
+            )
+            return {"id": "mock-email-id", "status": "skipped"}, None
+
         if not html_content and not text_content:
             logger.error(
                 "Attempted to send email without html_content or text_content."
@@ -99,6 +109,8 @@ class ResendService:
             A tuple containing the Resend API response (dict) and an error, if any.
         """
         logger.debug("Attempting to send OTP email to: %s from: %s", to, _from)
+        if self.environment == ENVIRONMENT.DEVELOPMENT:
+            logger.info("OTP Code for %s: %s", to, otp_code)
         html_content, err = load_html_template(
             "email/otp_email", 
             otp_code=otp_code,

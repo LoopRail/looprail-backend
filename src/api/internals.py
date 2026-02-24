@@ -35,21 +35,18 @@ async def send_otp_internal(
     if err:
         raise HTTPException(status_code=400, detail=err.message)
 
-    if environment == ENVIRONMENT.DEVELOPMENT:
-        logger.info("OTP Code for %s: %s", email, otp_code)
-    else:
-        domain = (
-            STAGING_DOMAIN if environment == ENVIRONMENT.STAGING else PRODUCTION_DOMAIN
-        )
-        _, err = await resend_service.send_otp(
-            to=email,
-            _from=f"noreply@{domain}",
-            otp_code=otp_code,
-            app_logo_url=app_logo_url,
-        )
-        if err:
-            logger.error("Error sending OTP: %s", err)
-            raise HTTPException(status_code=500, detail="Failed to send OTP.")
+    domain = (
+        STAGING_DOMAIN if environment == ENVIRONMENT.STAGING else PRODUCTION_DOMAIN
+    )
+    _, err = await resend_service.send_otp(
+        to=email,
+        _from=f"noreply@{domain}",
+        otp_code=otp_code,
+        app_logo_url=app_logo_url,
+    )
+    if err:
+        logger.error("Error sending OTP: %s", err)
+        raise HTTPException(status_code=500, detail="Failed to send OTP.")
     return token
 
 

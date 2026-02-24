@@ -1,24 +1,33 @@
 import os
 import firebase_admin
 from firebase_admin import credentials, messaging
+from firebase_admin.exceptions import FirebaseError
 from typing import Optional, Tuple
 
 from src.dtos.notification_dtos import PushNotificationDTO
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services.resend_service import ResendService
-from src.infrastructure.settings import FirebaseConfig
-from src.types import Error
+from src.infrastructure.settings import FirebaseConfig, ENVIRONMENT
+from src.types import Error, InternaleServerError
 from src.utils import load_html_template
 
 logger = get_logger(__name__)
 
 
 class NotificationService:
-    def __init__(self, resend_service: ResendService, firebase_config: FirebaseConfig, app_logo_url: Optional[str] = None):
+    def __init__(
+        self,
+        resend_service: ResendService,
+        firebase_config: FirebaseConfig,
+        environment: ENVIRONMENT = ENVIRONMENT.PRODUCTION,
+        app_logo_url: Optional[str] = None,
+    ) -> None:
         self.resend_service = resend_service
         self.firebase_config = firebase_config
+        self.environment = environment
         self.app_logo_url = app_logo_url
         self._initialize_firebase()
+        logger.debug("NotificationService initialized in %s environment.", environment.value)
 
     def _initialize_firebase(self):
         try:
@@ -54,6 +63,22 @@ class NotificationService:
     async def send_push(self, notification: PushNotificationDTO) -> Tuple[bool, Optional[Error]]:
         logger.info(f"Sending push notification to {notification.token}: {notification.title}")
                 
+        if self.environment == ENVIRONMENT.DEVELOPMENT:
+            logger.info(
+                "Skipping push notification send in DEVELOPMENT environment for user %s: %s",
+                notification.user_id,
+                notification.title,
+            )
+            return True, None
+
+        if self.environment == ENVIRONMENT.DEVELOPMENT:
+            logger.info(
+                "Skipping push notification send in DEVELOPMENT environment for user %s: %s",
+                notification.user_id,
+                notification.title,
+            )
+            return True, None
+
         message = messaging.Message(
             token=notification.token,
             notification=messaging.Notification(
@@ -92,15 +117,15 @@ class NotificationService:
             ),
             fcm_options=messaging.FCMOptions(
                 analytics_label=notification.campaign_name or 'default',
-            ),
+            )
         )
+        
 
         try:
             response = messaging.send(message)
             logger.info(f"Successfully sent message: {response}")
             return True, None
-        except Exception as e:
+        except FirebaseError as e:
             logger.error(f"Failed to send push notification: {e}")
-            from src.types import InternalError
-            return False, InternalError(message=str(e))
+            return False, InternaleServerError
 

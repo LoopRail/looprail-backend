@@ -43,7 +43,7 @@ async def lifespan(app_: FastAPI):
 
     app_.state.auth_lock = AuthLockService(redis_client=app.state.redis)
 
-    app_.state.resend = ResendService(config.resend)
+    app_.state.resend = ResendService(config.resend, environment=config.app.environment)
     app_.state.geolocation = GeolocationService()
 
     app_.state.blockrader_config = config.block_rader

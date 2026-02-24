@@ -13,10 +13,11 @@ logger = get_logger(__name__)
 resend_config = ResendConfig()
 firebase_config = FirebaseConfig()
 app_settings = AppSettings()
-resend_service = ResendService(resend_config)
+resend_service = ResendService(resend_config, environment=app_settings.environment)
 notification_service = NotificationService(
     resend_service, 
     firebase_config, 
+    environment=app_settings.environment,
     app_logo_url=app_settings.logo_url
 )
 
