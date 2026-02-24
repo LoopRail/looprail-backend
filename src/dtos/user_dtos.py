@@ -9,7 +9,8 @@ from src.dtos.base import Base
 from src.types.common_types import PhoneNumber, RefreshTokenId, UserId
 from src.types.error import error
 from src.types.types import Gender, KYCStatus
-from src.utils import is_valid_email, validate_password_strength
+from src.utils.app_utils import is_valid_email
+from src.utils.auth_utils import validate_password_strength
 
 USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]{4,16}$")
 

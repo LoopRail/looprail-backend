@@ -1,7 +1,7 @@
 from typing import Any, ClassVar
 from pydantic import BaseModel, ConfigDict
 
-from src.utils import kebab_case
+from src.utils.string_utils import kebab_case
 
 
 class Base(BaseModel):

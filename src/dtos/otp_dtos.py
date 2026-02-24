@@ -5,7 +5,7 @@ from pydantic import EmailStr, field_validator
 from src.dtos.base import Base
 from src.types.error import error
 from src.types.types import OtpType
-from src.utils import is_valid_email
+from src.utils.app_utils import is_valid_email
 
 
 class OtpCreate(Base):

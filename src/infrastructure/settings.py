@@ -11,7 +11,7 @@ from src.infrastructure.constants import (
 )
 from src.types.ledger_types import LedgerConfig
 from src.types.types import WalletConfig
-from src.utils import return_base_dir
+from src.utils.app_utils import return_base_dir
 
 
 class ENVIRONMENT(str, Enum):

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from src.utils import camel_case
+from src.utils.string_utils import camel_case
 
 
 class basePaycrestType(BaseModel):
