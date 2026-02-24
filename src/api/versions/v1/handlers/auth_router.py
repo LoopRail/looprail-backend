@@ -6,7 +6,6 @@ from fastapi.responses import JSONResponse
 
 from src.api.dependencies import (
     BearerToken,
-    get_app_environment,
     get_auth_lock_service,
     get_config,
     get_current_session,
@@ -86,8 +85,7 @@ login_auth_lock = get_auth_lock_service("logins")
 async def create_user(
     request: Request,
     _config_set: None = Depends(set_user_create_config),
-    user_data: UserCreate = Body(...),
-    environment: ENVIRONMENT = Depends(get_app_environment),
+    user_data: UserCreate = Body(...),    
     user_usecases: UserUseCase = Depends(get_user_usecases),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
     resend_service: ResendService = Depends(get_resend_service),
@@ -108,7 +106,6 @@ async def create_user(
             content={"message": "Could not create user"},
         )
     token = await send_otp_internal(
-        environment,
         email=created_user.email,
         otp_usecases=otp_usecases,
         resend_service=resend_service,
@@ -807,13 +804,11 @@ async def send_otp(
     response: Response,
     otp_data: OtpCreate,
     _config_set: None = Depends(set_send_otp_config),
-    environment: ENVIRONMENT = Depends(get_app_environment),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
     resend_service: ResendService = Depends(get_resend_service),
     config: Config = Depends(get_config),
 ):
     token = await send_otp_internal(
-        environment,
         email=otp_data.email,
         otp_usecases=otp_usecases,
         resend_service=resend_service,

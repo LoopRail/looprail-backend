@@ -5,7 +5,6 @@ from src.dtos import OtpCreate, UserCreate
 from src.infrastructure import get_logger
 from src.infrastructure.config_settings import Config
 from src.infrastructure.services import ResendService
-from src.infrastructure.settings import ENVIRONMENT
 from src.types.error import NotFoundError
 from src.usecases import OtpUseCase
 
@@ -13,8 +12,6 @@ logger = get_logger(__name__)
 
 
 async def send_otp_internal(
-    environment: ENVIRONMENT,
-    *,
     email: str,
     otp_usecases: OtpUseCase,
     resend_service: ResendService,

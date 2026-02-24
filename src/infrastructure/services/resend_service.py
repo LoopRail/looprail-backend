@@ -113,7 +113,7 @@ class ResendService:
             if self.default_sender_domain:
                 _from = f"noreply@{self.default_sender_domain}"
             else:
-                _from = "noreply@looprail.com"  # Hard fallback
+                _from = "noreply@looprail.com"  
 
         logger.debug("Attempting to send OTP email to: %s from: %s", to, _from)
         if self.environment == ENVIRONMENT.DEVELOPMENT:
