@@ -354,10 +354,10 @@ class UserUseCase:
 
         # Ensure profile is included in user_data and populated with necessary fields
         if hasattr(user, "profile") and user.profile:
-            user_data["profile"] = user.profile.model_dump()
+            user_data["profile"] = user.profile.model_dump(exclude_none=True)
 
         try:
-            public_user = UserPublic.model_validate(user_data)
+            public_user = UserPublic.model_validate(user_data).model_dump(exclude_none=True)
             return public_user, None
         except ValidationError as e:
             logger.error(
