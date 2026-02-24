@@ -1,4 +1,4 @@
-from unittest.mock import ANY, MagicMock
+from unittest.mock import ANY, MagicMock, AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -7,7 +7,9 @@ from fastapi.testclient import TestClient
 from src.main import app
 from src.models import User
 from src.dtos import UserPublic
-from src.types import AccessToken, TokenType, error
+from src.types import AccessToken, TokenType, error, Platform
+from src.api.dependencies import get_auth_lock_service, get_geolocation_service, get_notification_usecase, get_resend_service
+from src.api.versions.v1.handlers.auth_router import login_auth_lock
 
 
 @pytest.fixture(name="authenticated_client")
@@ -29,10 +31,27 @@ def authenticated_client_fixture(
     mock_session.user_id = user.id
     mock_session.get_prefixed_id.return_value = session_id
     raw_refresh_token = f"rft_{uuid4()}"
-    mock_session_usecase.create_session.return_value = (mock_session, raw_refresh_token)
+    mock_session_usecase.create_session.return_value = (mock_session, raw_refresh_token, None)
 
     mock_access_token = "mock_access_token"
     mock_jwt_usecase.create_token.return_value = mock_access_token
+
+    # Mock other dependencies to avoid unawaited coroutine errors
+    mock_auth_lock = AsyncMock()
+    mock_auth_lock.is_account_locked.return_value = (False, None)
+    mock_auth_lock.increment_failed_attempts.return_value = (1, None)
+    mock_auth_lock.reset_failed_attempts.return_value = None
+    app.dependency_overrides[login_auth_lock] = lambda: mock_auth_lock
+
+    mock_geo = AsyncMock()
+    mock_geo.get_location.return_value = (None, None)
+    app.dependency_overrides[get_geolocation_service] = lambda: mock_geo
+    
+    mock_notif = MagicMock()
+    app.dependency_overrides[get_notification_usecase] = lambda: mock_notif
+
+    mock_resend = MagicMock()
+    app.dependency_overrides[get_resend_service] = lambda: mock_resend
 
     return client, mock_access_token, raw_refresh_token
 
@@ -45,8 +64,9 @@ def test_login_success(
     mock_jwt_usecase: MagicMock,
 ):
     user, password = test_user
+    device_id = f"device_{uuid4()}"
     login_data = {"email": user.email, "password": password}
-    headers = {"X-Device-ID": "test_device_id", "X-Platform": "web"}
+    headers = {"X-Device-ID": device_id, "X-Platform": "web"}
 
     mock_user_usecases.authenticate_user.return_value = (user, None)
     user_public_data = UserPublic.model_validate(user).model_dump(exclude_none=True)
@@ -54,7 +74,7 @@ def test_login_success(
 
     session_id = f"ses_{uuid4()}"
     mock_session = MagicMock()
-    mock_session.id = session_id
+    mock_session.id = session_id.replace("ses_", "")
     mock_session.user_id = user.id
     mock_session.get_prefixed_id.return_value = session_id
     raw_refresh_token = f"rft_{uuid4()}"
@@ -65,6 +85,28 @@ def test_login_success(
     )
 
     mock_jwt_usecase.create_token.return_value = "mock_access_token_string"
+
+    # Mock other dependencies to avoid unawaited coroutine errors
+    mock_auth_lock = AsyncMock()
+    mock_auth_lock.is_account_locked.return_value = (False, None)
+    mock_auth_lock.increment_failed_attempts.return_value = (1, None)
+    mock_auth_lock.reset_failed_attempts.return_value = None
+    app.dependency_overrides[login_auth_lock] = lambda: mock_auth_lock
+
+    mock_geo = AsyncMock()
+    geo_data = MagicMock()
+    geo_data.status = "success"
+    geo_data.city = "Test City"
+    geo_data.regionName = "Test Region"
+    geo_data.country = "Test Country"
+    mock_geo.get_location.return_value = (geo_data, None)
+    app.dependency_overrides[get_geolocation_service] = lambda: mock_geo
+    
+    mock_notif = MagicMock()
+    app.dependency_overrides[get_notification_usecase] = lambda: mock_notif
+
+    mock_resend = MagicMock()
+    app.dependency_overrides[get_resend_service] = lambda: mock_resend
 
     response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
 
@@ -84,8 +126,10 @@ def test_login_success(
     mock_session_usecase.create_session.assert_called_once_with(
         user_id=user.id,
         device_id=headers["X-Device-ID"],
-        platform=headers["X-Platform"],
+        platform=Platform.WEB,
         ip_address="testclient",
+        allow_notifications=False,
+        fcm_token=None,
     )
     mock_jwt_usecase.create_token.assert_called_once()  # Detailed assertion can be added if needed
 
@@ -94,14 +138,25 @@ def test_login_invalid_credentials(
     client: TestClient, test_user: tuple[User, str], mock_user_usecases: MagicMock
 ):
     user, _ = test_user
+    device_id = f"device_{uuid4()}"
     login_data = {"email": user.email, "password": "wrongpassword"}
-    headers = {"X-Device-ID": "test_device_id", "X-Platform": "web"}
+    headers = {"X-Device-ID": device_id, "X-Platform": "web"}
 
     # Mock user authentication to return an error
     mock_user_usecases.authenticate_user.return_value = (
         None,
         error("Invalid credentials"),
     )
+
+    # Mock other dependencies to avoid unawaited coroutine errors
+    mock_auth_lock = AsyncMock()
+    mock_auth_lock.is_account_locked.return_value = (False, None)
+    mock_auth_lock.increment_failed_attempts.return_value = (1, None)
+    mock_auth_lock.reset_failed_attempts.return_value = None
+    app.dependency_overrides[login_auth_lock] = lambda: mock_auth_lock
+
+    mock_resend = MagicMock()
+    app.dependency_overrides[get_resend_service] = lambda: mock_resend
 
     response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
 
@@ -144,10 +199,11 @@ def test_refresh_token_success(
     new_access_token_value = "mock_new_access_token_string"
     mock_jwt_usecase.create_token.return_value = new_access_token_value
 
+    device_id = f"device_{uuid4()}"
     response = client.post(
         "/api/v1/auth/token",
-        json={"refresh-token": refresh_token},
-        headers={"X-Device-ID": "test_device_id", "X-Platform": "web"},
+        json={"refresh_token": refresh_token},
+        headers={"X-Device-ID": device_id, "X-Platform": "web"},
     )
 
     assert response.status_code == 200
@@ -177,10 +233,11 @@ def test_refresh_token_invalid_token(
         error("Invalid or expired refresh token"),
     )
 
+    device_id = f"device_{uuid4()}"
     response = client.post(
         "/api/v1/auth/token",
-        json={"refresh-token": "invalid_token"},
-        headers={"X-Device-ID": "test_device_id", "X-Platform": "web"},
+        json={"refresh_token": f"rft_{uuid4()}"},
+        headers={"X-Device-ID": device_id, "X-Platform": "web"},
     )
     assert response.status_code == 401
     assert response.json() == {"message": "Invalid or expired refresh token"}
@@ -229,11 +286,12 @@ def test_refresh_token_reuse_detection(
     new_access_token_value = "mock_new_access_token_string_for_reuse"
     mock_jwt_usecase.create_token.return_value = new_access_token_value
 
+    device_id = f"device_{uuid4()}"
     # First refresh - should be successful
     response1 = client.post(
         "/api/v1/auth/token",
-        json={"refresh-token": initial_refresh_token},
-        headers={"X-Device-ID": "test_device_id", "X-Platform": "web"},
+        json={"refresh_token": initial_refresh_token},
+        headers={"X-Device-ID": device_id, "X-Platform": "web"},
     )
     assert response1.status_code == 200
     assert "access-token" in response1.json()
@@ -242,8 +300,8 @@ def test_refresh_token_reuse_detection(
     # Attempt to use the old refresh token again - should trigger reuse detection
     response2 = client.post(
         "/api/v1/auth/token",
-        json={"refresh-token": initial_refresh_token},
-        headers={"X-Device-ID": "test_device_id", "X-Platform": "web"},
+        json={"refresh_token": initial_refresh_token},
+        headers={"X-Device-ID": device_id, "X-Platform": "web"},
     )
     assert response2.status_code == 401
     assert response2.json() == {"error": "Refresh token reused. Please log in again."}
@@ -251,7 +309,7 @@ def test_refresh_token_reuse_detection(
     # assert mock_jwt_usecase.get_valid_refresh_token_by_hash.call_count == 2
     assert mock_session_usecase.revoke_session.call_count == 1
     mock_session_usecase.revoke_session.assert_called_once_with(
-        mock_refresh_token_db_first_call.session_id
+        mock_refresh_token_db_first_call.session_id.replace("ses_", "")
     )
     assert mock_jwt_usecase.create_token.call_count == 1
 
@@ -288,7 +346,7 @@ def test_logout_success(
     assert response.status_code == 200
     assert response.json() == {"message": "Logged out successfully"}
 
-    mock_session_usecase.revoke_session.assert_called_once_with(mock_session_id)
+    mock_session_usecase.revoke_session.assert_called_once_with(mock_session_id.split("_")[-1])
 
     # Clear the override
     app.dependency_overrides.clear()
@@ -325,8 +383,76 @@ def test_logout_all_success(
     assert response.json() == {"message": "Logged out from all sessions successfully"}
 
     mock_session_usecase.revoke_all_user_sessions.assert_called_once_with(
-        user.get_prefixed_id()
+        str(user.id)
     )
 
     # Clear the override
     app.dependency_overrides.clear()
+
+
+def test_login_with_fcm_token_success(
+    client: TestClient,
+    test_user: tuple[User, str],
+    mock_user_usecases: MagicMock,
+    mock_session_usecase: MagicMock,
+    mock_jwt_usecase: MagicMock,
+):
+    user, password = test_user
+    fcm_token = "test_fcm_token"
+    device_id = f"device_{uuid4()}"
+    login_data = {"email": user.email, "password": password, "fcm_token": fcm_token}
+    headers = {"X-Device-ID": device_id, "X-Platform": "android"}
+
+    mock_user_usecases.authenticate_user.return_value = (user, None)
+    user_public_data = UserPublic.model_validate(user).model_dump(exclude_none=True)
+    mock_user_usecases.load_public_user.return_value = (user_public_data, None)
+
+    session_id = f"ses_{uuid4()}"
+    mock_session = MagicMock()
+    mock_session.id = session_id.replace("ses_", "")
+    mock_session.user_id = user.id
+    mock_session.get_prefixed_id.return_value = session_id
+    raw_refresh_token = f"rft_{uuid4()}"
+    mock_session_usecase.create_session.return_value = (
+        mock_session,
+        raw_refresh_token,
+        None,
+    )
+
+    mock_jwt_usecase.create_token.return_value = "mock_access_token_string"
+
+    # Mock other dependencies to avoid unawaited coroutine errors
+    mock_auth_lock = AsyncMock()
+    mock_auth_lock.is_account_locked.return_value = (False, None)
+    mock_auth_lock.increment_failed_attempts.return_value = (1, None)
+    mock_auth_lock.reset_failed_attempts.return_value = None
+    app.dependency_overrides[login_auth_lock] = lambda: mock_auth_lock
+
+    mock_geo = AsyncMock()
+    geo_data = MagicMock()
+    geo_data.status = "success"
+    geo_data.city = "Test City"
+    geo_data.regionName = "Test Region"
+    geo_data.country = "Test Country"
+    mock_geo.get_location.return_value = (geo_data, None)
+    app.dependency_overrides[get_geolocation_service] = lambda: mock_geo
+    
+    mock_notif = MagicMock()
+    app.dependency_overrides[get_notification_usecase] = lambda: mock_notif
+
+    mock_resend = MagicMock()
+    app.dependency_overrides[get_resend_service] = lambda: mock_resend
+
+    response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
+
+    assert response.status_code == 200
+    
+    # Assert that fcm_token was passed to create_session
+    mock_session_usecase.create_session.assert_called_once_with(
+        user_id=user.id,
+        device_id=headers["X-Device-ID"],
+        platform=Platform.ANDROID,
+        ip_address="testclient",
+        allow_notifications=True,
+        fcm_token=fcm_token,
+    )

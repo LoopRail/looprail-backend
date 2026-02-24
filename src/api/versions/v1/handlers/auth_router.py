@@ -297,6 +297,7 @@ async def login(
     config: Config = Depends(get_config),
     auth_lock_service: AuthLockService = Depends(login_auth_lock),
     geo_service: GeolocationService = Depends(get_geolocation_service),
+    resend_service: ResendService = Depends(get_resend_service),
 ):
     logger.info("Received login request for email: %s", login_request.email)
     login_request.ip_address = request.client.host
@@ -395,6 +396,8 @@ async def login(
         device_id=device_id,
         platform=platform,
         ip_address=request.client.host,
+        allow_notifications=login_request.allow_notifications,
+        fcm_token=login_request.fcm_token,
     )
     if err:
         logger.error("Could not create session for user %s: %s", user.id, err.message)
@@ -470,6 +473,7 @@ async def refresh_token(
         incoming_refresh_token_hash
     )
     if err or not refresh_token_db:
+        print(f"DEBUG: get_valid_refresh_token_by_hash failed: {err}")
         logger.error(
             "Invalid or expired refresh token: %s", err.message if err else "Not found"
         )
@@ -479,6 +483,7 @@ async def refresh_token(
         )
 
     if refresh_token_db.replaced_by_hash is not None:
+        print(f"DEBUG: refresh token reuse detected")
         logger.warning(
             "Refresh token reuse detected for session %s", refresh_token_db.session_id
         )
@@ -490,6 +495,7 @@ async def refresh_token(
 
     session, err = await session_usecase.get_session(refresh_token_db.session_id)
     if err or not session:
+        print(f"DEBUG: get_session failed: {err}")
         logger.error("Session not found for refresh token %s", refresh_token_db.id)
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,

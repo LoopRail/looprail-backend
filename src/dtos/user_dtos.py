@@ -108,6 +108,14 @@ class LoginRequest(Base):
     password: str
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
+    allow_notifications: bool
+    fcm_token: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_notifications(self) -> "CompleteOnboardingRequest":
+        if self.allow_notifications and not self.fcm_token:
+            raise ValueError("FCM token is required when notifications are enabled")
+        return self
 
 
 class RefreshTokenRequest(Base):
