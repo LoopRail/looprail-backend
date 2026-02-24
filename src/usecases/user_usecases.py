@@ -357,7 +357,7 @@ class UserUseCase:
             user_data["profile"] = user.profile.model_dump(exclude_none=True)
 
         try:
-            public_user = UserPublic.model_validate(user_data).model_dump(exclude_none=True)
+            public_user = UserPublic.model_validate(user_data)
             return public_user, None
         except ValidationError as e:
             logger.error(
