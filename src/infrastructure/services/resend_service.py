@@ -85,6 +85,7 @@ class ResendService:
         _from: str,
         otp_code: str,
         subject: str = "Your One-Time Password",
+        app_logo_url: Optional[str] = None,
     ) -> Tuple[Optional[dict], Error]:
         """Sends an OTP email.
 
@@ -98,7 +99,11 @@ class ResendService:
             A tuple containing the Resend API response (dict) and an error, if any.
         """
         logger.debug("Attempting to send OTP email to: %s from: %s", to, _from)
-        html_content, err = load_html_template("email/otp_email", otp_code=otp_code)
+        html_content, err = load_html_template(
+            "email/otp_email", 
+            otp_code=otp_code,
+            app_logo_url=app_logo_url
+        )
         if err:
             logger.error("Failed to load OTP email template: %s", err.message)
             return None, err

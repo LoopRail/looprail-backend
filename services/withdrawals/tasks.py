@@ -6,7 +6,7 @@ from services.withdrawals.dependencies import get_task_wallet_manager_usecase
 from src.infrastructure.db import get_session
 from src.infrastructure.redis import RQManager
 from src.infrastructure.repositories import SessionRepository, UserRepository
-from src.infrastructure.settings import RedisConfig, ResendConfig
+from src.infrastructure.settings import RedisConfig, ResendConfig, AppSettings
 from src.infrastructure.services.resend_service import ResendService
 from src.types.common_types import UserId
 from src.types.notification_types import NotificationAction
@@ -59,11 +59,13 @@ async def _send_withdrawal_processed_email(user_id: str, transaction_id: str, am
             user_repo = UserRepository(session)
             user, _ = await user_repo.find_one(id=user_id)
             if user:
+                app_settings = AppSettings()
                 await send_transactional_email(
                     resend_service=resend_service,
                     to=user.email,
                     subject="Your Withdrawal Has Been Processed",
                     template_name="withdrawal_processed",
+                    app_logo_url=app_settings.logo_url,
                     amount=amount,
                     currency=currency,
                     transaction_id=transaction_id or "",

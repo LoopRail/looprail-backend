@@ -4,146 +4,146 @@
       "name": "Access Bank",
       "code": "ABNGNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765033/access-bank_ygxgq3.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765033/access-bank_ygxgq3.svg",
       "id": "044"
     },
     {
       "name": "Access Diamond Bank",
       "code": "DBLNNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765033/access-bank_ygxgq3.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765033/access-bank_ygxgq3.svg",
       "id": "063"
     },
     {
       "name": "Fidelity Bank",
       "code": "FIDTNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765033/fidelity-bank_usw7ne.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765033/fidelity-bank_usw7ne.svg",
       "id": "070"
     },
     {
       "name": "FCMB",
       "code": "FCMBNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765019/fcmb_y5tjsj.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765019/fcmb_y5tjsj.svg",
       "id": "214"
     },
     {
       "name": "First Bank Of Nigeria",
       "code": "FBNINGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765022/first-bank-of-nigeria_ax1we9.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765022/first-bank-of-nigeria_ax1we9.svg",
       "id": "011"
     },
     {
       "name": "Guaranty Trust Bank",
       "code": "GTBINGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765022/guaranty-trust-bank_qnahik.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765022/guaranty-trust-bank_qnahik.svg",
       "id": "058"
     },
     {
       "name": "Polaris Bank",
       "code": "PRDTNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765018/polaris-bank_ldosjg.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765018/polaris-bank_ldosjg.svg",
       "id": "076"
     },
     {
       "name": "Union Bank",
       "code": "UBNINGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765021/union-bank_xsfigw.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765021/union-bank_xsfigw.svg",
       "id": "032"
     },
     {
       "name": "United Bank for Africa",
       "code": "UNAFNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765021/united-bank-for-africa_clqmcv.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765021/united-bank-for-africa_clqmcv.svg",
       "id": "033"
     },
     {
       "name": "Citibank",
       "code": "CITINGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765018/citibank-nigeria_gi3009.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765018/citibank-nigeria_gi3009.svg",
       "id": "023"
     },
     {
       "name": "Ecobank Bank",
       "code": "ECOCNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765021/ecobank-bank_yveblg.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765021/ecobank-bank_yveblg.svg",
       "id": "050"
     },
     {
       "name": "Keystone Bank",
       "code": "PLNINGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765021/keystone-bank_hy5wb8.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765021/keystone-bank_hy5wb8.svg",
       "id": "082"
     },
     {
       "name": "Stanbic IBTC Bank",
       "code": "SBICNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765019/stanbic-ibtc-bank_nak5up.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765019/stanbic-ibtc-bank_nak5up.svg",
       "id": "221"
     },
     {
       "name": "Standard Chartered Bank",
       "code": "SCBLNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765018/standard-chartered-bank_h3yjks.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765018/standard-chartered-bank_h3yjks.svg",
       "id": "068"
     },
     {
       "name": "Sterling Bank",
       "code": "NAMENGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765019/sterling-bank_nlgfsu.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765019/sterling-bank_nlgfsu.svg",
       "id": "232"
     },
     {
       "name": "Unity Bank",
       "code": "ICITNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765019/unity-bank_nbjy5m.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765019/unity-bank_nbjy5m.svg",
       "id": "215"
     },
     {
       "name": "Suntrust Bank",
       "code": "SUTGNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765036/suntrust-bank_b5fapp.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765036/suntrust-bank_b5fapp.svg",
       "id": "100"
     },
     {
       "name": "Providus Bank ",
       "code": "PROVNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765017/providus-bank_ldqoko.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765017/providus-bank_ldqoko.svg",
       "id": "101"
     },
     {
       "name": "FBNQuest Merchant Bank",
       "code": "KDHLNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764984/fbnquest-merchant-bank_to8lwv.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764984/fbnquest-merchant-bank_to8lwv.svg"
     },
     {
       "name": "Greenwich Merchant Bank",
       "code": "GMBLNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764987/greenwich-merchant-bank_lgug13.png",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764987/greenwich-merchant-bank_lgug13.png",
       "id": "562"
     },
     {
       "name": "FSDH Merchant Bank",
       "code": "FSDHNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764984/fsdh-merchant-bank_o3emii.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764984/fsdh-merchant-bank_o3emii.svg",
       "id": "501"
     },
     {
@@ -156,63 +156,63 @@
       "name": "Jaiz Bank",
       "code": "JAIZNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765018/jaiz-bank_j2s6o6.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765018/jaiz-bank_j2s6o6.svg",
       "id": "301"
     },
     {
       "name": "Zenith Bank",
       "code": "ZEIBNGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765018/zenith-bank_qcz9tr.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765018/zenith-bank_qcz9tr.svg",
       "id": "057"
     },
     {
       "name": "Wema Bank",
       "code": "WEMANGLA",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765017/wema-bank_bc9qul.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765017/wema-bank_bc9qul.svg",
       "id": "035"
     },
     {
       "name": "Kuda Microfinance Bank",
       "code": "KUDANGPC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764843/kuda-bank_pspi49.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764843/kuda-bank_pspi49.svg",
       "id": "50211"
     },
     {
       "name": "OPay",
       "code": "OPAYNGPC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764985/opay_moqxzb.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764985/opay_moqxzb.svg",
       "id": "999992"
     },
     {
       "name": "PalmPay",
       "code": "PALMNGPC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764984/palmpay_stsvws.png",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764984/palmpay_stsvws.png",
       "id": "999991"
     },
     {
       "name": "Paystack-Titan MFB",
       "code": "PAYTNGPC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764984/paystack-titan-mfb_yofuum.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764984/paystack-titan-mfb_yofuum.svg",
       "id": "100039"
     },
     {
       "name": "Moniepoint MFB",
       "code": "MONINGPC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764840/moniepoint-mfb_h0vgs7.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764840/moniepoint-mfb_h0vgs7.svg",
       "id": "50515"
     },
     {
       "name": "Safe Haven MFB",
       "code": "SAHVNGPC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764984/safe-haven-mfb_vcxgbb.svg",
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764984/safe-haven-mfb_vcxgbb.svg",
       "id": "51113"
     }
   ],
@@ -221,85 +221,85 @@
       "name": "REPUBLIC BANK",
       "code": "HFCAGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764983/republic-bank_pnxwff.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764983/republic-bank_pnxwff.png"
     },
     {
       "name": "BANK OF GHANA",
       "code": "BAGHGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764983/bank-of-ghana_wvzwvj.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764983/bank-of-ghana_wvzwvj.png"
     },
     {
       "name": "UBA GHANA",
       "code": "STBGGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765021/united-bank-for-africa_clqmcv.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765021/united-bank-for-africa_clqmcv.svg"
     },
     {
       "name": "FIDELITY BANK GHANA",
       "code": "FBLIGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765033/fidelity-bank_usw7ne.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765033/fidelity-bank_usw7ne.svg"
     },
     {
       "name": "Consolidated Bank Ghana",
       "code": "CBGHGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764983/consolidated-bank-ghana_oiz9wr.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764983/consolidated-bank-ghana_oiz9wr.png"
     },
     {
       "name": "Universal Merchant Bank",
       "code": "MBGHGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764983/universal-merchant-bank_a6buwh.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764983/universal-merchant-bank_a6buwh.png"
     },
     {
       "name": "APEX BANK",
       "code": "AREXGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764982/apex-bank_wnren3.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764982/apex-bank_wnren3.png"
     },
     {
       "name": "OMNI BANK",
       "code": "OMBLGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764983/omni-bank_midcjc.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764983/omni-bank_midcjc.png"
     },
     {
       "name": "National Investment Bank Limited",
       "code": "NIBGGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764987/national-investment-bank-limited_ceimyz.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764987/national-investment-bank-limited_ceimyz.png"
     },
     {
       "name": "Agricultural Development Bank",
       "code": "ADNTGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764982/agricultural-development-bank_rjtaqp.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764982/agricultural-development-bank_rjtaqp.png"
     },
     {
       "name": "ZENITH BANK GHANA",
       "code": "ZEBLGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765018/zenith-bank_qcz9tr.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765018/zenith-bank_qcz9tr.svg"
     },
     {
       "name": "ZEEPAY GHANA",
       "code": "ZEEPGHPC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764983/zeepay-ghana_etyu0s.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764983/zeepay-ghana_etyu0s.png"
     },
     {
       "name": "STANBIC BANK GHANA",
       "code": "SBICGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765019/stanbic-ibtc-bank_nak5up.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765019/stanbic-ibtc-bank_nak5up.svg"
     },
     {
       "name": "STANDARD CHARTERED GHANA",
       "code": "SCBLGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765018/standard-chartered-bank_h3yjks.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765018/standard-chartered-bank_h3yjks.svg"
     },
     {
       "name": "SERVICES INTEGRITY SAVINGS & LOANS",
@@ -311,97 +311,97 @@
       "name": "ABSA BANK GHANA",
       "code": "BARCGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764979/absa-bank-ghana_yg6cwj.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764979/absa-bank-ghana_yg6cwj.svg"
     },
     {
       "name": "First Atlantic Bank GHANA",
       "code": "FAMCGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764978/first-atlantic-bank-ghana_purzkk.jpg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764978/first-atlantic-bank-ghana_purzkk.jpg"
     },
     {
       "name": "ACCESS BANK GHANA",
       "code": "ABNGGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765033/access-bank_ygxgq3.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765033/access-bank_ygxgq3.svg"
     },
     {
       "name": "First National Bank",
       "code": "FIRNGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764978/first-national-bank_lxulvi.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764978/first-national-bank_lxulvi.svg"
     },
     {
       "name": "G-MONEY",
       "code": "GMONGHPC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764979/g-money_xfwoii.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764979/g-money_xfwoii.png"
     },
     {
       "name": "GCB Bank Limited",
       "code": "GHCBGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764978/gcb-bank-limited_pozyo5.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764978/gcb-bank-limited_pozyo5.png"
     },
     {
       "name": "Bank of Africa Ghana Limited",
       "code": "AMMAGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764977/bank-of-africa-ghana-limited_fzmsbr.webp"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764977/bank-of-africa-ghana-limited_fzmsbr.webp"
     },
     {
       "name": "Prudential Bank Limited",
       "code": "PUBKGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764977/prudential-bank-limited_vigls4.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764977/prudential-bank-limited_vigls4.png"
     },
     {
       "name": "FBNBank Ghana Limited",
       "code": "INCEGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765022/first-bank-of-nigeria_ax1we9.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765022/first-bank-of-nigeria_ax1we9.svg"
     },
     {
       "name": "ECOBANK GHANA",
       "code": "ECOCGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765021/ecobank-bank_yveblg.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765021/ecobank-bank_yveblg.svg"
     },
     {
       "name": "CAL BANK",
       "code": "ACCCGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764977/cal-bank_zu0s2t.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764977/cal-bank_zu0s2t.png"
     },
     {
       "name": "Societe Generale Ghana Limited",
       "code": "SSEBGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764963/societe-generale-ghana-limited_zqs9b4.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764963/societe-generale-ghana-limited_zqs9b4.svg"
     },
     {
       "name": "GT BANK GHANA",
       "code": "GTBIGHAC",
       "type": "bank",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768765022/guaranty-trust-bank_qnahik.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768765022/guaranty-trust-bank_qnahik.svg"
     },
     {
       "name": "MTN Mobile Money",
       "code": "MOMOGHPC",
       "type": "mobile_money",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764936/mtn-mobile-money_u4v9ez.webp"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764936/mtn-mobile-money_u4v9ez.webp"
     },
     {
       "name": "Vodafone Cash",
       "code": "VODAGHPC",
       "type": "mobile_money",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764909/vodafone-cash_zrgpz2.svg"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764909/vodafone-cash_zrgpz2.svg"
     },
     {
       "name": "AirtelTigo Money",
       "code": "AIRTGHPC",
       "type": "mobile_money",
-      "logo": "https://res.cloudinary.com/db5awg5e8/image/upload/v1768764878/airteltigo-money_jt7llo.png"
+      "logo": "https://res.cloudinary.com/looprail/image/upload/v1768764878/airteltigo-money_jt7llo.png"
     }
   ]
 }

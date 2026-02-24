@@ -18,6 +18,7 @@ async def send_otp_internal(
     email: str,
     otp_usecases: OtpUseCase,
     resend_service: ResendService,
+    app_logo_url: str | None = None,
 ) -> str:
     logger.info("Initiating internal OTP send for email: %s", email)
     _, err = await otp_usecases.get_user_token(user_email=email)
@@ -44,6 +45,7 @@ async def send_otp_internal(
             to=email,
             _from=f"noreply@{domain}",
             otp_code=otp_code,
+            app_logo_url=app_logo_url,
         )
         if err:
             logger.error("Error sending OTP: %s", err)

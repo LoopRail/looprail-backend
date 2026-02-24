@@ -21,6 +21,8 @@ from src.infrastructure.services import (
     LedgerService,
     PaycrestService,
     PaystackService,
+    ResendService,
+    GeolocationService,
 )
 from src.types import Error, InternaleServerError, error
 
@@ -40,6 +42,9 @@ async def lifespan(app_: FastAPI):
     app_.state.ledger_service = LedgerService(config.ledger)
 
     app_.state.auth_lock = AuthLockService(redis_client=app.state.redis)
+
+    app_.state.resend = ResendService(config.resend)
+    app_.state.geolocation = GeolocationService()
 
     app_.state.blockrader_config = config.block_rader
     app_.state.ledger_config = config.ledger

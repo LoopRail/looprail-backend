@@ -153,6 +153,7 @@ async def handle_deposit_swept_success(
                 to=user.email,
                 subject="Your Deposit Has Been Confirmed",
                 template_name="deposit_confirmed",
+                app_logo_url=config.app.logo_url,
                 amount=event.data.amount,
                 currency=event.data.currency,
                 transaction_id=str(txn.id),

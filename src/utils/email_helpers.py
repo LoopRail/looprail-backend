@@ -12,6 +12,7 @@ async def send_transactional_email(
     to: str,
     subject: str,
     template_name: str,
+    app_logo_url: str | None = None,
     **template_vars,
 ) -> None:
     """
@@ -20,7 +21,11 @@ async def send_transactional_email(
     Logs errors but never raises — callers should not block on emails.
     """
     try:
-        html_content, err = load_html_template(f"email/{template_name}", **template_vars)
+        html_content, err = load_html_template(
+            f"email/{template_name}", 
+            app_logo_url=app_logo_url,
+            **template_vars
+        )
         if err:
             logger.error("Failed to load email template '%s': %s", template_name, err)
             return
