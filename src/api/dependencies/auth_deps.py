@@ -32,7 +32,7 @@ from src.usecases import (
     SessionUseCase,
     UserUseCase,
 )
-from src.utils import verify_signature
+from src.utils.auth_utils import verify_signature
 
 logger = get_logger(__name__)
 

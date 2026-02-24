@@ -5,7 +5,7 @@ from resend.exceptions import ResendError
 
 from src.infrastructure.settings import ResendConfig
 from src.types import Error, httpError
-from src.utils import load_html_template
+from src.utils.app_utils import load_html_template
 from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)

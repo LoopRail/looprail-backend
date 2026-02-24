@@ -16,9 +16,12 @@ from src.utils.auth_utils import (
 from src.utils.country_utils import get_country_info, is_valid_country_code
 from src.utils.otp_utils import generate_otp_code, hash_otp, make_token
 from src.utils.phone_number_utils import validate_and_format_phone_number
-from src.utils.transaction_utils import create_transaction_params_from_event
-from src.utils.notification_helpers import enqueue_notifications_for_user
-from src.utils.email_helpers import send_transactional_email
+
+# NOTE: Heavy utilities that depend on DTOs/repos are NOT exported via __init__ to avoid circular imports.
+# Import them directly from their modules:
+# - src.utils.transaction_utils
+# - src.utils.notification_helpers
+# - src.utils.email_helpers
 
 __all__ = [
     "camel_case",
@@ -37,9 +40,6 @@ __all__ = [
     "verify_password",
     "hash_password",
     "validate_password_strength",
-    "create_transaction_params_from_event",
     "create_refresh_token",
     "compute_pkce_challenge",
-    "enqueue_notifications_for_user",
-    "send_transactional_email",
 ]

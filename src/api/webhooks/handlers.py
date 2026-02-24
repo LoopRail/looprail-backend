@@ -23,7 +23,7 @@ from src.types.blockrader import (
 from src.types.notification_types import NotificationAction
 from src.usecases import TransactionUsecase
 from src.usecases.notification_usecases import NotificationUseCase
-from src.utils import create_transaction_params_from_event
+from src.utils.transaction_utils import create_transaction_params_from_event
 from src.utils.notification_helpers import enqueue_notifications_for_user
 from src.utils.email_helpers import send_transactional_email
 from src.infrastructure.services.resend_service import ResendService

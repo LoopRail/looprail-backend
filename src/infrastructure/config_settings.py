@@ -23,7 +23,7 @@ from src.infrastructure.settings import (
 from src.types.country_types import CountriesData
 from src.types.ledger_types import LedgerConfig
 from src.types.types import BanksData, WalletConfig  # Added Bank, BanksData
-from src.utils import return_base_dir
+from src.utils.app_utils import return_base_dir
 
 logger = get_logger(__name__)
 

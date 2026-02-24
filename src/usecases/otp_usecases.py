@@ -6,7 +6,7 @@ from src.infrastructure.logger import get_logger
 from src.infrastructure.settings import OTPConfig
 from src.models import Otp
 from src.types import Error, OtpType, error
-from src.utils import generate_otp_code, hash_otp, make_token
+from src.utils.otp_utils import generate_otp_code, hash_otp, make_token
 
 logger = get_logger(__name__)
 

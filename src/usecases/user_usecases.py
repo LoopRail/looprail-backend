@@ -19,7 +19,7 @@ from src.types import (
 )
 from src.types.common_types import UserId
 from src.usecases.wallet_usecases import WalletManagerUsecase, WalletService
-from src.utils import hash_password, verify_password
+from src.utils.auth_utils import hash_password, verify_password
 
 logger = get_logger(__name__)
 
