@@ -434,7 +434,7 @@ async def login(
         subject="New Login to Your LoopRail Account",
         template_name="login_alert",
         app_logo_url=config.app.logo_url,
-        user_email=user.email,
+        user_first_name=user.first_name,
         login_time=datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
         ip_address=login_request.ip_address or "Unknown",
         location=location_str,

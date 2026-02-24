@@ -23,7 +23,7 @@ def render_templates():
             "name": "email/login_alert",
             "filename": "login_alert.html",
             "vars": {
-                "user_email": "user@example.com",
+                "user_first_name": "user",
                 "login_time": datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
                 "ip_address": "192.168.1.1",
                 "location": "Lagos, Lagos State, Nigeria",
