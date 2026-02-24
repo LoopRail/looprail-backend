@@ -31,7 +31,7 @@ async def test_verify_otp_expired_email_otp(
 
     # Act
     response = client.post(
-        "/api/v1/verify/onbaording-otp",
+        "/api/v1/verify/onboarding-otp",
         json={"code": "123456", "otp-type": "onboarding_email_verification"},
         headers={"X-OTP-Token": "test_token"},
     )
@@ -61,7 +61,7 @@ async def test_verify_otp_max_attempts_exceeded_email_otp(
 
     # Act
     response = client.post(
-        "/api/v1/verify/onbaording-otp",
+        "/api/v1/verify/onboarding-otp",
         json={"code": "123456", "otp-type": "onboarding_email_verification"},
         headers={"X-OTP-Token": "test_token"},
     )
@@ -89,7 +89,7 @@ async def test_verify_otp_invalid_code(
 
     # Act
     response = client.post(
-        "/api/v1/verify/onbaording-otp",
+        "/api/v1/verify/onboarding-otp",
         json={"code": "wrong_code", "otp-type": "onboarding_email_verification"},
         headers={"X-OTP-Token": "test_token"},
     )

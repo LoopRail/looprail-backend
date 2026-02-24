@@ -86,13 +86,13 @@ def load_countries() -> CountriesData:
     return CountriesData(countries={})
 
 
-def load_disposable_email_domains(environment: ENVIRONMENT) -> List[str]:
+def load_disposable_email_domains(environment: ENVIRONMENT) -> set[str]:
     logger.debug("Entering load_disposable_email_domains function.")
     if environment in (ENVIRONMENT.DEVELOPMENT, ENVIRONMENT.STAGING):
         logger.debug(
             "Skipping disposable email domains check in development or staging environment."
         )
-        return []
+        return set()
     config_path = os.path.join(
         return_base_dir(), "config", "disposable_email_domains.txt"
     )
@@ -102,9 +102,9 @@ def load_disposable_email_domains(environment: ENVIRONMENT) -> List[str]:
             "Attempting to open disposable email domains config file: %s", config_path
         )
         with open(config_path, "r", encoding="utf-8") as f:
-            domains = [
+            domains = {
                 line.strip() for line in f if line.strip() and not line.startswith("#")
-            ]
+            }
             logger.info(
                 "Successfully loaded %s disposable email domains from %s",
                 len(domains),
@@ -120,7 +120,7 @@ def load_disposable_email_domains(environment: ENVIRONMENT) -> List[str]:
             "An unexpected error occurred while loading disposable email domains: %s", e
         )
     logger.debug("Exiting load_disposable_email_domains function with empty list.")
-    return []
+    return set()
 
 
 def load_ledger_settings_from_file(environment: ENVIRONMENT) -> LedgerConfig:
@@ -196,7 +196,7 @@ class Config:
         self.countries: CountriesData = load_countries()
         logger.debug("Countries data loaded.")
 
-        self.disposable_email_domains: List[str] = load_disposable_email_domains(
+        self.disposable_email_domains: set[str] = load_disposable_email_domains(
             self.app.environment
         )
         logger.debug("Disposable email domains loaded.")

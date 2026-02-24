@@ -44,9 +44,11 @@ def is_valid_email(
     disposable_domains: set[str],
 ) -> bool:
     try:
-        email_info = validate_email(email, check_deliverability=True)
-
-        if email_info.domain in disposable_domains:
+        # Fast validation: extract domain without DNS networking
+        email_info = validate_email(email, check_deliverability=False)
+        domain = email_info.domain.lower()
+                
+        if domain in disposable_domains:
             return False
 
         return True
