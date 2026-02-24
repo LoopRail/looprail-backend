@@ -6,8 +6,12 @@ from src.api.dependencies import (
     get_config,
     get_ledger_service,
     get_lock_service,
+    get_notification_usecase,
+    get_resend_service,
+    get_session_repository,
     get_transaction_repository,
     get_transaction_usecase,
+    get_user_repository,
     get_wallet_repository,
 )
 from src.api.webhooks.registry import get_registry
@@ -15,11 +19,15 @@ from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import (
     AssetRepository,
+    SessionRepository,
     TransactionRepository,
+    UserRepository,
     WalletRepository,
 )
 from src.infrastructure.services import LedgerService, LockService
+from src.infrastructure.services.resend_service import ResendService
 from src.types.blockrader import WebhookEvent
+from src.usecases.notification_usecases import NotificationUseCase
 from src.usecases.transaction_usecases import TransactionUsecase
 
 logger = get_logger(__name__)
@@ -39,6 +47,10 @@ async def handle_blockrader_webhook(
     transaction_usecase: TransactionUsecase = Depends(get_transaction_usecase),
     config: Config = Depends(get_config),
     lock_service: LockService = Depends(get_lock_service),
+    session_repo: SessionRepository = Depends(get_session_repository),
+    notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
+    user_repo: UserRepository = Depends(get_user_repository),
+    resend_service: ResendService = Depends(get_resend_service),
 ):
     logger.info("Handling BlockRadar webhook event of type: %s", webhook_event.event)
     logger.info("Received BlockRadar webhook event: %s", webhook_event.event)
@@ -55,6 +67,10 @@ async def handle_blockrader_webhook(
             lock_service=lock_service,
             config=config,
             transaction_repo=transaction_repo,
+            session_repo=session_repo,
+            notification_usecase=notification_usecase,
+            user_repo=user_repo,
+            resend_service=resend_service,
         )
         logger.info("Webhook event %s processed successfully.", webhook_event.event)
         return {"message": "Webhook received and processed"}

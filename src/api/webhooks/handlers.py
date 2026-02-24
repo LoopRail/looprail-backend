@@ -3,7 +3,9 @@ from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import (
     AssetRepository,
+    SessionRepository,
     TransactionRepository,
+    UserRepository,
     WalletRepository,
 )
 from src.infrastructure.services import LedgerService, LockService
@@ -18,8 +20,13 @@ from src.types.blockrader import (
     WebhookWithdrawFailed,
     WebhookWithdrawSuccess,
 )
+from src.types.notification_types import NotificationAction
 from src.usecases import TransactionUsecase
+from src.usecases.notification_usecases import NotificationUseCase
 from src.utils import create_transaction_params_from_event
+from src.utils.notification_helpers import enqueue_notifications_for_user
+from src.utils.email_helpers import send_transactional_email
+from src.infrastructure.services.resend_service import ResendService
 
 logger = get_logger(__name__)
 
@@ -31,6 +38,10 @@ async def handle_deposit_swept_success(
     transaction_repo: TransactionRepository,
     config: Config,
     lock_service: LockService,
+    session_repo: SessionRepository = None,
+    notification_usecase: NotificationUseCase = None,
+    user_repo: UserRepository = None,
+    resend_service: ResendService = None,
     **kwargs,
 ):
     logger.info("Handling deposit swept success event: %s", event.data.id)
@@ -121,6 +132,32 @@ async def handle_deposit_swept_success(
         event.data.id,
     )
 
+    # Notify user that deposit is now confirmed / swept
+    if session_repo and notification_usecase and txn:
+        await enqueue_notifications_for_user(
+            user_id=str(txn.user_id),
+            session_repo=session_repo,
+            notification_usecase=notification_usecase,
+            title="Deposit Confirmed ✅",
+            body=f"Your deposit of {event.data.amount} {event.data.currency} has been confirmed and added to your wallet.",
+            action=NotificationAction.DEPOSIT_CONFIRMED,
+            data={"transaction_id": str(txn.id)},
+        )
+
+    # Send deposit confirmed email
+    if user_repo and resend_service and txn:
+        user, _ = await user_repo.find_one(id=txn.user_id)
+        if user:
+            await send_transactional_email(
+                resend_service=resend_service,
+                to=user.email,
+                subject="Your Deposit Has Been Confirmed",
+                template_name="deposit_confirmed",
+                amount=event.data.amount,
+                currency=event.data.currency,
+                transaction_id=str(txn.id),
+            )
+
 
 @register(event_type=WebhookEventType.DEPOSIT_SUCCESS)
 async def handle_deposit_success(
@@ -131,6 +168,8 @@ async def handle_deposit_success(
     lock_service: LockService,
     transaction_usecase: TransactionUsecase,
     config: Config,
+    session_repo: SessionRepository = None,
+    notification_usecase: NotificationUseCase = None,
     **kwargs,
 ):
     logger.info("Handling deposit success event: %s", event.data.id)
@@ -290,6 +329,18 @@ async def handle_deposit_success(
         "Deposit transaction successfully recorded on ledger for event %s",
         event.data.id,
     )
+
+    # Notify user that their deposit has been received and is pending
+    if session_repo and notification_usecase and txn:
+        await enqueue_notifications_for_user(
+            user_id=str(wallet.user_id),
+            session_repo=session_repo,
+            notification_usecase=notification_usecase,
+            title="Deposit Received 📩",
+            body=f"We've received your deposit of {event.data.amount} {event.data.currency}. It's being processed.",
+            action=NotificationAction.DEPOSIT_RECEIVED,
+            data={"transaction_id": str(txn.id)},
+        )
 
 
 @register(event_type=WebhookEventType.WITHDRAW_SUCCESS)

@@ -1,4 +1,5 @@
 import hashlib
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, Header, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -15,6 +16,7 @@ from src.api.dependencies import (
     get_security_usecase,
     get_session_usecase,
     get_user_usecases,
+    get_notification_usecase,
 )
 from src.api.internals import (
     send_otp_internal,
@@ -36,6 +38,7 @@ from src.dtos import (
     RefreshTokenRequest,
     SetTransactionPinRequest,
     UserCreate,
+    PushNotificationDTO,
 )
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
@@ -49,6 +52,7 @@ from src.types import (
     OnBoardingTokenSub,
     Platform,
     TokenType,
+    NotificationType,
     UserAlreadyExistsError,
     UserId,
 )
@@ -56,12 +60,14 @@ from src.types.common_types import DeviceID, SessionId
 from src.types.error import FailedAttemptError, NotFoundError
 from src.usecases import (
     JWTUsecase,
+    NotificationUseCase,
     OtpUseCase,
     SecurityUseCase,
     SessionUseCase,
     UserUseCase,
 )
 from src.utils.auth_utils import create_refresh_token
+from src.utils.email_helpers import send_transactional_email
 
 logger = get_logger(__name__)
 
@@ -158,7 +164,7 @@ async def setup_wallet(
 
 
 @router.post(
-    "/complete_onboarding",
+    "/complete-onboarding",
     response_model=AuthWithTokensAndUserResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
@@ -173,6 +179,7 @@ async def complete_onboarding(
     platform: Platform = Header(..., alias="X-Platform"),
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
+    notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
 ):
     logger.info("Completing onboarding for user ID: %s", token.user_id)
     if token.token_type != TokenType.ONBOARDING_TOKEN:
@@ -218,6 +225,7 @@ async def complete_onboarding(
         platform=platform,
         ip_address=request.client.host,
         allow_notifications=user_data.allow_notifications,
+        fcm_token=user_data.fcm_token,
     )
     if err:
         logger.error(
@@ -227,6 +235,17 @@ async def complete_onboarding(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Internal server error"},
         )
+
+    if user_data.allow_notifications and user_data.fcm_token:
+        welcome_notification = PushNotificationDTO(
+            user_id=str(current_user.id),
+            token=user_data.fcm_token,
+            title="Welcome to LoopRail! 🚀",
+            body="Your onboarding is complete. Start exploring now.",
+            type=NotificationType.PUSH,
+        )
+        notification_usecase.enqueue_push(welcome_notification)
+        logger.info("Welcome push notification enqueued for user %s", current_user.id)
     access_token_data = AccessToken(
         sub=AccessTokenSub.new(session.id),
         user_id=current_user.get_prefixed_id(),
@@ -394,6 +413,17 @@ async def login(
         login_request.email,
         session.get_prefixed_id(),
     )
+
+    await send_transactional_email(
+        resend_service=resend_service,
+        to=user.email,
+        subject="New Login to Your LoopRail Account",
+        template_name="login_alert",
+        user_email=user.email,
+        login_time=datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
+        ip_address=login_request.ip_address or "Unknown",
+    )
+
     return {
         "message": "Login successful.",
         "session_id": session.get_prefixed_id(),
