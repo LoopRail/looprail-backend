@@ -17,6 +17,7 @@ from src.api.dependencies import (
     get_session_usecase,
     get_user_usecases,
     get_notification_usecase,
+    get_geolocation_service,
 )
 from src.api.internals import (
     send_otp_internal,
@@ -42,7 +43,11 @@ from src.dtos import (
 )
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
-from src.infrastructure.services import AuthLockService, ResendService
+from src.infrastructure.services import (
+    AuthLockService,
+    ResendService,
+    GeolocationService,
+)
 from src.infrastructure.settings import ENVIRONMENT
 from src.models import Session
 from src.types import (
@@ -86,6 +91,7 @@ async def create_user(
     user_usecases: UserUseCase = Depends(get_user_usecases),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
     resend_service: ResendService = Depends(get_resend_service),
+    config: Config = Depends(get_config),
 ) -> dict:
     logger.info("Received create user request for email: %s", user_data.email)
     created_user, err = await user_usecases.create_user(user_create=user_data)
@@ -106,6 +112,7 @@ async def create_user(
         email=created_user.email,
         otp_usecases=otp_usecases,
         resend_service=resend_service,
+        app_logo_url=config.app.logo_url,
     )
 
     logger.info("User %s registered successfully.", created_user.email)
@@ -290,6 +297,7 @@ async def login(
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
     auth_lock_service: AuthLockService = Depends(login_auth_lock),
+    geo_service: GeolocationService = Depends(get_geolocation_service),
 ):
     logger.info("Received login request for email: %s", login_request.email)
     login_request.ip_address = request.client.host
@@ -414,14 +422,22 @@ async def login(
         session.get_prefixed_id(),
     )
 
+    # Fetch geolocation data for the login alert email
+    location_str = "Unknown"
+    geo_data, _ = await geo_service.get_location(request.client.host)
+    if geo_data and geo_data.status == "success":
+        location_str = f"{geo_data.city}, {geo_data.regionName}, {geo_data.country}"
+
     await send_transactional_email(
         resend_service=resend_service,
         to=user.email,
         subject="New Login to Your LoopRail Account",
         template_name="login_alert",
+        app_logo_url=config.app.logo_url,
         user_email=user.email,
         login_time=datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
         ip_address=login_request.ip_address or "Unknown",
+        location=location_str,
     )
 
     return {
@@ -794,12 +810,14 @@ async def send_otp(
     environment: ENVIRONMENT = Depends(get_app_environment),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
     resend_service: ResendService = Depends(get_resend_service),
+    config: Config = Depends(get_config),
 ):
     token = await send_otp_internal(
         environment,
         email=otp_data.email,
         otp_usecases=otp_usecases,
         resend_service=resend_service,
+        app_logo_url=config.app.logo_url,
     )
 
     response.headers["X-OTP-Token"] = token

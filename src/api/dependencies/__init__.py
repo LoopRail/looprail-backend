@@ -24,6 +24,7 @@ from src.api.dependencies.services import (
     get_paystack_service,
     get_redis_service,
     get_resend_service,
+    get_geolocation_service,
 )
 from src.api.dependencies.usecases import (
     get_blockrader_wallet_service,
@@ -76,4 +77,5 @@ __all__ = [
     "get_blockrader_webhook_event",
     "get_notification_usecase",
     "get_session_repository",
+    "get_geolocation_service",
 ]

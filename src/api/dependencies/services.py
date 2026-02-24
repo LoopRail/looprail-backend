@@ -8,6 +8,7 @@ from src.infrastructure.services import (
     PaycrestService,
     PaystackService,
     ResendService,
+    GeolocationService,
 )
 from src.infrastructure.settings import BlockRaderConfig
 
@@ -34,6 +35,10 @@ def get_paystack_service(request: Request) -> PaystackService:
 
 def get_resend_service(request: Request) -> ResendService:
     return request.app.state.resend
+
+
+def get_geolocation_service(request: Request) -> GeolocationService:
+    return request.app.state.geolocation
 
 
 def get_redis_service(request: Request) -> RedisClient:
