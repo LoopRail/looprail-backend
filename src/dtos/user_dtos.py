@@ -2,7 +2,7 @@ import re
 from datetime import date
 from typing import List, Optional
 
-from pydantic import EmailStr, Field, field_validator
+from pydantic import EmailStr, Field, field_validator, model_validator
 from pydantic_extra_types.country import CountryShortName
 
 from src.dtos.base import Base
@@ -23,6 +23,12 @@ class CompleteOnboardingRequest(Base):
     allow_notifications: bool
     fcm_token: Optional[str] = None
     questioner: list[str]
+
+    @model_validator(mode="after")
+    def validate_notifications(self) -> "CompleteOnboardingRequest":
+        if self.allow_notifications and not self.fcm_token:
+            raise ValueError("FCM token is required when notifications are enabled")
+        return self
 
 
 class UserCreate(Base):
