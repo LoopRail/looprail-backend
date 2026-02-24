@@ -33,4 +33,5 @@ dependencies = [
     "rq>=2.6.1",
     "cloudinary>=1.44.1",
     "gunicorn>=24.1.0",
+    "firebase-admin>=7.1.0",
 ]

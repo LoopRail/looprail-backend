@@ -112,8 +112,6 @@ async def get_notification_usecase(
     rq_manager: RQManager = Depends(get_rq_manager),
 ) -> NotificationUseCase:
     logger.debug("Entering get_notification_usecase")
-    # We use the 'notifications' queue
-    # Let's ensure we use 'notifications' queue if we want it isolated
     notif_queue = Queue('notifications', connection=rq_manager.get_connection())
     yield NotificationUseCase(notif_queue)
 

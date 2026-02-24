@@ -18,6 +18,7 @@ from src.infrastructure.settings import (
     PaystackConfig,
     RedisConfig,
     ResendConfig,
+    FirebaseConfig,
 )
 from src.types.country_types import CountriesData
 from src.types.ledger_types import LedgerConfig
@@ -191,6 +192,7 @@ class Config:
         self.database: DatabaseConfig = DatabaseConfig()
         self.redis: RedisConfig = RedisConfig()
         self.argon2: Argon2Config = Argon2Config()
+        self.firebase: FirebaseConfig = FirebaseConfig()
         self.countries: CountriesData = load_countries()
         logger.debug("Countries data loaded.")
 

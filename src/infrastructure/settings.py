@@ -107,3 +107,10 @@ class RedisConfig(ServerConfig):
     redis_host: str
     redis_username: str | None = None
     redis_password: str | None = None
+
+
+class FirebaseConfig(ServerConfig):
+    firebase_project_id: str | None = None
+    firebase_private_key: str | None = None
+    firebase_client_email: str | None = None
+    firebase_database_url: str | None = None

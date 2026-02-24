@@ -9,6 +9,7 @@ from src.api.dependencies.auth_deps import (
 from src.api.dependencies.extra_deps import get_app_environment, get_config
 from src.api.dependencies.repositories import (
     get_asset_repository,
+    get_session_repository,
     get_transaction_repository,
     get_user_repository,
     get_wallet_repository,
@@ -35,6 +36,7 @@ from src.api.dependencies.usecases import (
     get_transaction_usecase,
     get_user_usecases,
     get_wallet_manager_usecase,
+    get_notification_usecase,
 )
 from src.api.dependencies.webhooks import get_blockrader_webhook_event
 
@@ -72,4 +74,6 @@ __all__ = [
     "get_lock_service",
     "get_transaction_usecase",
     "get_blockrader_webhook_event",
+    "get_notification_usecase",
+    "get_session_repository",
 ]
