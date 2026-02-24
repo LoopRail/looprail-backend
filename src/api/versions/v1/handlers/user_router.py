@@ -26,4 +26,4 @@ async def get_user(
     return user
 
 
-router.get("/{user_id}", response_model=UserPublic)(get_user)
+# router.get("/{user_id}", response_model=UserPublic, response_model_exclude_none=True)(get_user)

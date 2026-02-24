@@ -80,7 +80,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 login_auth_lock = get_auth_lock_service("logins")
 
 
-@router.post("/create-user", response_model=CreateUserResponse)
+@router.post("/create-user", response_model=CreateUserResponse, response_model_exclude_none=True)
 @limiter.limit("5/minute")
 async def create_user(
     request: Request,
@@ -135,6 +135,7 @@ async def create_user(
     "/setup-wallet",
     response_model=MessageResponse,
     status_code=status.HTTP_200_OK,
+    response_model_exclude_none=True,
 )
 @limiter.limit("5/minute")
 async def setup_wallet(
@@ -171,6 +172,7 @@ async def setup_wallet(
     "/complete-onboarding",
     response_model=AuthWithTokensAndUserResponse,
     status_code=status.HTTP_202_ACCEPTED,
+    response_model_exclude_none=True,
 )
 @limiter.limit("5/minute")
 async def complete_onboarding(
@@ -282,7 +284,7 @@ async def complete_onboarding(
     }
 
 
-@router.post("/login", response_model=AuthWithTokensAndUserResponse)
+@router.post("/login", response_model=AuthWithTokensAndUserResponse, response_model_exclude_none=True)
 @limiter.limit("10/minute")
 async def login(
     request: Request,
@@ -447,7 +449,7 @@ async def login(
 
 
 @router.post(
-    "/token", summary="Refresh Access Token", response_model=AuthTokensResponse
+    "/token", summary="Refresh Access Token", response_model=AuthTokensResponse, response_model_exclude_none=True
 )
 @limiter.limit("3/minute")
 async def refresh_token(
@@ -545,7 +547,7 @@ async def refresh_token(
     return {"access-token": new_access_token, "refresh-token": new_refresh_token}
 
 
-@router.post("/challenge", response_model=ChallengeResponse)
+@router.post("/challenge", response_model=ChallengeResponse, response_model_exclude_none=True)
 @limiter.limit("10/minute")
 async def create_challenge(
     request: Request,
@@ -564,7 +566,7 @@ async def create_challenge(
     return challenge
 
 
-@router.post("/passcode/set", response_model=MessageResponse)
+@router.post("/passcode/set", response_model=MessageResponse, response_model_exclude_none=True)
 @limiter.limit("5/minute")
 async def set_passcode(
     request: Request,
@@ -586,7 +588,7 @@ async def set_passcode(
     return {"message": "Passcode set successfully"}
 
 
-@router.post("/passcode-login", response_model=AuthWithTokensAndUserResponse)
+@router.post("/passcode-login", response_model=AuthWithTokensAndUserResponse, response_model_exclude_none=True)
 @limiter.limit("5/minute")
 async def passcode_login(
     request: Request,
@@ -745,7 +747,7 @@ async def passcode_login(
 
 
 @router.post(
-    "/logout", summary="Logout from current session", response_model=MessageResponse
+    "/logout", summary="Logout from current session", response_model=MessageResponse, response_model_exclude_none=True
 )
 @limiter.limit("5/minute")
 async def logout(
@@ -771,7 +773,7 @@ async def logout(
 
 
 @router.post(
-    "/logout-all", summary="Logout from all sessions", response_model=MessageResponse
+    "/logout-all", summary="Logout from all sessions", response_model=MessageResponse, response_model_exclude_none=True
 )
 @limiter.limit("5/minute")
 async def logout_all(

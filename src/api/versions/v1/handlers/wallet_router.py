@@ -40,6 +40,7 @@ withdraw_auth_lock = get_auth_lock_service("withdrawals")
     "/",
     response_model=WalletPublic,
     summary="Get current user wallet info",
+    response_model_exclude_none=True,
 )
 async def get_user_wallet_info(
     token: AccessToken = Depends(get_current_user_token),
@@ -62,6 +63,7 @@ async def get_user_wallet_info(
     "/balance/{asset_id}",
     response_model=AssetBalance,
     summary="Get current user specific asset balance",
+    response_model_exclude_none=True,
 )
 async def get_asset_balance(
     asset_id: AssetId,
