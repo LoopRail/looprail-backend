@@ -15,14 +15,14 @@ from src.api import add_rate_limiter, v1_router
 from src.api.dependencies.repositories import get_session
 from src.api.dependencies.services import get_ledger_service, get_redis_service
 from src.api.middlewares import RequestLoggerMiddleware
-from src.infrastructure import RedisClient, get_logger, load_config
+from src.infrastructure import RedisClient, RQManager, get_logger, load_config
 from src.infrastructure.services import (
     AuthLockService,
+    GeolocationService,
     LedgerService,
     PaycrestService,
     PaystackService,
     ResendService,
-    GeolocationService,
 )
 from src.types import Error, InternaleServerError, error
 
@@ -40,6 +40,7 @@ async def lifespan(app_: FastAPI):
     app_.state.paycrest = PaycrestService(config.paycrest)
     app_.state.paystack = PaystackService(config.paystack)
     app_.state.ledger_service = LedgerService(config.ledger)
+    app_.state.rq_manager = RQManager(config.redis)
 
     app_.state.auth_lock = AuthLockService(redis_client=app.state.redis)
 
