@@ -4,7 +4,7 @@ from typing import Any, Optional
 from pydantic import Field
 
 from src.types.blockrader.base import baseBlockRaderType
-from src.types.common_types import Address
+from src.types.common_types import Address, Network
 
 
 class BlockchainData(baseBlockRaderType):
@@ -33,7 +33,7 @@ class AssetData(baseBlockRaderType):
     isActive: bool
     logoUrl: str
     name: str
-    network: str
+    network: Network
     standard: Optional[str]
     symbol: str
     updatedAt: datetime | None = None
