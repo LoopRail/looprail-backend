@@ -17,6 +17,11 @@ from solders.pubkey import Pubkey
 _HEX_ADDRESS_REGEXP = re.compile("(0x)?[0-9a-f]{40}", re.IGNORECASE | re.ASCII)
 
 
+class Network(StrEnum):
+    MAINNET = "mainnet"
+    TESTNET = "testnet"
+
+
 def validate_address(v: str) -> str:
     if _HEX_ADDRESS_REGEXP.fullmatch(v):
         return v

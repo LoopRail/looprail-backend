@@ -38,7 +38,6 @@ from src.types import (
     WorldLedger,
     error,
     types,
-    Network,
 )
 from src.types.blnk import (
     CreateBalanceRequest,
@@ -53,7 +52,7 @@ from src.types.blockrader import (
     NetworkFeeRequest,
     WalletAddressResponse,
 )
-from src.types.common_types import AssetId, UserId
+from src.types.common_types import AssetId, UserId, Network
 from src.types.ledger_types import Ledger
 from src.types.paycrest import PaycrestRecipiant
 from src.types.types import WithdrawalMethod

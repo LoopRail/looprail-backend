@@ -4,12 +4,11 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from pydantic import Field, field_validator
 
 from src.dtos.base import Base
-from src.types.common_types import Address, AssetId, Chain, WalletId
+from src.types.common_types import Address, AssetId, Chain, WalletId, Network
 from src.types.error import Error, error
 from src.types.types import (
     AssetType,
     Currency,
-    Network,
     TokenStandard,
     WithdrawalMethod,
 )

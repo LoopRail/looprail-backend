@@ -7,10 +7,9 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship
 
 from src.models.base import Base
-from src.types.common_types import Address, ReferenceId
+from src.types.common_types import Address, ReferenceId, Network
 from src.types.types import (
     Currency,
-    Network,
     PaymentMethod,
     TransactionStatus,
     TransactionType,
