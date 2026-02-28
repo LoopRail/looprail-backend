@@ -702,7 +702,7 @@ class WalletManagerUsecase:
             # Default to Crypto params (External Wallet)
             common_transaction_params = CryptoTransactionParams(
                 **base_kwargs,
-                transaction_hash="pending",
+                transaction_hash=f"pending:{transaction.id}",
                 network=asset.network,
                 chain_id=None,
             )
