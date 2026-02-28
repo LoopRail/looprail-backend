@@ -28,6 +28,8 @@ class AppSettings(BaseSettings):
         alias="ENVIRONMENT",
     )
     logo_url: str | None = Field(default=None, alias="APP_LOGO_URL")
+    full_logo_url: str | None = Field(default=None, alias="APP_FULL_LOGO_URL")
+    icon_logo_url: str | None = Field(default=None, alias="APP_ICON_LOGO_URL")
 
     @property
     def get_env_file_path(self) -> str:
