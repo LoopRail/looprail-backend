@@ -234,3 +234,6 @@ async def health_check(
         logger.warning("Health check failed, services status: %s", services)
 
     return {"status": "UP" if healthy else "DOWN", "services": services}
+
+
+# TODO: do not log passwords and other sensitive data in error logs

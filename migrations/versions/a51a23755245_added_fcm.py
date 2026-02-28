@@ -41,7 +41,10 @@ def upgrade() -> None:
                type_=network_enum,
                existing_nullable=True,
                postgresql_using='UPPER(network)::network')
-    op.create_index(op.f('ix_transactions_reference'), 'transactions', ['reference'], unique=True)
+    if bind.dialect.name == 'postgresql':
+        op.execute('CREATE UNIQUE INDEX IF NOT EXISTS ix_transactions_reference ON transactions (reference)')
+    else:
+        op.create_index(op.f('ix_transactions_reference'), 'transactions', ['reference'], unique=True)
     op.alter_column('wallet_transfer_details', 'network',
                existing_type=sa.VARCHAR(length=50),
                type_=network_enum,
@@ -59,7 +62,11 @@ def downgrade() -> None:
                existing_type=network_enum,
                type_=sa.VARCHAR(length=50),
                existing_nullable=False)
-    op.drop_index(op.f('ix_transactions_reference'), table_name='transactions')
+    bind = op.get_bind()
+    if bind.dialect.name == 'postgresql':
+        op.execute('DROP INDEX IF EXISTS ix_transactions_reference')
+    else:
+        op.drop_index(op.f('ix_transactions_reference'), table_name='transactions')
     op.alter_column('transactions', 'network',
                existing_type=network_enum,
                type_=sa.VARCHAR(),

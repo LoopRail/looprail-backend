@@ -112,6 +112,7 @@ class RedisConfig(ServerConfig):
 
 class FirebaseConfig(ServerConfig):
     firebase_project_id: str | None = None
+    firebase_private_key_id: str | None = Field(default=None, alias="FIREBASE_PRIVATE_KEY_id")
     firebase_client_id: str | None = None
     firebase_private_key: str | None = None
     firebase_client_email: str | None = None
