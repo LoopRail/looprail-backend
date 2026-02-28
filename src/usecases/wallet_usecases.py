@@ -51,6 +51,7 @@ from src.types.blockrader import (
     CreateAddressRequest,
     NetworkFeeRequest,
     WalletAddressResponse,
+    WithdrawalRequest as BlockraderWithdrawalRequest,
 )
 from src.types.common_types import AssetId, UserId, Network
 from src.types.ledger_types import Ledger
@@ -1037,68 +1038,26 @@ class WalletManagerUsecase:
             transaction.id,
         )
 
-        # Handle external payment initiation (e.g., Paycrest for bank transfers)
+        # Dispatch based on withdrawal method
         if withdrawal_request.destination.event == WithdrawalMethod.BANK_TRANSFER:
-            if transaction.network == Network.TESTNET:
-                logger.info(
-                    "Skipping Paycrest payment order for testnet transaction %s",
-                    transaction.id,
-                )
-                return await self._update_withdrawal_transaction_status(
-                    transaction_id,
-                    TransactionStatus.COMPLETED,
-                )
-
-            logger.info(
-                "Initiating Paycrest payment order for bank transfer withdrawal %s",
-                transaction.id,
+            err = await self._execute_bank_transfer_withdrawal(
+                user, withdrawal_request, transaction
             )
-            transfer_data = BankTransferData.model_validate(
-                withdrawal_request.destination.data
+        elif withdrawal_request.destination.event == WithdrawalMethod.EXTERNAL_WALLET:
+            err = await self._execute_external_wallet_withdrawal(
+                user, withdrawal_request, transaction
+            )
+        else:
+            logger.error(
+                "Unsupported withdrawal method for execution: %s",
+                withdrawal_request.destination.event,
+            )
+            err = error(
+                f"Unsupported withdrawal method: {withdrawal_request.destination.event}"
             )
 
-            recipient = PaycrestRecipiant(
-                institution=transfer_data.bank_code,
-                account_identifier=transfer_data.account_number,
-                account_name=transfer_data.account_name,
-                memo=withdrawal_request.narration,
-                currency=withdrawal_request.currency,
-            )
-
-            user_wallet, err = await self._get_user_wallet(user_id=user.id)
-            if err:
-                return err
-
-            (
-                paycrest_order,
-                err,
-            ) = await self.service.paycrest_service.create_payment_order(
-                amount=withdrawal_request.amount,
-                recipient=recipient,
-                reference=transaction.reference,
-                return_address=user_wallet.address,
-            )
-
-            if err:
-                logger.error(
-                    "Failed to create Paycrest payment order for withdrawal %s: %s",
-                    transaction.id,
-                    err.message,
-                )
-                # NOTE: Since we already committed the ledger transaction, we might need a way to rollback or manually intervene.
-                # For now, we update the local transaction status to FAILED.
-                await self.service.transaction_usecase.update_transaction_status(
-                    transaction_id=transaction.id,
-                    new_status=TransactionStatus.FAILED,
-                    error_message=f"External payment initiation failed: {err.message}",
-                )
-                return error(f"External payment initiation failed: {err.message}")
-
-            logger.info(
-                "Paycrest payment order %s created successfully for withdrawal %s",
-                paycrest_order.data.payment_id,
-                transaction.id,
-            )
+        if err:
+            return err
 
         err = await self._update_withdrawal_transaction_status(
             transaction_id,
@@ -1112,4 +1071,132 @@ class WalletManagerUsecase:
             user_id,
             transaction_id,
         )
+        return None
+
+    async def _execute_bank_transfer_withdrawal(
+        self,
+        user: User,
+        withdrawal_request: WithdrawalRequest,
+        transaction: Transaction,
+    ) -> Optional[Error]:
+        """Handles external payment initiation for bank transfers via Paycrest."""
+        if transaction.network == Network.TESTNET:
+            logger.info(
+                "Skipping Paycrest payment order for testnet transaction %s",
+                transaction.id,
+            )
+            return None
+
+        logger.info(
+            "Initiating Paycrest payment order for bank transfer withdrawal %s",
+            transaction.id,
+        )
+
+        transfer_data = BankTransferData.model_validate(
+            withdrawal_request.destination.data
+        )
+
+        recipient = PaycrestRecipiant(
+            institution=transfer_data.bank_code,
+            account_identifier=transfer_data.account_number,
+            account_name=transfer_data.account_name,
+            memo=withdrawal_request.narration,
+            currency=withdrawal_request.currency,
+        )
+
+        user_wallet, err = await self._get_user_wallet(user_id=user.id)
+        if err:
+            return err
+
+        (
+            paycrest_order,
+            err,
+        ) = await self.service.paycrest_service.create_payment_order(
+            amount=withdrawal_request.amount,
+            recipient=recipient,
+            reference=transaction.reference,
+            return_address=user_wallet.address,
+        )
+
+        if err:
+            logger.error(
+                "Failed to create Paycrest payment order for withdrawal %s: %s",
+                transaction.id,
+                err.message,
+            )
+            await self.service.transaction_usecase.update_transaction_status(
+                transaction_id=transaction.id,
+                new_status=TransactionStatus.FAILED,
+                error_message=f"External payment initiation failed: {err.message}",
+            )
+            return error(f"External payment initiation failed: {err.message}")
+
+        logger.info(
+            "Paycrest payment order %s created successfully for withdrawal %s",
+            paycrest_order.data.payment_id,
+            transaction.id,
+        )
+        return None
+
+    async def _execute_external_wallet_withdrawal(
+        self,
+        user: User,
+        withdrawal_request: WithdrawalRequest,
+        transaction: Transaction,
+    ) -> Optional[Error]:
+        """Handles external wallet withdrawal initiation via Blockrader."""
+        logger.info(
+            "Initiating Blockrader withdrawal for external wallet withdrawal %s",
+            transaction.id,
+        )
+
+        transfer_data = ExternalWalletTransferData.model_validate(
+            withdrawal_request.destination.data
+        )
+
+        blockrader_asset, err = self.wallet_config.get(
+            asset_id=str(withdrawal_request.asset_id.clean())
+        )
+        if err:
+            return err
+
+        user_wallet, err = await self._get_user_wallet(user_id=user.id)
+        if err:
+            return err
+
+        blockrader_withdrawal_request = BlockraderWithdrawalRequest(
+            assetId=blockrader_asset.blockrader_asset_id,
+            address=transfer_data.address,
+            amount=str(withdrawal_request.amount),
+            reference=transaction.reference,
+        )
+
+        withdrawal_response, err = await self.manager.withdraw(
+            blockrader_withdrawal_request
+        )
+
+        if err:
+            logger.error(
+                "Failed to initiate Blockrader withdrawal for transaction %s: %s",
+                transaction.id,
+                err.message,
+            )
+            await self.service.transaction_usecase.update_transaction_status(
+                transaction_id=transaction.id,
+                new_status=TransactionStatus.FAILED,
+                error_message=f"External wallet withdrawal failed: {err.message}",
+            )
+            return error(f"External wallet withdrawal failed: {err.message}")
+
+        logger.info(
+            "Blockrader withdrawal %s initiated successfully for transaction %s",
+            withdrawal_response.data.transaction_id,
+            transaction.id,
+        )
+
+        # Update transaction with hash if available (some providers might return it immediately or later via webhook)
+        if withdrawal_response.data.transaction_hash:
+            transaction.transaction_hash = withdrawal_response.data.transaction_hash
+            await self.service.transaction_usecase.repo.update(transaction)
+
         return None

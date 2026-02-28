@@ -201,7 +201,6 @@ async def withdraw(
         blockrader_config=config.block_rader,
         user_id=user.id,
         withdrawal_request_data=withdrawal_request.model_dump(),
-        pin=withdrawal_request.authorization.pin,
         transaction_id=transaction_id,
         wallet_name=config.block_rader.wallets.wallets[0].wallet_id,
         ledger_id=config.ledger.ledgers.ledgers[0].ledger_id,
