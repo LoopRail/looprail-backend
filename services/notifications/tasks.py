@@ -18,7 +18,7 @@ notification_service = NotificationService(
     resend_service, 
     firebase_config, 
     environment=app_settings.environment,
-    app_logo_url=app_settings.logo_url
+    app_logo_url=app_settings.icon_logo_url
 )
 
 
