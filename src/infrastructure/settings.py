@@ -21,15 +21,12 @@ class ENVIRONMENT(str, Enum):
     TEST = "test"
 
 
-class AppSettings(BaseSettings):
+class EnvironmentSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="ignore", env_file_encoding="utf-8")
     environment: ENVIRONMENT = Field(
         default=ENVIRONMENT.DEVELOPMENT,
         alias="ENVIRONMENT",
     )
-    logo_url: str | None = Field(default=None, alias="APP_LOGO_URL")
-    full_logo_url: str | None = Field(default=None, alias="APP_FULL_LOGO_URL")
-    icon_logo_url: str | None = Field(default=None, alias="APP_ICON_LOGO_URL")
 
     @property
     def get_env_file_path(self) -> str:
@@ -41,12 +38,26 @@ class AppSettings(BaseSettings):
         return os.path.join(return_base_dir(), "config", filename)
 
 
+# Bootstrap environment to find the correct .env file
+_env_bootstrap = EnvironmentSettings()
+
+
 class ServerConfig(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=AppSettings().get_env_file_path,
+        env_file=_env_bootstrap.get_env_file_path,
         env_file_encoding="utf-8",
         extra="ignore",
     )
+    environment: ENVIRONMENT = Field(
+        default=ENVIRONMENT.DEVELOPMENT,
+        alias="ENVIRONMENT",
+    )
+
+
+class AppSettings(ServerConfig):
+    logo_url: str | None = Field(default=None, alias="APP_LOGO_URL")
+    full_logo_url: str | None = Field(default=None, alias="APP_FULL_LOGO_URL")
+    icon_logo_url: str | None = Field(default=None, alias="APP_ICON_LOGO_URL")
 
 
 class LedgderServiceConfig(ServerConfig):
