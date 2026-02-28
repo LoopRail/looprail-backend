@@ -25,6 +25,7 @@ from src.infrastructure.services import (
     ResendService,
 )
 from src.types import Error, InternaleServerError, error
+from src.utils.redaction import redact_dict, redact_pydantic_errors
 
 logger = get_logger(__name__)
 
@@ -85,10 +86,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     Handles Pydantic's validation errors to return a human-readable message.
     """
     error_details = exc.errors()
-    logger.error(error_details)
+    redacted_error_details = redact_pydantic_errors(error_details)
+    logger.error(redacted_error_details)
 
     messages = []
-    for e in error_details:
+    for e in redacted_error_details:
         loc_parts = e.get("loc", [])[1:]
         # Filter out pydantic-internal validation details from the location path
         filtered_loc = [str(p) for p in loc_parts if "[" not in str(p)]
@@ -119,10 +121,11 @@ async def raw_pydantic_validation_exception_handler(
     Handles raw Pydantic validation errors that might occur outside of FastAPI's RequestValidationError.
     """
     error_details = exc.errors()
-    logger.error(error_details)
+    redacted_error_details = redact_pydantic_errors(error_details)
+    logger.error(redacted_error_details)
 
     messages = []
-    for e in error_details:
+    for e in redacted_error_details:
         loc_parts = e.get("loc", [])[1:]
         # Filter out pydantic-internal validation details from the location path
         filtered_loc = [str(p) for p in loc_parts if "[" not in str(p)]
@@ -146,24 +149,37 @@ async def raw_pydantic_validation_exception_handler(
 
 @app.exception_handler(error)
 async def custom_error_handler(request: Request, exc: Error):
-    logger.error(exc.message)
+    redacted_message = exc.message
+    # Basic redaction for generic error messages if they happen to contain sensitive info
+    if isinstance(exc.message, str) and "@" in exc.message:
+        from src.utils.redaction import redact_email
+        redacted_message = redact_email(exc.message)
+    
+    logger.error(redacted_message)
     code = status.HTTP_400_BAD_REQUEST
     if hasattr(exc, "code"):
         code = exc.code
     return JSONResponse(
         status_code=code,
-        content={"message": exc.message},
+        content={"message": redacted_message},
     )
 
 
 @app.exception_handler(HTTPException)
 async def custom_http_error_handler(request: Request, exc: HTTPException):
     # Log the HTTPException details
+    detail = exc.detail
+    if isinstance(detail, (dict, list)):
+        detail = redact_dict(detail)
+    elif isinstance(detail, str) and "@" in detail:
+        from src.utils.redaction import redact_email
+        detail = redact_email(detail)
+
     logger.error(
         "HTTPException caught: Status Code: %s, Detail: %s, Headers: %s",
         exc.status_code,
-        exc.detail,
-        exc.headers,
+        detail,
+        redact_dict(dict(exc.headers)) if exc.headers else None,
     )
     return JSONResponse(
         status_code=exc.status_code,
