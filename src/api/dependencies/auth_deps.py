@@ -7,6 +7,7 @@ from src.api.dependencies.usecases import (
     get_jwt_usecase,
     get_otp_token,
     get_otp_usecase,
+    get_secrets_usecase,
     get_session_usecase,
     get_user_usecases,
 )
@@ -179,12 +180,17 @@ async def verify_otp_dep(
         raise InternaleServerError
     return otp
 
+async def get_verify_webhook_request(
+    secrets_usecase: SecretsUsecase = Depends(get_secrets_usecase),
+) -> "VerifyWebhookRequest":
+    return VerifyWebhookRequest(secrets_usecase)
+
 
 class VerifyWebhookRequest:
     def __init__(self, secrets_usecase: SecretsUsecase) -> None:
         self.secrets_usecase = secrets_usecase
 
-    async def __call__(self, request: Request) -> Tuple[WebhookProvider, bytes]:
+    async def __call__(self, request: Request) -> WebhookProvider:
         logger.debug("Entering VerifyWebhookRequest.__call__")
         body = await request.body()
 

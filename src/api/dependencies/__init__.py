@@ -4,6 +4,7 @@ from src.api.dependencies.auth_deps import (
     get_current_session,
     get_current_user,
     get_current_user_token,
+    get_verify_webhook_request,
     verify_otp_dep,
 )
 from src.api.dependencies.extra_deps import get_app_environment, get_config
@@ -47,6 +48,7 @@ __all__ = [
     "get_app_environment",
     "verify_otp_dep",
     "VerifyWebhookRequest",
+    "get_verify_webhook_request",
     "get_user_repository",
     "get_wallet_repository",
     "get_transaction_repository",
