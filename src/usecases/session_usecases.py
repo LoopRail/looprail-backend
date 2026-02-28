@@ -173,14 +173,11 @@ class SessionUseCase:
         self, session_id: SessionId
     ) -> Tuple[Optional[Session], Error]:
         logger.debug("Getting session with ID: %s", session_id)
-        session, err = await self.session_repository.get_session(session_id)
-        print(session_id)
-        print(session)
         if err:
             logger.debug("Session %s not found: %s", session_id, err.message)
             return None, err
         logger.debug("Session %s retrieved.", session_id)
-        return session, err
+        return session, None
 
     async def revoke_session(self, session_id: SessionId) -> Error:
         logger.info("Revoking session with ID: %s", session_id)
@@ -227,7 +224,7 @@ class SessionUseCase:
                 old_refresh_token.id,
                 err.message,
             )
-            return None, err
+            return err
         logger.debug("Old refresh token %s marked as replaced.", old_refresh_token.id)
 
         (
@@ -244,7 +241,7 @@ class SessionUseCase:
                 old_refresh_token.session_id,
                 err.message,
             )
-            return None, err
+            return err
         logger.info(
             "Refresh token rotated successfully for session %s",
             old_refresh_token.session_id,

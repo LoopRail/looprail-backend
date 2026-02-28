@@ -318,36 +318,14 @@ async def login(
             status_code=status.HTTP_403_FORBIDDEN,
             content={"message": "Account is locked due to too many failed attempts."},
         )
-    current_attempts, err = await auth_lock_service.increment_failed_attempts(
-        login_request.email
-    )
-    if err:
-        if isinstance(err, FailedAttemptError):
-            logger.warning(
-                "Invalid password for user %s. Failed attempts: %s. IP: %s, User-Agent: %s",
-                login_request.email,
-                current_attempts,
-                login_request.ip_address,
-                login_request.user_agent,
-            )
-            logger.error(
-                "Authentication failed for user %s: %s", login_request.email, err
-            )
-            return JSONResponse(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                content={"message": "Invalid credentials"},
-            )
-        logger.error("Authentication failed for user %s: %s", login_request.email, err)
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"message": "Internal server error"},
-        )
-
     user, err = await user_usecases.authenticate_user(
         email=login_request.email, password=login_request.password
     )
 
     if err:
+        current_attempts, _ = await auth_lock_service.increment_failed_attempts(
+            login_request.email
+        )
         logger.warning(
             "Invalid password for user %s. Failed attempts: %s. IP: %s, User-Agent: %s",
             login_request.email,
@@ -473,7 +451,6 @@ async def refresh_token(
         incoming_refresh_token_hash
     )
     if err or not refresh_token_db:
-        print(f"DEBUG: get_valid_refresh_token_by_hash failed: {err}")
         logger.error(
             "Invalid or expired refresh token: %s", err.message if err else "Not found"
         )
@@ -483,7 +460,6 @@ async def refresh_token(
         )
 
     if refresh_token_db.replaced_by_hash is not None:
-        print(f"DEBUG: refresh token reuse detected")
         logger.warning(
             "Refresh token reuse detected for session %s", refresh_token_db.session_id
         )
@@ -495,7 +471,6 @@ async def refresh_token(
 
     session, err = await session_usecase.get_session(refresh_token_db.session_id)
     if err or not session:
-        print(f"DEBUG: get_session failed: {err}")
         logger.error("Session not found for refresh token %s", refresh_token_db.id)
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -827,5 +802,3 @@ async def send_otp(
     logger.info("OTP sent successfully to email: %s", otp_data.email)
     return {"message": "OTP sent successfully"}
 
-
-# TODO device id check against session
