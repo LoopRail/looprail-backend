@@ -109,7 +109,7 @@ async def create_user(
         email=created_user.email,
         otp_usecases=otp_usecases,
         resend_service=resend_service,
-        app_logo_url=config.app.logo_url,
+        app_logo_url=config.app.full_logo_url or config.app.logo_url,
     )
 
     logger.info("User %s registered successfully.", created_user.email)
@@ -413,7 +413,7 @@ async def login(
         to=user.email,
         subject="New Login to Your LoopRail Account",
         template_name="login_alert",
-        app_logo_url=config.app.logo_url,
+        app_logo_url=config.app.full_logo_url or config.app.logo_url,
         user_first_name=user.first_name,
         login_time=datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
         ip_address=login_request.ip_address or "Unknown",
@@ -795,7 +795,7 @@ async def send_otp(
         email=otp_data.email,
         otp_usecases=otp_usecases,
         resend_service=resend_service,
-        app_logo_url=config.app.logo_url,
+        app_logo_url=config.app.full_logo_url or config.app.logo_url,
     )
 
     response.headers["X-OTP-Token"] = token
