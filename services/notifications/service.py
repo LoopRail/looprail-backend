@@ -40,6 +40,7 @@ class NotificationService:
                     "type": "service_account",
                     "project_id": self.firebase_config.firebase_project_id,
                     "client_id": self.firebase_config.firebase_client_id,
+                    "private_key_id": self.firebase_config.firebase_private_key_id,
                     "private_key": self.firebase_config.firebase_private_key.replace(
                         "\\n", "\n"
                     )
@@ -63,14 +64,6 @@ class NotificationService:
     async def send_push(self, notification: PushNotificationDTO) -> Tuple[bool, Optional[Error]]:
         logger.info(f"Sending push notification to {notification.token}: {notification.title}")
                 
-        if self.environment == ENVIRONMENT.DEVELOPMENT:
-            logger.info(
-                "Skipping push notification send in DEVELOPMENT environment for user %s: %s",
-                notification.user_id,
-                notification.title,
-            )
-            return True, None
-
         if self.environment == ENVIRONMENT.DEVELOPMENT:
             logger.info(
                 "Skipping push notification send in DEVELOPMENT environment for user %s: %s",
