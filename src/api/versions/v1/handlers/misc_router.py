@@ -4,7 +4,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from src.api.dependencies import get_paycrest_service
-from src.api.dependencies.services import get_notification_usecase
+from src.api.dependencies.usecases import get_notification_usecase
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services.paycrest.paycrest_service import PaycrestService
 from src.types.bank import SupportedBanksResponse
