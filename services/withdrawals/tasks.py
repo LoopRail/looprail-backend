@@ -6,8 +6,8 @@ from services.withdrawals.dependencies import get_task_wallet_manager_usecase
 from src.infrastructure.db import get_session
 from src.infrastructure.redis import RQManager
 from src.infrastructure.repositories import SessionRepository, UserRepository
-from src.infrastructure.settings import RedisConfig, ResendConfig, AppSettings
 from src.infrastructure.services.resend_service import ResendService
+from src.infrastructure.settings import AppSettings, RedisConfig, ResendConfig
 from src.types.common_types import UserId
 from src.types.notification_types import NotificationAction
 from src.utils.email_helpers import send_transactional_email
@@ -24,6 +24,7 @@ async def _send_withdrawal_processed_notification(user_id: str, transaction_id: 
         redis_config = RedisConfig()
         rq_manager = RQManager(redis_config)
         from rq import Queue
+
         notif_queue = Queue("notifications", connection=rq_manager.get_connection())
 
         async for session in get_session():
@@ -44,13 +45,17 @@ async def _send_withdrawal_processed_notification(user_id: str, transaction_id: 
                         "type": "push",
                     },
                 )
-            logger.info("Enqueued WITHDRAWAL_PROCESSED notification for user %s", user_id)
+            logger.info(
+                "Enqueued WITHDRAWAL_PROCESSED notification for user %s", user_id
+            )
             break
     except Exception as e:
         logger.error("Failed to send withdrawal processed notification: %s", e)
 
 
-async def _send_withdrawal_processed_email(user_id: str, transaction_id: str, amount: str = "", currency: str = ""):
+async def _send_withdrawal_processed_email(
+    user_id: str, transaction_id: str, amount: str = "", currency: str = ""
+):
     """Send withdrawal processed email to the user."""
     try:
         resend_config = ResendConfig()
