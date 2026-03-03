@@ -3,16 +3,15 @@ from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from src.infrastructure.redis import RQManager
 from src.api.dependencies import get_paycrest_service
-from src.api.dependencies.services import get_rq_manager
+from src.api.dependencies.services import get_notification_usecase
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services.paycrest.paycrest_service import PaycrestService
 from src.types.bank import SupportedBanksResponse
 from src.types.types import Currency
-from services.notifications.tasks import send_push_notification_task
 from src.dtos.notification_dtos import PushNotificationDTO
 from pydantic import BaseModel
+from src.usecases.notification_usecases import NotificationUseCase
 
 logger = get_logger(__name__)
 
@@ -66,7 +65,7 @@ class TestPushRequest(BaseModel):
 @router.post("/test-push")
 async def test_push_notification(
     request: TestPushRequest,
-    rq_manager: RQManager = Depends(get_rq_manager)
+    notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
 ):
     """
     Test endpoint to send a push notification immediately with just a token, bypassing background tasks.
@@ -80,14 +79,9 @@ async def test_push_notification(
             body="This is a test message to verify push notification delivery.",
             token=request.token
         )
+        notification_usecase.enqueue_push(notification)
         
-        # Enqueue the push notification task
-        job = rq_manager.get_queue().enqueue(
-            send_push_notification_task,
-            notification.model_dump()
-        )
-        
-        return {"status": "success", "message": "Test push notification enqueued successfully", "job_id": job.id}
+        return {"status": "success", "message": "Test push notification enqueued successfully"}
     except Exception as e:
         logger.exception("Exception in test push notification endpoint")
         return JSONResponse(
