@@ -9,6 +9,7 @@ from src.infrastructure.repositories import (
     WalletRepository,
 )
 from src.infrastructure.services import LedgerService, LockService
+from src.infrastructure.services.resend_service import ResendService
 from src.types import NotFoundError, TransactionStatus, TransactionType, WorldLedger
 from src.types.blnk import RecordTransactionRequest
 from src.types.blnk.dtos import UpdateInflightTransactionRequest
@@ -23,10 +24,9 @@ from src.types.blockrader import (
 from src.types.notification_types import NotificationAction
 from src.usecases import TransactionUsecase
 from src.usecases.notification_usecases import NotificationUseCase
-from src.utils.transaction_utils import create_transaction_params_from_event
-from src.utils.notification_helpers import enqueue_notifications_for_user
 from src.utils.email_helpers import send_transactional_email
-from src.infrastructure.services.resend_service import ResendService
+from src.utils.notification_helpers import enqueue_notifications_for_user
+from src.utils.transaction_utils import create_transaction_params_from_event
 
 logger = get_logger(__name__)
 
@@ -135,7 +135,7 @@ async def handle_deposit_swept_success(
     # Notify user that deposit is now confirmed / swept
     if session_repo and notification_usecase and txn:
         await enqueue_notifications_for_user(
-            user_id=str(txn.user_id),
+            user_id=str(txn.wallet.user_id),
             session_repo=session_repo,
             notification_usecase=notification_usecase,
             title="Deposit Confirmed ✅",
@@ -146,7 +146,7 @@ async def handle_deposit_swept_success(
 
     # Send deposit confirmed email
     if user_repo and resend_service and txn:
-        user, _ = await user_repo.find_one(id=txn.user_id)
+        user, _ = await user_repo.find_one(id=txn.wallet.user_id)
         if user:
             await send_transactional_email(
                 resend_service=resend_service,
