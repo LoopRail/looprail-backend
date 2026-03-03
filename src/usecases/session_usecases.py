@@ -173,6 +173,7 @@ class SessionUseCase:
         self, session_id: SessionId
     ) -> Tuple[Optional[Session], Error]:
         logger.debug("Getting session with ID: %s", session_id)
+        session, err = await self.session_repository.get_session(session_id)
         if err:
             logger.debug("Session %s not found: %s", session_id, err.message)
             return None, err

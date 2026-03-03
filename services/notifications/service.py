@@ -63,14 +63,6 @@ class NotificationService:
 
     async def send_push(self, notification: PushNotificationDTO) -> Tuple[bool, Optional[Error]]:
         logger.info(f"Sending push notification to {notification.token}: {notification.title}")
-                
-        if self.environment == ENVIRONMENT.DEVELOPMENT:
-            logger.info(
-                "Skipping push notification send in DEVELOPMENT environment for user %s: %s",
-                notification.user_id,
-                notification.title,
-            )
-            return True, None
 
         message = messaging.Message(
             token=notification.token,
@@ -112,10 +104,9 @@ class NotificationService:
                 analytics_label=notification.campaign_name or 'default',
             )
         )
-        
 
         try:
-            response = messaging.send(message)
+            response = messaging.send(message, dry_run=self.environment == ENVIRONMENT.DEVELOPMENT)
             logger.info(f"Successfully sent message: {response}")
             return True, None
         except FirebaseError as e:
