@@ -37,24 +37,55 @@ class Base[T]:
         logger.debug("Saving instance of %s", type(instance).__name__)
         return await instance.save(self.session)
 
+   
     async def get(
         self,
         _id: Union[str, int],
-        deletion: DeletionFilter = "active",
-    ) -> Tuple[Optional[T], Error]:
-        logger.debug("Retrieving %s with ID: %s", self._get_model().__name__, _id)
-        return await self._get_model().get(self.session, _id, deletion)
+        deletion: Optional[str] = "active",
+        load: Optional[List[str]] = None,  # relationships to eager-load
+    ) -> Tuple[Optional[T], Optional[Exception]]:
+        """
+        Retrieve a single object by primary key.
+
+        Args:
+            _id: primary key
+            deletion: "active" | "deleted" | None
+            load: list of relationship names to eager-load dynamically
+
+        Returns:
+            Tuple[object_or_None, error_or_None]
+        """
+        model = self._get_model()
+        logger.debug("Retrieving %s with ID: %s", model.__name__, _id)
+        return await model.get(self.session, _id=_id, deletion=deletion, load=load)
 
     async def find_one(
         self,
-        deletion: Optional[DeletionFilter] = None,
-        **kwargs,
-    ) -> Tuple[Optional[T], Error]:
-        logger.debug(
-            "Finding one %s with criteria: %s", self._get_model().__name__, kwargs
-        )
-        return await self._get_model().find_one(self.session, deletion, **kwargs)
+        deletion: Optional[str] = None,
+        load: Optional[List[str]] = None,
+        **filters,
+    ) -> Tuple[Optional[T], Optional[Exception]]:
+        """
+        Retrieve a single object matching arbitrary filter criteria.
 
+        Args:
+            deletion: "active" | "deleted" | None
+            load: list of relationship names to eager-load dynamically
+            **filters: arbitrary field=value filters
+
+        Returns:
+            Tuple[object_or_None, error_or_None]
+        """
+        model = self._get_model()
+        logger.debug(
+            "Finding one %s with criteria: %s", model.__name__, filters
+        )
+        return await model.find_one(
+            session=self.session,
+            filters=filters,
+            deletion=deletion,
+            load=load,
+        )
     async def find_all(
         self,
         deletion: Optional[DeletionFilter] = None,

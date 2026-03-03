@@ -51,9 +51,9 @@ from src.types.blockrader import (
     CreateAddressRequest,
     NetworkFeeRequest,
     WalletAddressResponse,
-    WithdrawalRequest as BlockraderWithdrawalRequest,
 )
-from src.types.common_types import AssetId, UserId, Network
+from src.types.blockrader import WithdrawalRequest as BlockraderWithdrawalRequest
+from src.types.common_types import AssetId, Network, UserId
 from src.types.ledger_types import Ledger
 from src.types.paycrest import PaycrestRecipiant
 from src.types.types import WithdrawalMethod

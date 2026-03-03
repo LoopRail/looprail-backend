@@ -78,7 +78,9 @@ async def handle_deposit_swept_success(
         return
     logger.debug("Processing swept transaction for asset %s", source_asset.name)
 
-    txn, err = await transaction_repo.find_one(external_reference=event.data.reference)
+    txn, err = await transaction_repo.find_one(
+        external_reference=event.data.reference, load=["wallet"]
+    )
     if err or txn is None:
         logger.error(
             "Error getting transaction with reference %s Error: %s",
