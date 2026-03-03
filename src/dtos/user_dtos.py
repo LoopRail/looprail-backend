@@ -90,7 +90,9 @@ class UserPublic(Base):
     is_email_verified: bool
     has_completed_onboarding: bool
     profile: Optional[UserProfilePublic] = None
-    wallets: Optional[List[dict]] = None # Uses dict to avoid circular importing WalletWithAssets, avoiding cyclic graph
+    wallets: Optional[List[dict]] = (
+        None  # Uses dict to avoid circular importing WalletWithAssets, avoiding cyclic graph
+    )
 
 
 class UserProfileCreate(Base):
@@ -108,7 +110,7 @@ class LoginRequest(Base):
     password: str
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
-    allow_notifications: bool
+    allow_notifications: bool = False
     fcm_token: Optional[str] = None
 
     @model_validator(mode="after")

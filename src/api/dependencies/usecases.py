@@ -151,7 +151,7 @@ async def get_wallet_manager_usecase(
     wallet_service: WalletService = Depends(get_blockrader_wallet_service),
 ) -> WalletManagerUsecase:
     logger.debug("Entering get_wallet_manager_usecase")
-    ledger, err = ledger_config.ledgers.get_ledger(CUSTOMER_WALLET_LEDGER)
+    ledger, err = ledger_config.ledgers.get_ledger(name=CUSTOMER_WALLET_LEDGER)
     if err:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

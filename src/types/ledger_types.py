@@ -26,8 +26,8 @@ class Ledger(BaseModel):
 class LedgerConfig(BaseModel):
     ledgers: List[Ledger] = Field(default_factory=list)
 
-    def get_ledger(self, ledger_name: str) -> Tuple[Optional[Ledger], Error]:
+    def get_ledger(self, **kwargs) -> Tuple[Optional[Ledger], Error]:
         for ledger in self.ledgers:
-            if ledger.name == ledger_name:
+            if all(getattr(ledger, key) == value for key, value in kwargs.items()):
                 return ledger, None
-        return None, error(f"Ledger with name {ledger_name} not found")
+        return None, error("Ledger not found")

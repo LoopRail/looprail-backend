@@ -81,13 +81,10 @@ async def _send_withdrawal_processed_email(
 
 
 async def _process_withdrawal_task_async(
-    ledger_config,
-    paycrest_config,
-    blockrader_config,
     user_id: UserId,
     withdrawal_request_data: Dict[str, Any],
     transaction_id: str,
-    wallet_name: str,
+    wallet_id: str,
     ledger_id: str,
 ):
     """
@@ -98,9 +95,7 @@ async def _process_withdrawal_task_async(
         user_id,
         transaction_id,
     )
-    wallet_manager_usecase = await get_task_wallet_manager_usecase(
-        ledger_config, paycrest_config, blockrader_config, wallet_name, ledger_id
-    )
+    wallet_manager_usecase = await get_task_wallet_manager_usecase(wallet_id, ledger_id)
     err = await wallet_manager_usecase.execute_withdrawal_processing(
         user_id=user_id,
         withdrawal_request_data=withdrawal_request_data,
@@ -124,17 +119,16 @@ async def _process_withdrawal_task_async(
     await _send_withdrawal_processed_notification(str(user_id), transaction_id)
     amount = str(withdrawal_request_data.get("amount", ""))
     currency = str(withdrawal_request_data.get("currency", ""))
-    await _send_withdrawal_processed_email(str(user_id), transaction_id, amount=amount, currency=currency)
+    await _send_withdrawal_processed_email(
+        str(user_id), transaction_id, amount=amount, currency=currency
+    )
 
 
 def process_withdrawal_task(
-    ledger_config,
-    paycrest_config,
-    blockrader_config,
     user_id: UserId,
     withdrawal_request_data: Dict[str, Any],
     transaction_id: str,
-    wallet_name: str,
+    wallet_id: str,
     ledger_id: str,
 ):
     """
@@ -142,13 +136,10 @@ def process_withdrawal_task(
     """
     asyncio.run(
         _process_withdrawal_task_async(
-            ledger_config,
-            paycrest_config,
-            blockrader_config,
             user_id,
             withdrawal_request_data,
             transaction_id,
-            wallet_name,
+            wallet_id,
             ledger_id,
         )
     )

@@ -916,7 +916,7 @@ class WalletManagerUsecase:
                 )
 
         return {
-            "transaction_id": transaction.get_prefixed_id(),
+            "transaction_id": transaction.id,
             "paycrest_rate": paycrest_rate.model_dump(),
             "blockrader_fee": blockrader_fee.model_dump(),
         }, None
@@ -1026,7 +1026,7 @@ class WalletManagerUsecase:
                 err.message,
             )
             await self.service.transaction_usecase.update_transaction_status(
-                transaction_id=transaction.get_prefixed_id(),
+                transaction_id=transaction.id,
                 new_status=TransactionStatus.FAILED,
                 error_message=err.message,
             )

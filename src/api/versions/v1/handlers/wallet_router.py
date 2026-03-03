@@ -196,13 +196,10 @@ async def withdraw(
     withdraw_queue = Queue("withdrawals", connection=rq_manager.get_connection())
     withdraw_queue.enqueue(
         "services.withdrawals.tasks.process_withdrawal_task",
-        ledger_config=config.ledger,
-        paycrest_config=config.paycrest,
-        blockrader_config=config.block_rader,
         user_id=user.id,
         withdrawal_request_data=withdrawal_request.model_dump(),
         transaction_id=transaction_id,
-        wallet_name=config.block_rader.wallets.wallets[0].wallet_id,
+        wallet_id=config.block_rader.wallets.wallets[0].wallet_id,
         ledger_id=config.ledger.ledgers.ledgers[0].ledger_id,
         job_id=f"withdraw_{user.id}_{transaction_id}",
     )

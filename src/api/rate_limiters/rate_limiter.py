@@ -41,7 +41,10 @@ def custom_rate_limiter(
             **kwargs,
         ):
             custom_limiter: CustomRateLimiter = get_custom_rate_limiter(request)
-            if os.getenv("ENVIRONMENT") == ENVIRONMENT.TEST.value:
+            if os.getenv("ENVIRONMENT") in [
+                ENVIRONMENT.TEST.value,
+                ENVIRONMENT.DEVELOPMENT.value,
+            ]:
                 return await func(request, *args, **kwargs)
 
             identifier_object = kwargs.get(identifier_arg)
@@ -105,3 +108,5 @@ def add_rate_limiter(app: FastAPI):
         return
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# TODO: fix rate limter
