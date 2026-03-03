@@ -169,8 +169,6 @@ async def handle_deposit_success(
     lock_service: LockService,
     transaction_usecase: TransactionUsecase,
     config: Config,
-    session_repo: SessionRepository = None,
-    notification_usecase: NotificationUseCase = None,
     **kwargs,
 ):
     logger.info("Handling deposit success event: %s", event.data.id)
@@ -330,18 +328,6 @@ async def handle_deposit_success(
         "Deposit transaction successfully recorded on ledger for event %s",
         event.data.id,
     )
-
-    # Notify user that their deposit has been received and is pending
-    if session_repo and notification_usecase and txn:
-        await enqueue_notifications_for_user(
-            user_id=str(wallet.user_id),
-            session_repo=session_repo,
-            notification_usecase=notification_usecase,
-            title="Deposit Received 📩",
-            body=f"We've received your deposit of {event.data.amount} {event.data.currency}. It's being processed.",
-            action=NotificationAction.DEPOSIT_RECEIVED,
-            data={"transaction_id": str(txn.id)},
-        )
 
 
 @register(event_type=WebhookEventType.WITHDRAW_SUCCESS)
