@@ -3,13 +3,13 @@ from typing import TYPE_CHECKING, List, Optional
 from uuid import UUID
 
 from pydantic import EmailStr
+from pydantic_extra_types.country import CountryShortName
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship
-from pydantic_extra_types.country import CountryShortName
 
 from src.models.base import Base
-from src.types.types import Gender, KYCStatus
 from src.types.common_types import DeviceID
+from src.types.types import Gender, KYCStatus
 
 if TYPE_CHECKING:
     from src.models.wallet_model import Wallet
