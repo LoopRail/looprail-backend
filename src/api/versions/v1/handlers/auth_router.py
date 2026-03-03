@@ -9,14 +9,14 @@ from src.api.dependencies import (
     get_auth_lock_service,
     get_config,
     get_current_session,
+    get_geolocation_service,
     get_jwt_usecase,
+    get_notification_usecase,
     get_otp_usecase,
     get_resend_service,
     get_security_usecase,
     get_session_usecase,
     get_user_usecases,
-    get_notification_usecase,
-    get_geolocation_service,
 )
 from src.api.internals import (
     send_otp_internal,
@@ -35,28 +35,28 @@ from src.dtos import (
     OtpCreate,
     PasscodeLoginRequest,
     PasscodeSetRequest,
+    PushNotificationDTO,
     RefreshTokenRequest,
     SetTransactionPinRequest,
     UserCreate,
-    PushNotificationDTO,
 )
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.services import (
     AuthLockService,
-    ResendService,
     GeolocationService,
+    ResendService,
 )
 from src.infrastructure.settings import ENVIRONMENT
 from src.models import Session
 from src.types import (
     AccessToken,
     AccessTokenSub,
+    NotificationType,
     OnBoardingToken,
     OnBoardingTokenSub,
     Platform,
     TokenType,
-    NotificationType,
     UserAlreadyExistsError,
     UserId,
 )
@@ -80,12 +80,14 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 login_auth_lock = get_auth_lock_service("logins")
 
 
-@router.post("/create-user", response_model=CreateUserResponse, response_model_exclude_none=True)
+@router.post(
+    "/create-user", response_model=CreateUserResponse, response_model_exclude_none=True
+)
 @limiter.limit("5/minute")
 async def create_user(
     request: Request,
     _config_set: None = Depends(set_user_create_config),
-    user_data: UserCreate = Body(...),    
+    user_data: UserCreate = Body(...),
     user_usecases: UserUseCase = Depends(get_user_usecases),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
     resend_service: ResendService = Depends(get_resend_service),
@@ -284,7 +286,11 @@ async def complete_onboarding(
     }
 
 
-@router.post("/login", response_model=AuthWithTokensAndUserResponse, response_model_exclude_none=True)
+@router.post(
+    "/login",
+    response_model=AuthWithTokensAndUserResponse,
+    response_model_exclude_none=True,
+)
 @limiter.limit("10/minute")
 async def login(
     request: Request,
@@ -298,6 +304,7 @@ async def login(
     auth_lock_service: AuthLockService = Depends(login_auth_lock),
     geo_service: GeolocationService = Depends(get_geolocation_service),
     resend_service: ResendService = Depends(get_resend_service),
+    notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
 ):
     logger.info("Received login request for email: %s", login_request.email)
     login_request.ip_address = request.client.host
@@ -396,6 +403,17 @@ async def login(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
+    if login_request.allow_notifications and login_request.fcm_token:
+        welcome_notification = PushNotificationDTO(
+            user_id=str(user.id),
+            token=login_request.fcm_token,
+            title="Welcome to LoopRail! 🚀",
+            body="Login successfully, start exploring now.",
+            type=NotificationType.PUSH,
+        )
+        notification_usecase.enqueue_push(welcome_notification)
+        logger.info("Welcome push notification enqueued for user %s", user.id)
+
     logger.info(
         "User %s logged in successfully. Session created: %s",
         login_request.email,
@@ -430,7 +448,10 @@ async def login(
 
 
 @router.post(
-    "/token", summary="Refresh Access Token", response_model=AuthTokensResponse, response_model_exclude_none=True
+    "/token",
+    summary="Refresh Access Token",
+    response_model=AuthTokensResponse,
+    response_model_exclude_none=True,
 )
 @limiter.limit("3/minute")
 async def refresh_token(
@@ -528,7 +549,9 @@ async def refresh_token(
     return {"access-token": new_access_token, "refresh-token": new_refresh_token}
 
 
-@router.post("/challenge", response_model=ChallengeResponse, response_model_exclude_none=True)
+@router.post(
+    "/challenge", response_model=ChallengeResponse, response_model_exclude_none=True
+)
 @limiter.limit("10/minute")
 async def create_challenge(
     request: Request,
@@ -547,7 +570,9 @@ async def create_challenge(
     return challenge
 
 
-@router.post("/passcode/set", response_model=MessageResponse, response_model_exclude_none=True)
+@router.post(
+    "/passcode/set", response_model=MessageResponse, response_model_exclude_none=True
+)
 @limiter.limit("5/minute")
 async def set_passcode(
     request: Request,
@@ -569,7 +594,11 @@ async def set_passcode(
     return {"message": "Passcode set successfully"}
 
 
-@router.post("/passcode-login", response_model=AuthWithTokensAndUserResponse, response_model_exclude_none=True)
+@router.post(
+    "/passcode-login",
+    response_model=AuthWithTokensAndUserResponse,
+    response_model_exclude_none=True,
+)
 @limiter.limit("5/minute")
 async def passcode_login(
     request: Request,
@@ -728,7 +757,10 @@ async def passcode_login(
 
 
 @router.post(
-    "/logout", summary="Logout from current session", response_model=MessageResponse, response_model_exclude_none=True
+    "/logout",
+    summary="Logout from current session",
+    response_model=MessageResponse,
+    response_model_exclude_none=True,
 )
 @limiter.limit("5/minute")
 async def logout(
@@ -754,7 +786,10 @@ async def logout(
 
 
 @router.post(
-    "/logout-all", summary="Logout from all sessions", response_model=MessageResponse, response_model_exclude_none=True
+    "/logout-all",
+    summary="Logout from all sessions",
+    response_model=MessageResponse,
+    response_model_exclude_none=True,
 )
 @limiter.limit("5/minute")
 async def logout_all(
@@ -801,4 +836,3 @@ async def send_otp(
     response.headers["X-OTP-Token"] = token
     logger.info("OTP sent successfully to email: %s", otp_data.email)
     return {"message": "OTP sent successfully"}
-
