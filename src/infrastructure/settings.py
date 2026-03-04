@@ -17,7 +17,7 @@ from src.utils.app_utils import return_base_dir
 class ENVIRONMENT(str, Enum):
     DEVELOPMENT = "dev"
     STAGING = "staging"
-    PRODUCTION = "prod"
+    PRODUCTION = "production"
     TEST = "test"
 
 

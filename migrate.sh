@@ -5,7 +5,7 @@ ENVIRONMENT="dev"
 for i in "$@"; do
   case $i in
     --prod)
-      ENVIRONMENT="prod"
+      ENVIRONMENT="production"
       shift 
       ;;
     --staging)

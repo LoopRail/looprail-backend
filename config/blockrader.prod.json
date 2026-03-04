@@ -2,21 +2,22 @@
   "wallets": [
     {
       "chain": "base",
-          "wallet_id": "41a16225-11ca-45c8-9ce2-b8c606df0168",
-          "wallet_address": "0xEa16b5109A51bBC42D725e24BEA750AD9708C1ec",
-          "wallet_name": "master_base_wallet",
-          "active": true,
+      "wallet_id": "2483d320-79b1-4f09-a5e7-f05434ff1223",
+      "wallet_address": "0xEa16b5109A51bBC42D725e24BEA750AD9708C1ec",
+      "wallet_name": "master_base_wallet",
+      "active": true,
       "assets": [
         {
-          "id": "5fc6d9fe-ad4a-4d80-af29-7e8e5ceea203",
+          "id": "3a18a31a-86ad-44a0-9b9c-cdb69d535c64",
+          "blockrader_asset_id": "047c04fb-457a-4bc5-a985-8c2cdc8d1ca2",
           "name": "USDC Coin",
           "symbol": "USDC",
           "decimals": 6,
-          "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+          "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
           "standard": "ERC20",
           "isActive": true,
           "logoUrl": "https://res.cloudinary.com/blockradar/image/upload/v1716800083/crypto-assets/usd-coin-usdc-logo_fs9mhv.png",
-          "network": "testnet"
+          "network": "mainnet"
         }
       ]
     }
