@@ -16,6 +16,7 @@ from src.api.dependencies.repositories import get_session
 from src.api.dependencies.services import get_ledger_service, get_redis_service
 from src.api.middlewares import RequestLoggerMiddleware
 from src.infrastructure import RedisClient, RQManager, get_logger, load_config
+from src.infrastructure.settings import ENVIRONMENT
 from src.infrastructure.services import (
     AuthLockService,
     GeolocationService,
@@ -57,13 +58,16 @@ async def lifespan(app_: FastAPI):
     yield
 
 
+config = load_config()
+
 app = FastAPI(
     title="Looprail Backend",
     description="LoopRail's backend service",
     version="0.1.0",
     lifespan=lifespan,
-    # docs_url=None,
-    # redoc_url=None,
+    docs_url=None if config.app.environment == ENVIRONMENT.PRODUCTION else "/docs",
+    redoc_url=None if config.app.environment == ENVIRONMENT.PRODUCTION else "/redoc",
+    openapi_url=None if config.app.environment == ENVIRONMENT.PRODUCTION else "/openapi.json",
 )
 
 add_rate_limiter(app)
@@ -153,8 +157,9 @@ async def custom_error_handler(request: Request, exc: Error):
     # Basic redaction for generic error messages if they happen to contain sensitive info
     if isinstance(exc.message, str) and "@" in exc.message:
         from src.utils.redaction import redact_email
+
         redacted_message = redact_email(exc.message)
-    
+
     logger.error(redacted_message)
     code = status.HTTP_400_BAD_REQUEST
     if hasattr(exc, "code"):
@@ -173,6 +178,7 @@ async def custom_http_error_handler(request: Request, exc: HTTPException):
         detail = redact_dict(detail)
     elif isinstance(detail, str) and "@" in detail:
         from src.utils.redaction import redact_email
+
         detail = redact_email(detail)
 
     logger.error(
@@ -250,5 +256,3 @@ async def health_check(
         logger.warning("Health check failed, services status: %s", services)
 
     return {"status": "UP" if healthy else "DOWN", "services": services}
-
-
