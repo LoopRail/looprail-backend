@@ -45,7 +45,6 @@ async def handle_deposit_swept_success(
     **kwargs,
 ):
     logger.info("Handling deposit swept success event: %s", event.data.id)
-
     logger.debug(
         "Attempting to get source wallet for recipient address: %s",
         event.data.recipientAddress,
@@ -174,7 +173,6 @@ async def handle_deposit_success(
     **kwargs,
 ):
     logger.info("Handling deposit success event: %s", event.data.id)
-
     logger.debug(
         "Attempting to get source wallet for recipient address: %s",
         event.data.recipientAddress,

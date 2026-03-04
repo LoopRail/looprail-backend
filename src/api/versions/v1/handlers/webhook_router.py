@@ -17,6 +17,7 @@ from src.api.dependencies import (
 from src.api.webhooks.registry import get_registry
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
+from src.infrastructure.settings import ENVIRONMENT
 from src.infrastructure.repositories import (
     AssetRepository,
     SessionRepository,
@@ -29,6 +30,7 @@ from src.infrastructure.services.resend_service import ResendService
 from src.types.blockrader import WebhookEvent
 from src.usecases.notification_usecases import NotificationUseCase
 from src.usecases.transaction_usecases import TransactionUsecase
+from src.types.common_types import Network
 
 logger = get_logger(__name__)
 router = APIRouter(
@@ -54,6 +56,17 @@ async def handle_blockrader_webhook(
 ):
     logger.info("Handling BlockRadar webhook event of type: %s", webhook_event.event)
     logger.info("Received BlockRadar webhook event: %s", webhook_event.event)
+    if (
+        config.app.environment == ENVIRONMENT.PRODUCTION
+        and webhook_event.data.network == Network.TESTNET
+    ):
+        logger.warning(
+            "Ignoring testnet webhook event of type %s in production: %s",
+            webhook_event.event,
+            webhook_event.data.id,
+        )
+        return {"message": "Webhook ignored in production environment"}
+
     registry = get_registry()
     handler = registry.get(webhook_event.event)
     if handler:
