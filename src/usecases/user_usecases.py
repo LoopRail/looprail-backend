@@ -80,7 +80,7 @@ class UserUseCase:
             logger.error("Failed to save user %s: %s", user.id, err.message)
         else:
             logger.info("User %s saved successfully.", user.id)
-            await self.cache.set_object("user", str(user.id), user)
+            await self.cache.set("user", str(user.id), user)
         return user, err
 
     async def update_user(
@@ -92,7 +92,7 @@ class UserUseCase:
             logger.error("Failed to update user %s: %s", user_id, err.message)
         else:
             logger.info("User %s updated successfully.", user_id)
-            await self.cache.delete_object("user", str(user_id))
+            await self.cache.delete("user", str(user_id))
         return user, err
 
     async def update_user_profile(
@@ -106,7 +106,7 @@ class UserUseCase:
             )
         else:
             logger.info("User profile for user %s updated successfully.", user_id)
-            await self.cache.delete_object("user", str(user_id))
+            await self.cache.delete("user", str(user_id))
         return user_profile, err
 
     async def create_user(
@@ -247,7 +247,7 @@ class UserUseCase:
         logger.debug("Getting user by ID: %s", user_id)
         
         # Try cache first
-        cached_user = await self.cache.get_object("user", str(user_id), User)
+        cached_user = await self.cache.get("user", str(user_id), User)
         if cached_user:
             logger.debug("User %s found in cache.", user_id)
             return cached_user, None
@@ -257,7 +257,7 @@ class UserUseCase:
             logger.debug("User %s not found: %s", user_id, err.message)
         else:
             logger.debug("User %s retrieved from DB.", user_id)
-            await self.cache.set_object("user", str(user_id), user)
+            await self.cache.set("user", str(user_id), user)
         return user, err
 
     async def get_user_by_email(self, user_email: str) -> Tuple[Optional[User], Error]:
@@ -312,7 +312,7 @@ class UserUseCase:
         else:
             user.pin = UserPin(pin_hash=hashed_pin.password_hash)
  
-        await self.cache.delete_object("user", str(user_id))
+        await self.cache.delete("user", str(user_id))
         updated_user, err = await self.save(user)
         if err:
             logger.error(
