@@ -19,16 +19,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    gender_enum = sa.Enum("MALE", "FEMALE", name="gender")
-    gender_enum.create(op.get_bind(), checkfirst=True)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    columns = [c["name"] for c in inspector.get_columns("users")]
 
-    # 2️⃣ Add the column using the enum type
-    op.add_column(
-        "users", sa.Column("gender", gender_enum, nullable=False, server_default="MALE")
-    )
+    if "gender" not in columns:
+        gender_enum = sa.Enum("MALE", "FEMALE", name="gender")
+        gender_enum.create(conn, checkfirst=True)
 
-    # 3️⃣ Optional: remove default if you don’t want it afterwards
-    op.alter_column("users", "gender", server_default=None)
+        # 2️⃣ Add the column using the enum type
+        op.add_column(
+            "users",
+            sa.Column("gender", gender_enum, nullable=False, server_default="MALE"),
+        )
+
+        # 3️⃣ Optional: remove default if you don’t want it afterwards
+        op.alter_column("users", "gender", server_default=None)
 
 
 def downgrade() -> None:
