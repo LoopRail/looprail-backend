@@ -23,7 +23,7 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.services import LedgerService, PaycrestService, WalletManager, GeolocationService, CacheService
+from src.infrastructure.services import LedgerService, PaycrestService, WalletManager, GeolocationService
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, Transaction, User, Wallet
 from src.types import (
@@ -79,7 +79,6 @@ class WalletService:
         paycrest_service: PaycrestService,
         transaction_usecase: TransactionUsecase,
         geolocation_service: GeolocationService,
-        cache_service: CacheService,
         provider: Provider = Provider.BLOCKRADER,
     ):
         self.config = config
@@ -92,7 +91,6 @@ class WalletService:
         self.paycrest_service = paycrest_service
         self.transaction_usecase = transaction_usecase
         self.geolocation_service = geolocation_service
-        self.cache = cache_service
  
         self.ledger_service = ledger_service
 
@@ -174,12 +172,6 @@ class WalletService:
             "Fetching wallet with assets for user: %s",
             user_id,
         )
-        
-        # Try cache first
-        cached_wallet = await self.cache.get_object("wallet", str(user_id))
-        if cached_wallet:
-            logger.debug("Wallet for user %s found in cache.", user_id)
-            return cached_wallet, None
 
         wallet, err = await self.repo.get_wallet_by_user_id(user_id=user_id)
         if not wallet:
@@ -223,7 +215,6 @@ class WalletService:
             "assets": asset_data_list,
         }
  
-        await self.cache.set_object("wallet", str(user_id), wallet_dict)
         return wallet_dict, None
 
     async def get_asset_balance(
