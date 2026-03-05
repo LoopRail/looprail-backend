@@ -40,7 +40,7 @@ The `data.action` field in the FCM payload is the **primary routing key** for mo
 {
   "notification": {
     "title": "Deposit Received! 💰",
-    "body": "Your 100 USDC deposit is being processed."
+    "body": "Welcome aboard! Your Looprail account is ready. Send, receive, and manage cross-border payments with ease."
   },
   "data": {
     "action": "DEPOSIT_RECEIVED",
