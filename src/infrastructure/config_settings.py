@@ -35,7 +35,7 @@ def load_wallet_configs_into_config(
     config_filename = (
         "blockrader.json"
         if environment in (ENVIRONMENT.DEVELOPMENT, ENVIRONMENT.STAGING)
-        else "blockrader.prod.json"
+        else "blockrader.production.json"
     )
     logger.debug("Determined wallet config filename: %s", config_filename)
 

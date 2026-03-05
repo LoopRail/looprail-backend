@@ -28,7 +28,7 @@ build/
 # Environment variables
 .env
 .env.dev
-.env.prod
+.env.production
 .env.staging
 
 # Test files and DB
