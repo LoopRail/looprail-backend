@@ -39,6 +39,12 @@ class SessionUseCase:
         allow_notifications: bool = False,
         fcm_token: str | None = None,
         user_agent: str | None = None,
+        country: str | None = None,
+        country_code: str | None = None,
+        region_name: str | None = None,
+        city: str | None = None,
+        latitude: float | None = None,
+        longitude: float | None = None,
     ) -> Tuple[Optional[Session], str, Error]:
         logger.debug(
             "Creating session for user %s on platform %s, device %s from IP %s",
@@ -77,6 +83,12 @@ class SessionUseCase:
             user_agent=user_agent,
             allow_notifications=allow_notifications,
             fcm_token=fcm_token,
+            country=country,
+            country_code=country_code,
+            region_name=region_name,
+            city=city,
+            latitude=latitude,
+            longitude=longitude,
         )
         if err:
             logger.error(

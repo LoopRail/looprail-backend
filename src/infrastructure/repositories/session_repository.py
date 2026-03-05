@@ -19,17 +19,27 @@ class SessionRepository(Base[Session]):
         allow_notifications: bool = False,
         fcm_token: str | None = None,
         user_agent: str | None = None,
+        country: str | None = None,
+        country_code: str | None = None,
+        region_name: str | None = None,
+        city: str | None = None,
+        latitude: float | None = None,
+        longitude: float | None = None,
     ) -> Tuple[Optional[Session], Error]:
-        session_instance = (
-            Session(  # Renamed variable to avoid conflict with method name
-                user_id=user_id,
-                platform=platform,
-                device_id=device_id,
-                ip_address=ip_address,
-                user_agent=user_agent,
-                allow_notifications=allow_notifications,
-                fcm_token=fcm_token,
-            )
+        session_instance = Session(
+            user_id=user_id,
+            platform=platform,
+            device_id=device_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            allow_notifications=allow_notifications,
+            fcm_token=fcm_token,
+            country=country,
+            country_code=country_code,
+            region_name=region_name,
+            city=city,
+            latitude=latitude,
+            longitude=longitude,
         )
 
         return await self.create(session_instance)
