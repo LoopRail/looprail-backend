@@ -43,10 +43,10 @@ class CacheService:
         except (json.JSONDecodeError, ValidationError) as e:
             logger.error("Failed to deserialize cached object for key %s: %s", key, str(e))
             # Optional: delete corrupted cache
-            await self.delete_object(prefix, identifier)
+            await self.delete(prefix, identifier)
             return None
 
-    async def set_object(
+    async def set(
         self,
         prefix: str,
         identifier: Union[str, int],
@@ -64,7 +64,7 @@ class CacheService:
 
         return await self.redis.create(key, data, ttl=ttl_seconds * 1000)
 
-    async def delete_object(self, prefix: str, identifier: Union[str, int]) -> bool:
+    async def delete(self, prefix: str, identifier: Union[str, int]) -> bool:
         key = self._get_key(prefix, identifier)
         logger.debug("Deleting object from cache: %s", key)
         return await self.redis.delete([key])
