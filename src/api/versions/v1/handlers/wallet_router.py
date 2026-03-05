@@ -219,7 +219,7 @@ async def withdraw(
         session_repo=session_repo,
         notification_usecase=notification_usecase,
         title="Withdrawal Submitted 📤",
-        body=f"Your withdrawal request has been submitted and is being processed.",
+        body="Your withdrawal request has been submitted and is being processed.",
         action=NotificationAction.WITHDRAWAL_INITIATED,
         data={"transaction_id": transaction_id or ""},
     )

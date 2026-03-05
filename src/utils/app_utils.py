@@ -7,7 +7,6 @@ from jinja2 import Environment, FileSystemLoader
 
 from src.types.error import Error, error
 from src.types.common_types import ReferenceId
-from src.utils.string_utils import camel_case, kebab_case
 
 def get_dir_at_level(level=1, file: str = __file__):
     current_path = os.path.dirname(file)

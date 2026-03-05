@@ -47,7 +47,6 @@ from src.infrastructure.services import (
     GeolocationService,
     ResendService,
 )
-from src.infrastructure.settings import ENVIRONMENT
 from src.models import Session
 from src.types import (
     AccessToken,
@@ -61,7 +60,7 @@ from src.types import (
     UserId,
 )
 from src.types.common_types import DeviceID, SessionId
-from src.types.error import FailedAttemptError, NotFoundError
+from src.types.error import NotFoundError
 from src.usecases import (
     JWTUsecase,
     NotificationUseCase,

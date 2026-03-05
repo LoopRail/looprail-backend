@@ -1,4 +1,3 @@
-from typing import List
 
 from pydantic import EmailStr, field_validator
 
