@@ -1,6 +1,7 @@
 import os
 from src.infrastructure.logger import get_logger
 from src.utils.app_utils import load_html_template
+from pydantic import ValidationError
 
 logger = get_logger(__name__)
 
@@ -45,7 +46,7 @@ async def send_transactional_email(
             )
         else:
             logger.info("Sent '%s' email to %s", template_name, to)
-    except Exception as e:
+    except (IOError, ValidationError) as e:
         logger.error(
-            "Unexpected error sending '%s' email to %s: %s", template_name, to, e
+            "Error rendering or loading '%s' email for %s: %s", template_name, to, e
         )

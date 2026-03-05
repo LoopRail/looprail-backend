@@ -1,4 +1,5 @@
 from fastapi import Depends, Request, status
+from pydantic import ValidationError
 
 from src.api.dependencies import get_verify_webhook_request
 from src.infrastructure.logger import get_logger
@@ -19,12 +20,12 @@ async def get_blockrader_webhook_event(
     body = await request.json()
     try:
         generic_event = GenericWebhookEvent.model_validate(body)
-    except Exception as e:
-        error_msg = "Invalid webhook payload: %s"
-        logger.error(error_msg, e)
+    except (ValidationError, ValueError) as e:
+        error_msg = "Invalid webhook payload Format: %s"
+        logger.error(error_msg, str(e))
         raise httpError(
             status.HTTP_400_BAD_REQUEST,
-            error_msg,
+            f"Invalid payload: {str(e)}",
         ) from e
 
     specific_event, err = generic_event.to_specific_event()

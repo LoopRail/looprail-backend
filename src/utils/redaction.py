@@ -31,7 +31,7 @@ def redact_email(email: str) -> str:
         else:
             redacted_local = local_part[0] + "***" + local_part[-1]
         return f"{redacted_local}@{domain}"
-    except Exception:
+    except ValueError:
         return "[REDACTED EMAIL]"
 
 

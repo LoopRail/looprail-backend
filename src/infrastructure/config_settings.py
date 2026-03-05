@@ -2,6 +2,7 @@ import json
 import os
 
 import toml
+from pydantic import ValidationError
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.security import Argon2Config
@@ -57,8 +58,8 @@ def load_wallet_configs_into_config(
         logger.warning("Config file not found: %s", config_path)
     except json.JSONDecodeError:
         logger.warning("Invalid JSON in config file: %s", config_path)
-    except Exception as e:
-        logger.error("An unexpected error occurred while loading wallet configs: %s", e)
+    except (KeyError, ValidationError) as e:
+        logger.error("Configuration error while loading wallet configs: %s", e)
     logger.debug("Exiting load_wallet_configs_into_config function with None.")
     return None
 
@@ -79,8 +80,8 @@ def load_countries() -> CountriesData:
         logger.warning("Countries config file not found: %s", config_path)
     except json.JSONDecodeError:
         logger.warning("Invalid JSON in countries config file: %s", config_path)
-    except Exception as e:
-        logger.error("An unexpected error occurred while loading countries data: %s", e)
+    except ValidationError as e:
+        logger.error("Validation error while loading countries data: %s", e)
     logger.debug("Exiting load_countries function with empty CountriesData.")
     return CountriesData(countries={})
 
@@ -114,9 +115,9 @@ def load_disposable_email_domains(environment: ENVIRONMENT) -> set[str]:
         logger.warning(
             "Disposable email domains config file not found: %s", config_path
         )
-    except Exception as e:
+    except IOError as e:
         logger.error(
-            "An unexpected error occurred while loading disposable email domains: %s", e
+            "I/O error while loading disposable email domains: %s", e
         )
     logger.debug("Exiting load_disposable_email_domains function with empty list.")
     return set()
@@ -144,9 +145,9 @@ def load_ledger_settings_from_file(environment: ENVIRONMENT) -> LedgerConfig:
         logger.warning("Ledger config file not found: %s", config_path)
     except toml.TomlDecodeError:
         logger.warning("Invalid TOML in ledger config file: %s", config_path)
-    except Exception as e:
+    except (KeyError, ValidationError) as e:
         logger.error(
-            "An unexpected error occurred while loading ledger settings: %s", e
+            "Configuration error while loading ledger settings: %s", e
         )
     logger.debug(
         "Exiting load_ledger_settings_from_file function with empty LedgerConfig."
@@ -170,8 +171,8 @@ def load_banks_data() -> BanksData:
         logger.warning("Banks data file not found: %s", config_path)
     except json.JSONDecodeError:
         logger.warning("Invalid JSON in banks data file: %s", config_path)
-    except Exception as e:
-        logger.error("An unexpected error occurred while loading banks data: %s", e)
+    except ValidationError as e:
+        logger.error("Validation error while loading banks data: %s", e)
     logger.debug("Exiting load_banks_data function with empty BanksData.")
     return BanksData(__root__=[])
 

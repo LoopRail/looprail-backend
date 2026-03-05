@@ -31,6 +31,6 @@ def send_email_otp(recipient: str, otp_code: str):
             server.login(SENDER_EMAIL, SENDER_PASSWORD)
             server.send_message(message)
             logger.info(f"Sent OTP to {recipient}")
-    except Exception as e:
-        logger.error(f"Error sending OTP email: {e}")
+    except smtplib.SMTPException as e:
+        logger.error(f"SMTP error sending OTP email: {e}")
         raise

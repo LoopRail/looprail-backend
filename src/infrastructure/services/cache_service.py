@@ -1,7 +1,7 @@
 import json
 from typing import Optional, Type, TypeVar, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RedisClient
@@ -40,7 +40,7 @@ class CacheService:
             if model_class:
                 return model_class.model_validate(data)
             return data
-        except Exception as e:
+        except (json.JSONDecodeError, ValidationError) as e:
             logger.error("Failed to deserialize cached object for key %s: %s", key, str(e))
             # Optional: delete corrupted cache
             await self.delete_object(prefix, identifier)

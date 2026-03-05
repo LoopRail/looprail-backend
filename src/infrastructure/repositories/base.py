@@ -57,7 +57,11 @@ class Base[T]:
         """
         model = self._get_model()
         logger.debug("Retrieving %s with ID: %s", model.__name__, _id)
-        return await model.get(self.session, _id=_id, deletion=deletion, load=load)
+        try:
+            return await model.get(self.session, _id=_id, deletion=deletion, load=load)
+        except SQLAlchemyError as e:
+            logger.error("Error retrieving %s with ID %s: %s", model.__name__, _id, str(e))
+            return None, e
 
     async def find_one(
         self,
