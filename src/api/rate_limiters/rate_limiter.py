@@ -19,8 +19,8 @@ logger = get_logger(__name__)
 def get_custom_rate_limiter(
     request: Request,
 ) -> CustomRateLimiter:
-    redis_client: RedisClient = (get_redis_service(request),)
-    rate_limiter = CustomRateLimiter(redis_client[0])
+    redis_client: RedisClient = get_redis_service(request)
+    rate_limiter = CustomRateLimiter(redis_client)
     return rate_limiter
 
 

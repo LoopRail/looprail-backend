@@ -8,6 +8,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from src.infrastructure import RedisClient, get_logger
+from src.infrastructure.redis import RedisError
 from src.infrastructure.settings import ENVIRONMENT
 
 logger = get_logger(__name__)
@@ -111,7 +112,7 @@ RATE_LIMIT_CONFIG: Dict[str, RateLimitSubjectConfig] = {
 limiter = Limiter(
     key_func=get_remote_address,
     enabled=os.getenv("ENVIRONMENT")
-    not in (ENVIRONMENT.TEST.value, ENVIRONMENT.STAGING.value),
+    not in (ENVIRONMENT.TEST.value, ENVIRONMENT.DEVELOPMENT.value),
 )
 logger.debug("Limiter enabled status: %s", limiter.enabled)
 
@@ -142,18 +143,22 @@ class CustomRateLimiter:
         now = time.time()
         window_start = now - limit_window_seconds
 
-        await self.redis.zremrangebyscore(key, 0, window_start)
-        count = await self.redis.zcard(key)
+        try:
+            await self.redis.zremrangebyscore(key, 0, window_start)
+            count = await self.redis.zcard(key)
 
-        if count >= limit_count:
-            return (
-                False,
-                f"Maximum {limit_count} requests per hour for this email",
-            )
+            if count >= limit_count:
+                return (
+                    False,
+                    f"Maximum {limit_count} requests per hour for this email",
+                )
 
-        await self.redis.zadd(key, {str(now): now})
-        await self.redis.expire(key, redis_expiry_seconds)
-        return True, None
+            await self.redis.zadd(key, {str(now): now})
+            await self.redis.expire(key, redis_expiry_seconds)
+            return True, None
+        except RedisError as e:
+            logger.error("Email rate limit check failed: %s", str(e))
+            return True, None  # Fallback: allow on Redis error
 
     async def _check_ip_limit(
         self, subject: str, ip: str
@@ -174,34 +179,38 @@ class CustomRateLimiter:
         key = f"{IP_RATE_LIMIT_KEY_PREFIX.format(subject=subject)}{ip}"
         now = time.time()
 
-        data = await self.redis.hgetall(key)
+        try:
+            data = await self.redis.hgetall(key)
 
-        if not data:
+            if not data:
+                await self.redis.hset(
+                    key, field_values={"tokens": capacity - 1, "last_update": now}
+                )
+                await self.redis.expire(key, redis_expiry_seconds)
+                return True, None, None
+
+            tokens = float(data.get("tokens", "0"))
+            last_update = float(data.get("last_update", "0"))
+
+            elapsed = now - last_update
+            tokens = min(capacity, tokens + (elapsed * refill_rate))
+
+            if tokens < 1:
+                retry_after = int((1 - tokens) / refill_rate)
+                return (
+                    False,
+                    f"Too many requests from this IP. Retry after {retry_after} seconds",
+                    retry_after,
+                )
+
             await self.redis.hset(
-                key, field_values={"tokens": capacity - 1, "last_update": now}
+                key, field_values={"tokens": tokens - 1, "last_update": now}
             )
-            await self.redis.expire(key, redis_expiry_seconds)
+
             return True, None, None
-
-        tokens = float(data.get("tokens", "0"))
-        last_update = float(data.get("last_update", "0"))
-
-        elapsed = now - last_update
-        tokens = min(capacity, tokens + (elapsed * refill_rate))
-
-        if tokens < 1:
-            retry_after = int((1 - tokens) / refill_rate)
-            return (
-                False,
-                f"Too many requests from this IP. Retry after {retry_after} seconds",
-                retry_after,
-            )
-
-        await self.redis.hset(
-            key, field_values={"tokens": tokens - 1, "last_update": now}
-        )
-
-        return True, None, None
+        except RedisError as e:
+            logger.error("IP rate limit check failed: %s", str(e))
+            return True, None, None  # Fallback: allow on Redis error
 
     async def _check_progressive_delay(
         self, subject: str, email: str
@@ -222,24 +231,28 @@ class CustomRateLimiter:
         attempts_key = f"{ATTEMPTS_KEY_PREFIX.format(subject=subject)}{email}"
         last_time_key = f"{LAST_TIME_KEY_PREFIX.format(subject=subject)}{email}"
 
-        attempts = await self.redis.incr(attempts_key)
-        if attempts == 1:
-            await self.redis.expire(attempts_key, attempts_redis_expiry_seconds)
+        try:
+            attempts = await self.redis.incr(attempts_key)
+            if attempts == 1:
+                await self.redis.expire(attempts_key, attempts_redis_expiry_seconds)
 
-        required_delay = delays.get(attempts, 900)
+            required_delay = delays.get(attempts, 900)
 
-        if required_delay > 0:
-            last_time = await self.redis.get(last_time_key)
-            if last_time:
-                elapsed = time.time() - float(last_time)
-                if elapsed < required_delay:
-                    remaining = int(required_delay - elapsed)
-                    return False, f"Please wait {remaining} seconds", attempts
+            if required_delay > 0:
+                last_time = await self.redis.get(last_time_key)
+                if last_time:
+                    elapsed = time.time() - float(last_time)
+                    if elapsed < required_delay:
+                        remaining = int(required_delay - elapsed)
+                        return False, f"Please wait {remaining} seconds", attempts
 
-        await self.redis.set(
-            last_time_key, time.time(), ex=last_time_redis_expiry_seconds
-        )
-        return True, None, attempts
+            await self.redis.set(
+                last_time_key, time.time(), ex=last_time_redis_expiry_seconds
+            )
+            return True, None, attempts
+        except RedisError as e:
+            logger.error("Progressive delay check failed: %s", str(e))
+            return True, None, 0  # Fallback: allow on Redis error
 
     async def _check_global_limit(self, subject: str) -> tuple[bool, str | None]:
         """Global: Configurable requests per minute."""
@@ -254,15 +267,19 @@ class CustomRateLimiter:
         limit_count = limit_config.count
         redis_expiry_seconds = limit_config.redis_expiry_seconds
 
-        key = GLOBAL_RATE_LIMIT_KEY.format(subject=subject)
-        count = await self.redis.incr(key)
-        if count == 1:
-            await self.redis.expire(key, redis_expiry_seconds)
+        try:
+            key = GLOBAL_RATE_LIMIT_KEY.format(subject=subject)
+            count = await self.redis.incr(key)
+            if count == 1:
+                await self.redis.expire(key, redis_expiry_seconds)
 
-        if count > limit_count:
-            return False, "System is experiencing high load"
+            if count > limit_count:
+                return False, "System is experiencing high load"
 
-        return True, None
+            return True, None
+        except RedisError as e:
+            logger.error("Global rate limit check failed: %s", str(e))
+            return True, None  # Fallback: allow on Redis error
 
     async def check_limit(
         self, limit_type: str, request: Request, identifier_value
