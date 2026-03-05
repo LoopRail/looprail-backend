@@ -84,7 +84,7 @@ class Transaction(Base, table=True):
         default={}, sa_column=Column(JSONB, nullable=False, server_default="{}")
     )
 
-    extra_data: dict = Field(
+    metadata: dict = Field(
         default={}, sa_column=Column(JSONB, nullable=False, server_default="{}")
     )
 
