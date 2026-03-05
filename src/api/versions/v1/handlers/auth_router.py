@@ -247,8 +247,8 @@ async def complete_onboarding(
         welcome_notification = PushNotificationDTO(
             user_id=str(current_user.id),
             token=user_data.fcm_token,
-            title="Welcome to LoopRail! 🚀",
-            body="Your onboarding is complete. Start exploring now.",
+            title="Welcome to Looprail!",
+            body="Welcome aboard! Your Looprail account is ready. Send, receive, and manage cross-border payments with ease.",
             type=NotificationType.PUSH,
         )
         notification_usecase.enqueue_push(welcome_notification)
@@ -406,8 +406,8 @@ async def login(
         welcome_notification = PushNotificationDTO(
             user_id=str(user.id),
             token=login_request.fcm_token,
-            title="Welcome to LoopRail! 🚀",
-            body="Login successfully, start exploring now.",
+            title="Welcome to Looprail!",
+            body="Welcome back! You've successfully logged in. Your gateway to seamless cross-border payments is open.",
             type=NotificationType.PUSH,
         )
         notification_usecase.enqueue_push(welcome_notification)
