@@ -69,7 +69,7 @@ class TransactionUsecase:
             "narration": params.narration,
             "fee": params.fee,
             "status": TransactionStatus.PENDING,
-            "metadata": params.metadata,
+            "meta_data": params.metadata,
             "country": params.country,
         }
 
