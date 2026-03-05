@@ -261,6 +261,7 @@ class TransactionResponseBuilder:
             "created_at": transaction.created_at,
             "updated_at": getattr(transaction, "updated_at", None),
             "completed_at": getattr(transaction, "completed_at", None),
+            "metadata": transaction.extra_data,
         }
 
         # Add blockchain fields if present

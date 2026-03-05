@@ -66,10 +66,10 @@ class TransactionUsecase:
             "sender": params.sender,
             "receiver": params.receiver,
             "amount": params.amount,
-            "note": params.narration,
+            "narration": params.narration,
             "fee": params.fee,
             "status": TransactionStatus.PENDING,
-            "metadata": params.metadata,
+            "extra_data": params.metadata,
             "country": params.country,
         }
 
