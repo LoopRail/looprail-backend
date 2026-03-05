@@ -17,6 +17,15 @@ class Session(Base, table=True):
     platform: str
     device_id: DeviceID
     ip_address: str
+    user_agent: Optional[str] = Field(default=None)
+
+    # Geolocation fields
+    country: Optional[str] = Field(default=None)
+    country_code: Optional[str] = Field(default=None)
+    region_name: Optional[str] = Field(default=None)
+    city: Optional[str] = Field(default=None)
+    latitude: Optional[float] = Field(default=None)
+    longitude: Optional[float] = Field(default=None)
 
     allow_notifications: bool = Field(default=False)
     fcm_token: Optional[str] = Field(default=None)
