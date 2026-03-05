@@ -35,4 +35,6 @@ dependencies = [
     "gunicorn>=24.1.0",
     "firebase-admin>=7.1.0",
     "ruff>=0.9.9",
+    "pyright>=1.1.391",
+    "pytest-cov>=6.0.0",
 ]
