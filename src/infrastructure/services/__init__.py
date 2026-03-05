@@ -7,6 +7,7 @@ from src.infrastructure.services.paycrest.paycrest_service import PaycrestServic
 from src.infrastructure.services.paystack_client import PaystackService
 from src.infrastructure.services.resend_service import ResendService
 from src.infrastructure.services.geolocation_service import GeolocationService, GeolocationData
+from src.infrastructure.services.cache_service import CacheService
 
 __all__ = [
     "WalletManager",
@@ -20,4 +21,5 @@ __all__ = [
     "RedisClient",
     "GeolocationService",
     "GeolocationData",
+    "CacheService",
 ]

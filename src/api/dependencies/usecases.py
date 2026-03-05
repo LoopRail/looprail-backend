@@ -19,6 +19,7 @@ from src.api.dependencies.services import (
     get_redis_service,
     get_rq_manager,
     get_geolocation_service,
+    get_cache_service,
 )
 from src.infrastructure import CUSTOMER_WALLET_LEDGER, MASTER_BASE_WALLET
 from src.infrastructure.config_settings import Config
@@ -33,7 +34,7 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.services import LedgerService, PaycrestService, GeolocationService
+from src.infrastructure.services import LedgerService, PaycrestService, GeolocationService, CacheService
 from src.infrastructure.settings import BlockRaderConfig
 from src.types import LedgerConfig
 from src.usecases import (
@@ -134,6 +135,7 @@ async def get_blockrader_wallet_service(
     paycrest_service: PaycrestService = Depends(get_paycrest_service),
     transaction_usecase: TransactionUsecase = Depends(get_transaction_usecase),
     geolocation_service: GeolocationService = Depends(get_geolocation_service),
+    cache_service: CacheService = Depends(get_cache_service),
 ):
     logger.debug("Entering get_blockrader_wallet_service")
     return WalletService(
@@ -146,6 +148,7 @@ async def get_blockrader_wallet_service(
         paycrest_service=paycrest_service,
         transaction_usecase=transaction_usecase,
         geolocation_service=geolocation_service,
+        cache_service=cache_service,
     )
 
 
@@ -188,6 +191,7 @@ async def get_user_usecases(
     blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
     wallet_manager_usecase: WalletManagerUsecase = Depends(get_wallet_manager_usecase),
     wallet_service: WalletService = Depends(get_blockrader_wallet_service),
+    cache_service: CacheService = Depends(get_cache_service),
 ) -> UserUseCase:
     logger.debug("Entering get_user_usecases")
     argon2_config = request.app.state.argon2_config
@@ -197,4 +201,5 @@ async def get_user_usecases(
         argon2_config=argon2_config,
         wallet_manager_usecase=wallet_manager_usecase,
         wallet_service=wallet_service,
+        cache_service=cache_service,
     )

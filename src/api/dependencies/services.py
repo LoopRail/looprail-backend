@@ -9,6 +9,7 @@ from src.infrastructure.services import (
     PaystackService,
     ResendService,
     GeolocationService,
+    CacheService,
 )
 from src.infrastructure.settings import BlockRaderConfig
 
@@ -47,6 +48,12 @@ def get_redis_service(request: Request) -> RedisClient:
 
 def get_rq_manager(request: Request) -> RQManager:
     return request.app.state.rq_manager
+
+
+def get_cache_service(
+    redis_client: RedisClient = Depends(get_redis_service),
+) -> CacheService:
+    return CacheService(redis_client)
 
 
 def get_auth_lock_service(subject) -> AuthLockService:
