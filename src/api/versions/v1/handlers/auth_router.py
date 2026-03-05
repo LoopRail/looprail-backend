@@ -187,6 +187,7 @@ async def complete_onboarding(
     jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
     config: Config = Depends(get_config),
     notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
+    geo_service: GeolocationService = Depends(get_geolocation_service),
 ):
     logger.info("Completing onboarding for user ID: %s", token.user_id)
     if token.token_type != TokenType.ONBOARDING_TOKEN:
@@ -226,6 +227,15 @@ async def complete_onboarding(
             content={"message": err.message},
         )
 
+    # Fetch geolocation data
+    geo_data, _ = await geo_service.get_location(request.client.host)
+    country = geo_data.country if geo_data and geo_data.status == "success" else None
+    country_code = geo_data.countryCode if geo_data and geo_data.status == "success" else None
+    region_name = geo_data.regionName if geo_data and geo_data.status == "success" else None
+    city = geo_data.city if geo_data and geo_data.status == "success" else None
+    latitude = geo_data.lat if geo_data and geo_data.status == "success" else None
+    longitude = geo_data.lon if geo_data and geo_data.status == "success" else None
+
     session, raw_refresh_token, err = await session_usecase.create_session(
         user_id=current_user.id,
         device_id=device_id,
@@ -233,6 +243,12 @@ async def complete_onboarding(
         ip_address=request.client.host,
         allow_notifications=user_data.allow_notifications,
         fcm_token=user_data.fcm_token,
+        country=country,
+        country_code=country_code,
+        region_name=region_name,
+        city=city,
+        latitude=latitude,
+        longitude=longitude,
     )
     if err:
         logger.error(
@@ -375,6 +391,19 @@ async def login(
             "access-token": onboarding_token,
         }
 
+    # Fetch geolocation data for the login alert email and session recording
+    location_str = "Unknown"
+    geo_data, _ = await geo_service.get_location(request.client.host)
+    if geo_data and geo_data.status == "success":
+        location_str = f"{geo_data.city}, {geo_data.regionName}, {geo_data.country}"
+
+    country = geo_data.country if geo_data and geo_data.status == "success" else None
+    country_code = geo_data.countryCode if geo_data and geo_data.status == "success" else None
+    region_name = geo_data.regionName if geo_data and geo_data.status == "success" else None
+    city = geo_data.city if geo_data and geo_data.status == "success" else None
+    latitude = geo_data.lat if geo_data and geo_data.status == "success" else None
+    longitude = geo_data.lon if geo_data and geo_data.status == "success" else None
+
     session, raw_refresh_token, err = await session_usecase.create_session(
         user_id=user.id,
         device_id=device_id,
@@ -382,6 +411,12 @@ async def login(
         ip_address=request.client.host,
         allow_notifications=login_request.allow_notifications,
         fcm_token=login_request.fcm_token,
+        country=country,
+        country_code=country_code,
+        region_name=region_name,
+        city=city,
+        latitude=latitude,
+        longitude=longitude,
     )
     if err:
         logger.error("Could not create session for user %s: %s", user.id, err.message)
@@ -419,11 +454,7 @@ async def login(
         session.get_prefixed_id(),
     )
 
-    # Fetch geolocation data for the login alert email
-    location_str = "Unknown"
-    geo_data, _ = await geo_service.get_location(request.client.host)
-    if geo_data and geo_data.status == "success":
-        location_str = f"{geo_data.city}, {geo_data.regionName}, {geo_data.country}"
+    # No need to fetch geolocation data again, it's already fetched above
 
     await send_transactional_email(
         resend_service=resend_service,
