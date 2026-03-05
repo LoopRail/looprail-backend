@@ -9,7 +9,7 @@ from typing import Any, Dict
 # This assumes the script is run from the project root or scripts directory
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-from src.infrastructure.config import load_config
+from src.infrastructure import load_config
 from src.infrastructure.services.ledger.client import LedgerManager
 from src.infrastructure.settings import ENVIRONMENT
 from src.types.blnk.dtos import CreateLedgerRequest
@@ -51,6 +51,9 @@ async def main():
             f"Error: Invalid environment '{args.environment}'. Must be one of {list(e.value for e in ENVIRONMENT)}"
         )
         sys.exit(1)
+
+    # Set environment variable for load_config
+    os.environ["ENVIRONMENT"] = args.environment
 
     # Load configuration based on environment
     app_config = load_config()
