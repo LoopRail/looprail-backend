@@ -23,7 +23,7 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.services import LedgerService, PaycrestService, WalletManager
+from src.infrastructure.services import LedgerService, PaycrestService, WalletManager, GeolocationService
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, Transaction, User, Wallet
 from src.types import (
@@ -52,7 +52,6 @@ from src.types.blockrader import (
     NetworkFeeRequest,
     WalletAddressResponse,
 )
-from src.types.blockrader import WithdrawalRequest as BlockraderWithdrawalRequest
 from src.types.common_types import AssetId, Network, UserId
 from src.types.ledger_types import Ledger
 from src.types.paycrest import PaycrestRecipiant
@@ -79,6 +78,7 @@ class WalletService:
         asset_repository: AssetRepository,
         paycrest_service: PaycrestService,
         transaction_usecase: TransactionUsecase,
+        geolocation_service: GeolocationService,
         provider: Provider = Provider.BLOCKRADER,
     ):
         self.config = config
@@ -90,6 +90,7 @@ class WalletService:
         self._asset_repository = asset_repository
         self.paycrest_service = paycrest_service
         self.transaction_usecase = transaction_usecase
+        self.geolocation_service = geolocation_service
 
         self.ledger_service = ledger_service
 
@@ -650,6 +651,14 @@ class WalletManagerUsecase:
 
         common_transaction_params: CreateTransactionParams
 
+        # Fetch location data from IP
+        ip_address = withdrawal_request.authorization.ip_address
+        location_str = "Unknown"
+        if ip_address:
+            geo_data, _ = await self.service.geolocation_service.get_location(ip_address)
+            if geo_data and geo_data.status == "success":
+                location_str = f"{geo_data.city}, {geo_data.regionName}, {geo_data.country}"
+
         base_kwargs = {
             "wallet_id": user_wallet.id,
             "asset_id": asset.id,
@@ -667,6 +676,10 @@ class WalletManagerUsecase:
                 self.service.config.countries,
                 withdrawal_request.currency,
             ),
+            "metadata": {
+                "ip_address": ip_address or "Unknown",
+                "location": location_str,
+            },
         }
 
         if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
@@ -702,7 +715,7 @@ class WalletManagerUsecase:
             # Default to Crypto params (External Wallet)
             common_transaction_params = CryptoTransactionParams(
                 **base_kwargs,
-                transaction_hash=f"pending:{transaction.id}",
+                transaction_hash="pending",
                 network=asset.network,
                 chain_id=None,
             )
@@ -746,6 +759,10 @@ class WalletManagerUsecase:
             expires_at=(datetime.now(timezone.utc) + timedelta(hours=24)).isoformat(
                 timespec="seconds"
             ),
+            meta_data={
+                "ip_address": ip_address or "Unknown",
+                "location": location_str,
+            },
         )
 
         if withdrawal_fee > 0:

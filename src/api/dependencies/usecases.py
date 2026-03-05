@@ -18,6 +18,7 @@ from src.api.dependencies.services import (
     get_paycrest_service,
     get_redis_service,
     get_rq_manager,
+    get_geolocation_service,
 )
 from src.infrastructure import CUSTOMER_WALLET_LEDGER, MASTER_BASE_WALLET
 from src.infrastructure.config_settings import Config
@@ -32,7 +33,7 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.services import LedgerService, PaycrestService
+from src.infrastructure.services import LedgerService, PaycrestService, GeolocationService
 from src.infrastructure.settings import BlockRaderConfig
 from src.types import LedgerConfig
 from src.usecases import (
@@ -132,6 +133,7 @@ async def get_blockrader_wallet_service(
     ledger_service: LedgerService = Depends(get_ledger_service),
     paycrest_service: PaycrestService = Depends(get_paycrest_service),
     transaction_usecase: TransactionUsecase = Depends(get_transaction_usecase),
+    geolocation_service: GeolocationService = Depends(get_geolocation_service),
 ):
     logger.debug("Entering get_blockrader_wallet_service")
     return WalletService(
@@ -143,6 +145,7 @@ async def get_blockrader_wallet_service(
         ledger_service=ledger_service,
         paycrest_service=paycrest_service,
         transaction_usecase=transaction_usecase,
+        geolocation_service=geolocation_service,
     )
 
 
