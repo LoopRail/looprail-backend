@@ -15,7 +15,7 @@ from src.dtos.wallet_dtos import (
     TransferType,
     WithdrawalRequest,
 )
-from src.infrastructure import BANK_TRASNFER_WITHDRAWAL_FEE
+from src.infrastructure import BANK_TRASNFER_WITHDRAWAL_FEE, MASTER_BASE_WALLET
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import (
@@ -106,7 +106,9 @@ class WalletService:
     #     return self
 
     def new_manager(
-        self, wallet_id: str, ledger: Ledger
+        self,
+        wallet_id: str,
+        ledger: Ledger,
     ) -> Tuple[Optional["WalletManagerUsecase"], Error]:
         logger.debug(
             "Creating new WalletManagerUsecase for wallet ID: %s, ledger: %s",
@@ -127,9 +129,7 @@ class WalletService:
 
         self._manager_id = wallet_id
         self._manager = WalletManager(self.blockrader_config, wallet_id)
-        manager_usecase = WalletManagerUsecase(
-            self, self._manager, wallet_config, ledger
-        )
+        manager_usecase = WalletManagerUsecase(self, self._manager, wallet_config, ledger)
         logger.debug(
             "WalletManagerUsecase created successfully for wallet ID: %s", wallet_id
         )
@@ -1136,6 +1136,26 @@ class WalletManagerUsecase:
             paycrest_order.data.payment_id,
             transaction.id,
         )
+
+        # Automatically fund the Paycrest order from the master wallet
+        mw_tx_id, mw_err = await self._transfer_from_master_wallet(
+            address=paycrest_order.data.receive_address,
+            amount=withdrawal_request.amount,
+            reference=transaction.reference,
+        )
+        if mw_err:
+            logger.error(
+                "Master wallet transfer failed for Paycrest order %s: %s",
+                paycrest_order.data.payment_id,
+                mw_err.message,
+            )
+        else:
+            logger.info(
+                "Master wallet transfer initiated for order %s. MW TX ID: %s",
+                paycrest_order.data.payment_id,
+                mw_tx_id,
+            )
+
         return None
 
     async def _execute_external_wallet_withdrawal(
@@ -1164,15 +1184,12 @@ class WalletManagerUsecase:
         if err:
             return err
 
-        blockrader_withdrawal_request = BlockraderWithdrawalRequest(
-            assetId=blockrader_asset.blockrader_asset_id,
+        # Use the transfer proxy instead of manual WithdrawalRequest
+        withdrawal_response, err = await self.manager.transfer(
+            asset_id=blockrader_asset.blockrader_asset_id,
             address=transfer_data.address,
             amount=str(withdrawal_request.amount),
             reference=transaction.reference,
-        )
-
-        withdrawal_response, err = await self.manager.withdraw(
-            blockrader_withdrawal_request
         )
 
         if err:
@@ -1200,3 +1217,43 @@ class WalletManagerUsecase:
             await self.service.transaction_usecase.repo.update(transaction)
 
         return None
+
+    async def _transfer_from_master_wallet(
+        self, address: str, amount: Decimal, reference: str
+    ) -> Tuple[Optional[str], Optional[Error]]:
+        """
+        Transfers USDC from the master wallet to the specified address.
+        """
+        logger.debug(
+            "Initiating master wallet transfer of %s USDC to %s",
+            amount,
+            address,
+        )
+
+        base_master_wallet, err = self.service.blockrader_config.wallets.get_wallet(
+            wallet_name=MASTER_BASE_WALLET
+        )
+        if err:
+            logger.error("Failed to find master wallet config: %s", err.message)
+            return None, err
+
+        usdc_asset, asset_err = base_master_wallet.get(symbol="USDC")
+        if asset_err:
+            logger.error("USDC asset not found in master wallet: %s", asset_err.message)
+            return None, asset_err
+
+        master_manager = WalletManager(
+            self.service.blockrader_config, base_master_wallet.wallet_id
+        )
+
+        response, err = await master_manager.transfer(
+            asset_id=usdc_asset.blockrader_asset_id,
+            address=address,
+            amount=str(amount),
+            reference=f"mw:{reference}",
+        )
+
+        if err:
+            return None, err
+
+        return response.data.transaction_id, None
