@@ -163,6 +163,26 @@ class TransactionalMixin:
             data=request.model_dump(),
         )
 
+    async def transfer(
+        self, asset_id: str, address: str, amount: str, reference: str
+    ) -> Tuple[Optional[WithdrawalResponse], Error]:
+        """Proxies a withdrawal as a transfer."""
+        logger.debug(
+            "Proxying transfer: asset_id=%s, address=%s, amount=%s, reference=%s",
+            asset_id,
+            address,
+            amount,
+            reference,
+        )
+        return await self.withdraw(
+            WithdrawalRequest(
+                assetId=asset_id,
+                address=address,
+                amount=amount,
+                reference=reference,
+            )
+        )
+
 
 class AddressManager(BlockRaderCLient, TransactionalMixin):
     """Manages a specific address within a wallet."""
