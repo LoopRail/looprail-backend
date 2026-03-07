@@ -1,7 +1,13 @@
+from typing import Any
+
+
 class error(Exception):
-    def __init__(self, message: str = None):
-        self.message = message
-        super().__init__(message)
+    def __init__(self, message: Any = None):
+        if message is not None:
+            self.message = str(message)
+        else:
+            self.message = None
+        super().__init__(self.message)
 
     def __str__(self) -> str:
         return self.message
