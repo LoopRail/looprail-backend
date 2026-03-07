@@ -4,6 +4,7 @@ from uuid import UUID
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 
 from coredis import Redis
+from enum import Enum
 from coredis.exceptions import RedisError
 from coredis.pipeline import Pipeline
 from redis import Redis as SyncRedis
@@ -52,11 +53,13 @@ class RQManager:
 
 
 def _json_serializable(obj: Any) -> Any:
-    """Custom JSON encoder for datetime and UUID."""
+    """Custom JSON encoder for datetime, UUID, and Enum."""
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
     if isinstance(obj, UUID):
         return str(obj)
+    if isinstance(obj, Enum):
+        return obj.value
     raise TypeError(f"Type {type(obj)} not serializable")
 
 
@@ -68,10 +71,11 @@ def _serialize_data(data: Any) -> Tuple[str | None, Error | None]:
         return str(data), None
 
     # Handle Pydantic models (v1 and v2)
-    if hasattr(data, "model_dump_json"):
-        return data.model_dump_json(), None
-    if hasattr(data, "json"):
-        return data.json(), None
+    # Convert to dict first to avoid triggering field serializers that add prefixes
+    if hasattr(data, "model_dump"):
+        data = data.model_dump()
+    elif hasattr(data, "dict"):
+        data = data.dict()
 
     # Handle dicts and other types
     try:

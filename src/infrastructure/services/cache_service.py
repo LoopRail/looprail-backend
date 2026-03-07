@@ -61,13 +61,11 @@ class CacheService:
         key = self._get_key(prefix, identifier)
         logger.debug("Setting object in cache: %s with TTL %ds", key, ttl_seconds)
 
-        # If it's a Pydantic model, convert to dict with JSON-compatible types
+        # If it's a Pydantic model, convert to dict
         if hasattr(obj, "model_dump"):
-            try:
-                data = obj.model_dump(mode="json")
-            except TypeError:
-                # Fallback for Pydantic v1 or if mode='json' is not supported
-                data = obj.dict() if hasattr(obj, "dict") else obj
+            data = obj.model_dump()
+        elif hasattr(obj, "dict"):
+            data = obj.dict()
         else:
             data = obj
 
