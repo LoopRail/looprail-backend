@@ -1,8 +1,7 @@
-from datetime import date
 from enum import StrEnum
-from typing import Annotated, Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel, BeforeValidator, RootModel
+from pydantic import BaseModel, RootModel
 
 from src.types.blockrader.types import AssetData
 from src.types.common_types import Chain
@@ -119,18 +118,6 @@ class TokenStandard(StrEnum):
                 if member.value == value.lower():
                     return member
         return super()._missing_(value)
-
-
-def validate_token_standard(v: Any) -> TokenStandard:
-    if isinstance(v, str):
-        try:
-            return TokenStandard(v.lower())
-        except ValueError:
-            pass
-    return v
-
-
-TokenStandardType = Annotated[TokenStandard, BeforeValidator(validate_token_standard)]
 
 
 class Provider(StrEnum):
