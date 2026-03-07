@@ -20,12 +20,15 @@ class CacheService:
     def _get_key(self, prefix: str, identifier: Union[str, int]) -> str:
         return f"{prefix}:{identifier}"
 
-    async def get_object(
-        self, prefix: str, identifier: Union[str, int], model_class: Optional[Type[T]] = None
+    async def get(
+        self,
+        prefix: str,
+        identifier: Union[str, int],
+        model_class: Optional[Type[T]] = None,
     ) -> Optional[Union[T, dict]]:
         key = self._get_key(prefix, identifier)
         logger.debug("Attempting to get object from cache: %s", key)
-        
+
         data, err = await self.redis.get(key)
         if err or not data:
             if err:
@@ -36,12 +39,14 @@ class CacheService:
             # Redis class might already return a dict if it was JSON serializable
             if isinstance(data, str):
                 data = json.loads(data)
-            
+
             if model_class:
                 return model_class.model_validate(data)
             return data
         except (json.JSONDecodeError, ValidationError) as e:
-            logger.error("Failed to deserialize cached object for key %s: %s", key, str(e))
+            logger.error(
+                "Failed to deserialize cached object for key %s: %s", key, str(e)
+            )
             # Optional: delete corrupted cache
             await self.delete(prefix, identifier)
             return None
@@ -55,7 +60,7 @@ class CacheService:
     ) -> Error:
         key = self._get_key(prefix, identifier)
         logger.debug("Setting object in cache: %s with TTL %ds", key, ttl_seconds)
-        
+
         # If it's a Pydantic model, convert to dict
         if hasattr(obj, "model_dump"):
             data = obj.model_dump()
