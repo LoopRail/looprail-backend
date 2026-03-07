@@ -1,9 +1,9 @@
 from datetime import UTC, datetime, timezone
-from typing import ClassVar, List, Optional, Self, Tuple, Type
+from typing import Any, ClassVar, List, Optional, Self, Tuple, Type
 from uuid import UUID, uuid4
 
 from asyncpg.exceptions import UniqueViolationError
-from pydantic import ConfigDict, field_serializer
+from pydantic import ConfigDict, field_serializer, field_validator
 from sqlalchemy import DateTime
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.sql import Select
@@ -205,6 +205,13 @@ class Base(SQLModel, DatabaseMixin):
         sa_type=DateTime(timezone=True),
         nullable=False,
     )
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def strip_id_prefix(cls, v: Any) -> Any:
+        if isinstance(v, str) and "_" in v:
+            return v.rsplit("_", 1)[-1]
+        return v
 
     updated_at: datetime | None = Field(
         default=None,

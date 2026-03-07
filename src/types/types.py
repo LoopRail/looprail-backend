@@ -111,6 +111,14 @@ class TokenStandard(StrEnum):
     BEP20 = "bep20"
     TRC20 = "trc20"
 
+    @classmethod
+    def _missing_(cls, value: object) -> Any:
+        if isinstance(value, str):
+            for member in cls:
+                if member.value == value.lower():
+                    return member
+        return super()._missing_(value)
+
 
 class Provider(StrEnum):
     BLOCKRADER = "blockrader"
