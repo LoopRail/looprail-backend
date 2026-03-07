@@ -1,4 +1,6 @@
 import json
+from datetime import date, datetime
+from uuid import UUID
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 
 from coredis import Redis
@@ -49,25 +51,33 @@ class RQManager:
         return self._queue
 
 
+def _json_serializable(obj: Any) -> Any:
+    """Custom JSON encoder for datetime and UUID."""
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, UUID):
+        return str(obj)
+    raise TypeError(f"Type {type(obj)} not serializable")
+
+
 def _serialize_data(data: Any) -> Tuple[str | None, Error | None]:
     """Serialize data to a JSON string."""
     if isinstance(data, str):
         return data, None
     if isinstance(data, (int, float)):
         return str(data), None
-    if (
-        isinstance(data, dict)
-        or hasattr(data, "model_dump_json")
-        or hasattr(data, "dict")
-    ):
-        if hasattr(data, "model_dump_json"):
-            return str(data.model_dump_json()), None
-        if hasattr(data, "dict"):
-            return str(data.dict()), None
-        return str(json.dumps(data)), None
-    return None, error(
-        "Data must be a serializable type (dict, Pydantic model, str, int, float)"
-    )
+
+    # Handle Pydantic models (v1 and v2)
+    if hasattr(data, "model_dump_json"):
+        return data.model_dump_json(), None
+    if hasattr(data, "json"):
+        return data.json(), None
+
+    # Handle dicts and other types
+    try:
+        return json.dumps(data, default=_json_serializable), None
+    except (TypeError, ValueError) as e:
+        return None, error(f"Failed to serialize data: {str(e)}")
 
 
 class RedisTransaction:
