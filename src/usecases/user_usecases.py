@@ -270,6 +270,15 @@ class UserUseCase:
             logger.debug("User with email %s retrieved.", user_email)
         return user, err
 
+    async def get_user_by_username(self, username: str) -> Tuple[Optional[User], Error]:
+        logger.debug("Getting user by username: %s", username)
+        user, err = await self.repo.get_user_by_username(username=username)
+        if err:
+            logger.debug("User with username %s not found: %s", username, err.message)
+        else:
+            logger.debug("User with username %s retrieved.", username)
+        return user, err
+
     async def get_user_by_phone_number(
         self, phone_number: str
     ) -> Tuple[Optional[User], Error]:
