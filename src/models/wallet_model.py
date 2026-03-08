@@ -9,7 +9,7 @@ from src.types.common_types import Address, Chain
 from src.types.types import AssetType, Network, TokenStandard
 
 if TYPE_CHECKING:
-    from src.models.tranaction_model import Transaction
+    from src.models.transaction_model import Transaction
 
 
 class Wallet(Base, table=True):

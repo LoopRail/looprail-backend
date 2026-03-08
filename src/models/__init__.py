@@ -1,6 +1,6 @@
 from src.models.otp_model import Otp
 from src.models.session_model import RefreshToken, Session
-from src.models.tranaction_model import (
+from src.models.transaction_model import (
     Transaction,
     BankTransferDetail,
     WalletTransferDetail,
