@@ -5,24 +5,30 @@
 TARGET=$1
 CURRENT_BRANCH=$(git branch --show-current)
 
-push_to_env() {
+# 1. Push current changes to origin main
+echo "Pushing $CURRENT_BRANCH to origin/main..."
+git push origin "$CURRENT_BRANCH:main"
+
+sync_env() {
     ENV=$1
-    echo "Pushing $CURRENT_BRANCH to $ENV..."
-    git push origin "$CURRENT_BRANCH:$ENV"
+    echo "Updating $ENV with latest from main..."
+    git checkout "$ENV"
+    git pull origin main
+    git push origin "$ENV"
 }
 
 case $TARGET in
     dev)
-        push_to_env "dev"
+        sync_env "dev"
         ;;
     prod)
-        push_to_env "prod"
+        sync_env "prod"
         ;;
     *)
-        push_to_env "dev"
-        push_to_env "prod"
+        sync_env "dev"
+        sync_env "prod"
         ;;
 esac
 
-echo "Switching back to main..."
-git checkout main
+echo "Switching back to $CURRENT_BRANCH..."
+git checkout "$CURRENT_BRANCH"
