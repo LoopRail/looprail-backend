@@ -26,6 +26,7 @@ from src.api.dependencies.services import (
     get_redis_service,
     get_resend_service,
     get_geolocation_service,
+    get_custom_rate_limiter,
 )
 from src.api.dependencies.usecases import (
     get_blockrader_wallet_service,
@@ -80,4 +81,5 @@ __all__ = [
     "get_notification_usecase",
     "get_session_repository",
     "get_geolocation_service",
+    "get_custom_rate_limiter",
 ]
