@@ -53,6 +53,14 @@ async def list_transactions(
     # transaction_status: Optional[TransactionStatus] = None,
     # transaction_type: Optional[TransactionType] = None,
 ):
+    logger.info("DEBUG: Current User: ID=%s, email=%s, has_wallet=%s", current_user.id, current_user.email, current_user.wallet is not None)
+    if not current_user.wallet:
+        logger.error("ERROR: Wallet is missing for user %s", current_user.id)
+        return TransactionResponseBuilder.from_transaction_list(
+            transactions=[],
+            page=page,
+            page_size=page_size,
+        )
     wallet_id = current_user.wallet.id
     (
         transactions,

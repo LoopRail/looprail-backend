@@ -44,21 +44,48 @@ class UserRepository(Base[User]):
 
     async def get_user_by_id(self, *, user_id: UserId) -> Tuple[Optional[User], Error]:
         # return await self.get(User, user_id)
-        query = select(User).options(selectinload("*")).where(User.id == user_id)
+        query = (
+            select(User)
+            .options(
+                selectinload(User.profile),
+                selectinload(User.wallet),
+                selectinload(User.credentials),
+                selectinload(User.pin),
+            )
+            .where(User.id == user_id)
+        )
         result = await self.session.execute(query)
         return result.scalars().first(), None
 
     async def get_user_by_email(
         self, *, email: EmailStr
     ) -> Tuple[Optional[User], Error]:
-        query = select(User).options(selectinload("*")).where(User.email == email)
+        query = (
+            select(User)
+            .options(
+                selectinload(User.profile),
+                selectinload(User.wallet),
+                selectinload(User.credentials),
+                selectinload(User.pin),
+            )
+            .where(User.email == email)
+        )
         result = await self.session.execute(query)
         return result.scalars().first(), None
 
     async def get_user_by_username(
         self, *, username: str
     ) -> Tuple[Optional[User], Error]:
-        query = select(User).options(selectinload("*")).where(User.username == username)
+        query = (
+            select(User)
+            .options(
+                selectinload(User.profile),
+                selectinload(User.wallet),
+                selectinload(User.credentials),
+                selectinload(User.pin),
+            )
+            .where(User.username == username)
+        )
         result = await self.session.execute(query)
         return result.scalars().first(), None
 
