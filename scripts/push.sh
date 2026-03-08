@@ -6,7 +6,7 @@ TARGET=$1
 CURRENT_BRANCH=$(git branch --show-current)
 
 if [ -z "$TARGET" ]; then
-    echo "Usage: ./scripts/push.sh [dev|prod|all]"
+    echo "Usage: ./scripts/push.sh [dev|prod]"
     exit 1
 fi
 
@@ -23,13 +23,9 @@ case $TARGET in
     prod)
         push_to_env "prod"
         ;;
-    all)
+    *)
         push_to_env "dev"
         push_to_env "prod"
-        ;;
-    *)
-        echo "Invalid target: $TARGET. Use dev, prod, or all."
-        exit 1
         ;;
 esac
 
