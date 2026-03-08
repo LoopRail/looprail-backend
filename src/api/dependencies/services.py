@@ -67,3 +67,11 @@ def get_lock_service(
     redis_client: RedisClient = Depends(get_redis_service),
 ) -> LockService:
     return LockService(redis_client)
+
+
+def get_custom_rate_limiter(
+    redis_client: RedisClient = Depends(get_redis_service),
+) -> "CustomRateLimiter":
+    from src.api.rate_limiters.limiters import CustomRateLimiter
+
+    return CustomRateLimiter(redis_client)

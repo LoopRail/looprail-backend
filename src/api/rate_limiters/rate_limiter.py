@@ -41,11 +41,6 @@ def custom_rate_limiter(
             **kwargs,
         ):
             custom_limiter: CustomRateLimiter = get_custom_rate_limiter(request)
-            if os.getenv("ENVIRONMENT") in [
-                ENVIRONMENT.TEST.value,
-                ENVIRONMENT.DEVELOPMENT.value,
-            ]:
-                return await func(request, *args, **kwargs)
 
             identifier_object = kwargs.get(identifier_arg)
             if not identifier_object:
@@ -58,17 +53,24 @@ def custom_rate_limiter(
                     detail="Rate limiter configuration error: Missing identifier argument.",
                 )
 
-            identifier_value = getattr(identifier_object, identifier_field, None)
+            # Support multiple fields separated by comma or just a single field
+            fields = [f.strip() for f in identifier_field.split(",")]
+            identifier_value = None
+            for field in fields:
+                identifier_value = getattr(identifier_object, field, None)
+                if identifier_value:
+                    break
+
             if not identifier_value:
-                logger.error(
-                    "Rate limiter: Identifier field '%s' not found in '%s' object.",
-                    identifier_field,
-                    identifier_arg,
+                # If no identifier found, we still check IP and Global limits if possible
+                # But typically we want a primary identifier.
+                # For now, let's just log and continue if possible, or fail if required.
+                logger.warning(
+                    "Rate limiter: No non-null identifier found in fields %s",
+                    fields,
                 )
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Rate limiter configuration error: Missing identifier field.",
-                )
+                # Fallback to IP only if value is None
+                identifier_value = get_remote_address(request)
 
             (
                 allowed,

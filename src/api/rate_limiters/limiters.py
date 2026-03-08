@@ -106,6 +106,27 @@ RATE_LIMIT_CONFIG: Dict[str, RateLimitSubjectConfig] = {
             redis_expiry_seconds=60,
         ),
     ),
+    "availability": RateLimitSubjectConfig(
+        email=EmailRateLimitConfig(
+            count=10,
+            window_seconds=600,  # 10 req / 10 min
+            redis_expiry_seconds=1200,
+        ),
+        ip=IpRateLimitConfig(
+            capacity=30,
+            refill_rate_per_hour=60,
+            redis_expiry_seconds=7200,
+        ),
+        progressive_delay=ProgressiveDelayConfig(
+            delays={1: 0, 2: 0, 3: 5, 4: 15, 5: 60},
+            attempts_redis_expiry_seconds=1800,
+            last_time_redis_expiry_seconds=1800,
+        ),
+        global_limit=GlobalRateLimitConfig(
+            count=5000,
+            redis_expiry_seconds=60,
+        ),
+    ),
 }
 
 
@@ -125,7 +146,7 @@ class CustomRateLimiter:
 
     async def _check_email_limit(
         self, subject: str, email: str
-    ) -> tuple[bool, str | None]:
+    ) -> tuple[bool, str | None, int | None]:
         """Sliding window: Configurable requests per hour for an email"""
         config = RATE_LIMIT_CONFIG.get(subject)
         if not config:
@@ -148,17 +169,25 @@ class CustomRateLimiter:
             count = await self.redis.zcard(key)
 
             if count >= limit_count:
+                # Find the oldest timestamp to calculate retry after
+                oldest = await self.redis.zrange(key, 0, 0, with_scores=True)
+                retry_after = 0
+                if oldest:
+                    oldest_score = float(oldest[0][1])
+                    retry_after = int(oldest_score + limit_window_seconds - now)
+                
                 return (
                     False,
                     f"Maximum {limit_count} requests per hour for this email",
+                    max(1, retry_after),
                 )
 
             await self.redis.zadd(key, {str(now): now})
             await self.redis.expire(key, redis_expiry_seconds)
-            return True, None
+            return True, None, None
         except RedisError as e:
             logger.error("Email rate limit check failed: %s", str(e))
-            return True, None  # Fallback: allow on Redis error
+            return True, None, None  # Fallback: allow on Redis error
 
     async def _check_ip_limit(
         self, subject: str, ip: str
@@ -290,9 +319,9 @@ class CustomRateLimiter:
         ip = get_remote_address(request)
         ip_retry_after: int | None = None
 
-        allowed, error = await self._check_email_limit(limit_type, identifier_value)
+        allowed, error, email_retry_after = await self._check_email_limit(limit_type, identifier_value)
         if not allowed:
-            return False, error, None, ip_retry_after
+            return False, error, None, email_retry_after
 
         allowed, error, ip_retry_after = await self._check_ip_limit(limit_type, ip)
         if not allowed:
