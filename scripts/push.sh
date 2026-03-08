@@ -5,11 +5,6 @@
 TARGET=$1
 CURRENT_BRANCH=$(git branch --show-current)
 
-if [ -z "$TARGET" ]; then
-    echo "Usage: ./scripts/push.sh [dev|prod]"
-    exit 1
-fi
-
 push_to_env() {
     ENV=$1
     echo "Pushing $CURRENT_BRANCH to $ENV..."
