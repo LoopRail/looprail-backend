@@ -118,7 +118,7 @@ RATE_LIMIT_CONFIG: Dict[str, RateLimitSubjectConfig] = {
             redis_expiry_seconds=7200,
         ),
         progressive_delay=ProgressiveDelayConfig(
-            delays={1: 0, 2: 0, 3: 5, 4: 15, 5: 60},
+            delays={1: 0, 2: 0, 3: 5, 4: 15, 5: 60, 6: 120, 7: 300, 8: 600, 9: 900},
             attempts_redis_expiry_seconds=1800,
             last_time_redis_expiry_seconds=1800,
         ),
@@ -261,11 +261,11 @@ class CustomRateLimiter:
         last_time_key = f"{LAST_TIME_KEY_PREFIX.format(subject=subject)}{email}"
 
         try:
-            attempts = await self.redis.incr(attempts_key)
-            if attempts == 1:
-                await self.redis.expire(attempts_key, attempts_redis_expiry_seconds)
-
-            required_delay = delays.get(attempts, 900)
+            attempts_val = await self.redis.get(attempts_key)
+            current_attempts = int(attempts_val) if attempts_val else 0
+            next_attempt = current_attempts + 1
+            
+            required_delay = delays.get(next_attempt, 900)
 
             if required_delay > 0:
                 last_time = await self.redis.get(last_time_key)
@@ -273,7 +273,12 @@ class CustomRateLimiter:
                     elapsed = time.time() - float(last_time)
                     if elapsed < required_delay:
                         remaining = int(required_delay - elapsed)
-                        return False, f"Please wait {remaining} seconds", attempts
+                        return False, f"Please wait {remaining} seconds", current_attempts
+
+            # Only increment if we allowed the attempt
+            attempts = await self.redis.incr(attempts_key)
+            if attempts == 1:
+                await self.redis.expire(attempts_key, attempts_redis_expiry_seconds)
 
             await self.redis.set(
                 last_time_key, time.time(), ex=last_time_redis_expiry_seconds
