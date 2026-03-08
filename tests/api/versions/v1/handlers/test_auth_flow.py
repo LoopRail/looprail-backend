@@ -1,5 +1,6 @@
 from unittest.mock import ANY, MagicMock, AsyncMock
 from uuid import uuid4
+import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,6 +10,7 @@ from src.models import User
 from src.dtos import UserPublic
 from src.types import AccessToken, TokenType, error, Platform
 from src.api.dependencies import get_auth_lock_service, get_geolocation_service, get_notification_usecase, get_resend_service
+from src.api.dependencies.services import get_custom_rate_limiter
 from src.api.versions.v1.handlers.auth_router import login_auth_lock
 
 
@@ -474,3 +476,126 @@ def test_login_with_fcm_token_success(
     assert kwargs["allow_notifications"] is True
     assert "country" in kwargs
     assert "city" in kwargs
+
+
+@pytest.mark.asyncio
+async def test_check_availability_all_available(
+    client, mock_user_usecases, mock_redis_service
+):
+    from src.main import app
+    from unittest.mock import AsyncMock
+
+    # Mock the limiter to always allow
+    mock_limiter = AsyncMock()
+    mock_limiter.check_limit.return_value = (True, None, None, None)
+    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_limiter
+
+    # Mocking availability check (all available)
+    mock_user_usecases.get_user_by_email.return_value = (None, None)
+    mock_user_usecases.get_user_by_username.return_value = (None, None)
+    mock_user_usecases.get_user_by_phone_number.return_value = (None, None)
+
+    response = client.post(
+        "/api/v1/auth/availability",
+        json={
+            "email": "available@example.com",
+            "username": "availableuser",
+            "phone_number": "+1234567890",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"]["available"] is True
+    assert data["username"]["available"] is True
+    assert data["phone_number"]["available"] is True
+
+    # Cleanup override
+    if get_custom_rate_limiter in app.dependency_overrides:
+        del app.dependency_overrides[get_custom_rate_limiter]
+
+
+@pytest.mark.asyncio
+async def test_check_availability_partially_taken(
+    client, mock_user_usecases, mock_redis_service
+):
+    from src.main import app
+    from unittest.mock import AsyncMock
+
+    # Mock the limiter to always allow
+    mock_limiter = AsyncMock()
+    mock_limiter.check_limit.return_value = (True, None, None, None)
+    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_limiter
+
+    # Mocking email taken, others available
+    mock_user_usecases.get_user_by_email.return_value = (MagicMock(), None)
+    mock_user_usecases.get_user_by_username.return_value = (None, None)
+    mock_user_usecases.get_user_by_phone_number.return_value = (MagicMock(), None)
+
+    response = client.post(
+        "/api/v1/auth/availability",
+        json={
+            "email": "taken@example.com",
+            "username": "available_user",
+            "phone_number": "+2348099999999",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"]["available"] is False
+    assert data["username"]["available"] is True
+    assert data["phone_number"]["available"] is False
+    assert "already taken" in data["email"]["message"]
+
+    # Cleanup override
+    if get_custom_rate_limiter in app.dependency_overrides:
+        del app.dependency_overrides[get_custom_rate_limiter]
+
+
+@pytest.mark.asyncio
+async def test_check_availability_rate_limit(
+    client, mock_user_usecases, mock_redis_service
+):
+    from src.api.rate_limiters.limiters import CustomRateLimiter
+    from src.main import app
+
+    # Force the dependency override with real limiter for this specific test
+    app.dependency_overrides[get_custom_rate_limiter] = lambda: CustomRateLimiter(
+        mock_redis_service
+    )
+
+    # Mocking availability check (all available)
+    mock_user_usecases.get_user_by_email.return_value = (None, None)
+    mock_user_usecases.get_user_by_username.return_value = (None, None)
+    mock_user_usecases.get_user_by_phone_number.return_value = (None, None)
+
+    # We call it multiple times to trigger the 10 req / 10 min limit
+    mock_redis_service.zcard.side_effect = list(range(10)) + [10, 10, 10]
+    mock_redis_service.zrange.return_value = [("timestamp", time.time())]
+    mock_redis_service.incr.return_value = 1 
+
+    email = "limit@example.com"
+    username = "limituser"
+    phone_number = "+1987654321"
+    for i in range(10):
+        response = client.post(
+            "/api/v1/auth/availability",
+            json={"email": email},
+        )
+        assert response.status_code == 200
+
+    # 11th request should be rate limited
+    response = client.post(
+        "/api/v1/auth/availability",
+        json={"email": email},
+    )
+    
+    assert response.status_code == 429
+    data = response.json()
+    assert "Maximum 10 requests" in data["message"]
+    assert "Retry-After" in response.headers
+
+    # Cleanup override
+    if get_custom_rate_limiter in app.dependency_overrides:
+        del app.dependency_overrides[get_custom_rate_limiter]

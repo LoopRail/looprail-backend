@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlmodel import SQLModel
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.dialects.postgresql import JSONB
+from src.main import app
 
 @compiles(JSONB, "sqlite")
 def compile_jsonb_sqlite(type_, compiler, **kw):
@@ -214,13 +215,32 @@ def mock_get_otp_token() -> MagicMock:
 @pytest.fixture(autouse=True)
 def mock_redis_service() -> AsyncMock:
     mock = AsyncMock()
+    # Configure all methods as AsyncMocks
+    for method in ['get', 'set', 'delete', 'zcard', 'incr', 'zremrangebyscore', 'zadd', 'zrange', 'expire', 'hgetall', 'hset', 'ping']:
+        setattr(mock, method, AsyncMock())
+    
+    # Set default return values
     mock.get.return_value = None
-    mock.set.return_value = None
-    mock.delete.return_value = None
+    mock.zcard.return_value = 0
+    mock.incr.return_value = 0
+    mock.hgetall.return_value = {}
+    mock.ping.return_value = True
+
+    # CRITICAL: _instance must be the mock itself (or an AsyncMock)
+    mock._instance = mock
+    
+    # Ensure app.state.redis is also this mock for decorators
+    app.state.redis = mock
+    
     app.dependency_overrides[get_redis_service] = lambda: mock
-    yield mock
-    if get_redis_service in app.dependency_overrides:
-        del app.dependency_overrides[get_redis_service]
+    return mock
+
+
+@pytest.fixture(autouse=True)
+def mock_redis_client_class(mock_redis_service):
+    with patch("src.main.RedisClient") as mock_class:
+        mock_class.return_value = mock_redis_service
+        yield mock_class
 
 
 @pytest.fixture(autouse=True)
