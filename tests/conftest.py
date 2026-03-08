@@ -37,7 +37,7 @@ from src.api.dependencies import (
     get_user_usecases,
     get_wallet_manager_usecase,
 )
-from src.api.dependencies.services import get_redis_service
+from src.api.dependencies.services import get_redis_service, get_resend_service
 from src.infrastructure.settings import ENVIRONMENT, JWTConfig
 from src.main import app
 from src.models import Otp, User
@@ -116,6 +116,10 @@ def test_user_obj_fixture(test_user: tuple[User, str]) -> User:
 def mock_user_usecases(test_user_obj: User) -> MagicMock:
     mock = AsyncMock(spec=UserUseCase)
     mock.get_user_by_email.return_value = (test_user_obj, None)
+    mock.authenticate_user.return_value = (None, None)
+    mock.create_user.return_value = (None, None)
+    mock.get_user_by_id.return_value = (None, None)
+    mock.load_public_user.return_value = (None, None)
     app.dependency_overrides[get_user_usecases] = lambda: mock
     yield mock
     if get_user_usecases in app.dependency_overrides:
@@ -136,6 +140,11 @@ def mock_otp_usecase() -> MagicMock:
 @pytest.fixture
 def mock_session_usecase() -> MagicMock:
     mock = AsyncMock(spec=SessionUseCase)
+    mock.create_session.return_value = (MagicMock(), "mock_raw_refresh_token", None)
+    mock.get_session.return_value = (None, None)
+    mock.rotate_refresh_token.return_value = None
+    mock.get_valid_refresh_token_by_hash.return_value = (None, None)
+    mock.verify_passcode.return_value = (True, None)
     app.dependency_overrides[get_session_usecase] = lambda: mock
     yield mock
     if get_session_usecase in app.dependency_overrides:
@@ -152,8 +161,10 @@ def mock_jwt_usecase() -> MagicMock:
 
 
 @pytest.fixture
-def mock_security_usecase() -> MagicMock:
+def mock_security_usecase() -> AsyncMock:
     mock = AsyncMock(spec=SecurityUseCase)
+    mock.create_challenge.return_value = (None, None)
+    mock.verify_pkce.return_value = (True, None)
     app.dependency_overrides[get_security_usecase] = lambda: mock
     yield mock
     if get_security_usecase in app.dependency_overrides:
@@ -201,12 +212,27 @@ def mock_get_otp_token() -> MagicMock:
 
 
 @pytest.fixture(autouse=True)
-def mock_redis_service() -> MagicMock:
-    mock = MagicMock()
+def mock_redis_service() -> AsyncMock:
+    mock = AsyncMock()
+    mock.get.return_value = None
+    mock.set.return_value = None
+    mock.delete.return_value = None
     app.dependency_overrides[get_redis_service] = lambda: mock
     yield mock
     if get_redis_service in app.dependency_overrides:
         del app.dependency_overrides[get_redis_service]
+
+
+@pytest.fixture(autouse=True)
+def mock_resend_service() -> AsyncMock:
+    from src.infrastructure.services import ResendService
+    mock = AsyncMock(spec=ResendService)
+    mock.send.return_value = ({"id": "test-id"}, None)
+    mock.default_sender_domain = "looprail.com"
+    app.dependency_overrides[get_resend_service] = lambda: mock
+    yield mock
+    if get_resend_service in app.dependency_overrides:
+        del app.dependency_overrides[get_resend_service]
 
 
 @pytest.fixture

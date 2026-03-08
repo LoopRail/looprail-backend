@@ -70,6 +70,7 @@ async def test_passcode_login_success(
     mock_session = MagicMock(spec=Session)
     mock_session.id = uuid4()
     mock_session.user_id = uuid4()
+    mock_session.device_id = "device_test"
     mock_session.get_prefixed_id.return_value = session_id
     mock_session_usecase.get_session.return_value = (mock_session, None)
 
@@ -133,8 +134,8 @@ async def test_passcode_login_success(
         },
         headers={
             "X-Session-Id": session_id,
-            "Platform": "ios",
-            "Device-Id": "device_test",
+            "X-Platform": "ios",
+            "X-Device-ID": "device_test",
         },
     )
 

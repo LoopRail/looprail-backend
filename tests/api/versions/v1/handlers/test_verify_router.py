@@ -32,7 +32,7 @@ class TestVerifyOnboardingOtp:
         mock_jwt_usecase.create_token.return_value = "mock_access_token"
 
         response = client.post(
-            "/api/v1/verify/onbaording-otp",
+            "/api/v1/verify/onboarding-otp",
             json={"code": "123456", "otp_type": "onboarding_email_verification"},
             headers={"X-OTP-Token": mock_get_otp_token.return_value},
         )
@@ -64,7 +64,7 @@ class TestVerifyOnboardingOtp:
         mock_otp_usecase.get_otp.return_value = (invalid_otp, None)
 
         response = client.post(
-            "/api/v1/verify/onbaording-otp",
+            "/api/v1/verify/onboarding-otp",
             json={"code": "123456", "otp_type": "onboarding_email_verification"},
             headers={"X-OTP-Token": mock_get_otp_token.return_value},
         )
@@ -86,7 +86,7 @@ class TestVerifyOnboardingOtp:
         mock_user_usecases.get_user_by_email.return_value = (None, NotFoundError)
 
         response = client.post(
-            "/api/v1/verify/onbaording-otp",
+            "/api/v1/verify/onboarding-otp",
             json={"code": "123456", "otp_type": "onboarding_email_verification"},
             headers={"X-OTP-Token": mock_get_otp_token.return_value},
         )
@@ -114,7 +114,7 @@ class TestVerifyOnboardingOtp:
         mock_user_usecases.save.return_value = (None, error("Database error"))
 
         response = client.post(
-            "/api/v1/verify/onbaording-otp",
+            "/api/v1/verify/onboarding-otp",
             json={"code": "123456", "otp_type": "onboarding_email_verification"},
             headers={"X-OTP-Token": mock_get_otp_token.return_value},
         )

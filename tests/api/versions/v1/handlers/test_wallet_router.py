@@ -10,6 +10,7 @@ from src.api.dependencies import (
     get_blockrader_wallet_service,
     get_current_user,
     get_current_user_token,
+    get_notification_usecase,
     get_wallet_manager_usecase,
     get_config,
     get_user_usecases,
@@ -104,7 +105,21 @@ async def test_get_user_balance_success(
     user_id = uuid4()
     wallet_id = uuid4()
 
-    # Mock Wallet Output
+    asset_id = f"ast_{uuid4()}"
+    mock_wallet_service.get_asset_balance.return_value = (
+        {
+            "asset_id": asset_id,
+            "balance": "1.0",
+            "symbol": "USDT",
+            "name": "USDT",
+            "decimals": 18,
+            "asset-type": "usdt",
+            "network": "mainnet",
+            "address": "0x...",
+            "is-active": True,
+        },
+        None,
+    )
     mock_wallet_service.get_wallet_with_assets.return_value = (
         {
             "id": f"wlt_{wallet_id}",
@@ -114,7 +129,7 @@ async def test_get_user_balance_success(
             "is-active": True,
             "assets": [
                 {
-                    "asset-id": "ast_123",
+                    "asset-id": asset_id,
                     "name": "USDT",
                     "symbol": "USDT",
                     "decimals": 18,
@@ -145,12 +160,12 @@ async def test_get_user_balance_success(
     )
 
     with TestClient(app) as client:
-        response = client.get("/api/v1/wallets/balance")
+        response = client.get(f"/api/v1/wallets/balance/ast_{uuid4()}")
 
     # Assertions
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["assets"][0]["balance"] == "1.0"
+    assert data["balance"] == "1.0"
 
     # Cleanup
     app.dependency_overrides.clear()
@@ -299,7 +314,14 @@ async def test_withdraw_success(
         },
     }
 
-    # Dependency Overrides
+    mock_notif = AsyncMock()
+    app.dependency_overrides[get_notification_usecase] = lambda: mock_notif
+    
+    mock_session_repo = AsyncMock()
+    mock_session_repo.get_user_sessions.return_value = []
+    from src.api.dependencies import get_session_repository
+    app.dependency_overrides[get_session_repository] = lambda: mock_session_repo
+
     app.dependency_overrides[get_current_user] = lambda: mock_current_user
     app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
     app.dependency_overrides[get_config] = lambda: mock_config
@@ -363,7 +385,14 @@ async def test_withdraw_invalid_pin(
         },
     }
 
-    # Dependency Overrides
+    mock_notif = AsyncMock()
+    app.dependency_overrides[get_notification_usecase] = lambda: mock_notif
+    
+    mock_session_repo = AsyncMock()
+    mock_session_repo.get_user_sessions.return_value = []
+    from src.api.dependencies import get_session_repository
+    app.dependency_overrides[get_session_repository] = lambda: mock_session_repo
+
     app.dependency_overrides[get_current_user] = lambda: mock_current_user
     app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
     app.dependency_overrides[get_config] = lambda: mock_config
@@ -422,7 +451,14 @@ async def test_withdraw_account_locked(
         },
     }
 
-    # Dependency Overrides
+    mock_notif = AsyncMock()
+    app.dependency_overrides[get_notification_usecase] = lambda: mock_notif
+    
+    mock_session_repo = AsyncMock()
+    mock_session_repo.get_user_sessions.return_value = []
+    from src.api.dependencies import get_session_repository
+    app.dependency_overrides[get_session_repository] = lambda: mock_session_repo
+
     app.dependency_overrides[get_current_user] = lambda: mock_current_user
     app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
     app.dependency_overrides[get_config] = lambda: mock_config
