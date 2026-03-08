@@ -26,6 +26,9 @@ from src.dtos.user_dtos import (
     SetTransactionPinRequest,
     UserCreate,
     UserPublic,
+    CheckAvailabilityRequest,
+    AvailabilityResponse,
+    AvailabilityStatus,
 )
 from src.dtos.wallet_dtos import (
     AssetPublic,
@@ -67,4 +70,7 @@ __all__ = [
     "PasscodeSetRequest",
     "PasscodeLoginRequest",
     "PushNotificationDTO",
+    "CheckAvailabilityRequest",
+    "AvailabilityResponse",
+    "AvailabilityStatus",
 ]

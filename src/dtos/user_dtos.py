@@ -122,3 +122,20 @@ class LoginRequest(Base):
 
 class RefreshTokenRequest(Base):
     refresh_token: RefreshTokenId
+
+
+class CheckAvailabilityRequest(Base):
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
+    phone_number: Optional[PhoneNumber] = None
+
+
+class AvailabilityStatus(Base):
+    available: bool
+    message: Optional[str] = None
+
+
+class AvailabilityResponse(Base):
+    email: Optional[AvailabilityStatus] = None
+    username: Optional[AvailabilityStatus] = None
+    phone_number: Optional[AvailabilityStatus] = None
