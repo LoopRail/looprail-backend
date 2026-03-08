@@ -17,13 +17,18 @@ from src.api.dependencies import (
     get_security_usecase,
     get_session_usecase,
     get_user_usecases,
+    get_custom_rate_limiter,
 )
 from src.api.internals import (
     send_otp_internal,
     set_send_otp_config,
     set_user_create_config,
 )
-from src.api.rate_limiters import custom_rate_limiter, limiter
+from src.api.rate_limiters import (
+    add_rate_limiter,
+    custom_rate_limiter,
+    limiter,
+)
 from src.dtos import (
     AuthTokensResponse,
     AuthWithTokensAndUserResponse,
@@ -39,6 +44,9 @@ from src.dtos import (
     RefreshTokenRequest,
     SetTransactionPinRequest,
     UserCreate,
+    CheckAvailabilityRequest,
+    AvailabilityResponse,
+    AvailabilityStatus,
 )
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
@@ -47,6 +55,7 @@ from src.infrastructure.services import (
     GeolocationService,
     ResendService,
 )
+from src.api.rate_limiters.limiters import CustomRateLimiter
 from src.models import Session
 from src.types import (
     AccessToken,
@@ -445,7 +454,7 @@ async def login(
             body="Welcome back! You've successfully logged in. Your gateway to seamless cross-border payments is open.",
             type=NotificationType.PUSH,
         )
-        notification_usecase.enqueue_push(welcome_notification)
+        await notification_usecase.enqueue_push(welcome_notification)
         logger.info("Welcome push notification enqueued for user %s", user.id)
 
     logger.info(
@@ -866,3 +875,49 @@ async def send_otp(
     response.headers["X-OTP-Token"] = token
     logger.info("OTP sent successfully to email: %s", otp_data.email)
     return {"message": "OTP sent successfully"}
+
+
+@router.post(
+    "/availability",
+    response_model=AvailabilityResponse,
+    summary="Check availability of email, username, or phone number",
+)
+@custom_rate_limiter(
+    limit_type="availability",
+    identifier_arg="check_data",
+    identifier_field="email, username, phone_number",
+)
+async def check_availability(
+    request: Request,
+    check_data: CheckAvailabilityRequest = Body(...),
+    user_usecases: UserUseCase = Depends(get_user_usecases),
+) -> AvailabilityResponse:
+    logger.info("Received availability check request: %s", check_data)
+    response = AvailabilityResponse()
+
+    if check_data.email:
+        user, _ = await user_usecases.get_user_by_email(user_email=check_data.email)
+        response.email = AvailabilityStatus(
+            available=user is None,
+            message="Email is already taken" if user else "Email is available",
+        )
+
+    if check_data.username:
+        user, _ = await user_usecases.get_user_by_username(username=check_data.username)
+        response.username = AvailabilityStatus(
+            available=user is None,
+            message="Username is already taken" if user else "Username is available",
+        )
+
+    if check_data.phone_number:
+        user, _ = await user_usecases.get_user_by_phone_number(
+            phone_number=check_data.phone_number
+        )
+        response.phone_number = AvailabilityStatus(
+            available=user is None,
+            message="Phone number is already taken"
+            if user
+            else "Phone number is available",
+        )
+
+    return response
