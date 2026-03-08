@@ -8,6 +8,12 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.dialects.postgresql import JSONB
+
+@compiles(JSONB, "sqlite")
+def compile_jsonb_sqlite(type_, compiler, **kw):
+    return "JSON"
 
 from src.infrastructure.config_settings import load_config
 
@@ -46,7 +52,9 @@ from src.usecases import (
 import time
 
 
-@pytest.fixture(name="test_db_session")
+import pytest_asyncio
+
+@pytest_asyncio.fixture(name="test_db_session")
 async def test_db_session_fixture():
     # We need a new engine for the test database to avoid conflicts
     # with the application's engine if it were to be initialized.

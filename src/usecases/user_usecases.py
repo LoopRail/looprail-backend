@@ -178,7 +178,7 @@ class UserUseCase:
     ) -> Tuple[Optional[User], Error]:
         logger.info("Setting up wallet for user %s", user_id)
 
-        user, err = await self.get_user_by_id(user_id)
+        user, err = await self.get_user_by_id(user_id, from_cache=False)
         if err or not user:
             return None, err
 
@@ -226,7 +226,7 @@ class UserUseCase:
     ) -> Tuple[Optional[User], Error]:
         logger.info("Finalizing onboarding for user %s", user_id)
 
-        user, err = await self.get_user_by_id(user_id)
+        user, err = await self.get_user_by_id(user_id, from_cache=False)
         if err or not user:
             return None, err
 
@@ -243,14 +243,15 @@ class UserUseCase:
         logger.info("Onboarding completed successfully for user ID %s", user_id)
         return updated_user, None
 
-    async def get_user_by_id(self, user_id: UserId) -> Tuple[Optional[User], Error]:
+    async def get_user_by_id(self, user_id: UserId, from_cache: bool = True) -> Tuple[Optional[User], Error]:
         logger.debug("Getting user by ID: %s", user_id)
         
-        # Try cache first
-        cached_user = await self.cache.get("user", str(user_id), User)
-        if cached_user:
-            logger.debug("User %s found in cache.", user_id)
-            return cached_user, None
+        if from_cache:
+            # Try cache first
+            cached_user = await self.cache.get("user", str(user_id), User)
+            if cached_user:
+                logger.debug("User %s found in cache.", user_id)
+                return cached_user, None
 
         user, err = await self.repo.get_user_by_id(user_id=user_id)
         if err:
@@ -302,7 +303,7 @@ class UserUseCase:
     ) -> Tuple[Optional[User], Error]:
         logger.debug("Updating transaction pin for user %s", user_id)
 
-        user, err = await self.get_user_by_id(user_id)
+        user, err = await self.get_user_by_id(user_id, from_cache=False)
         if err:
             return None, err
 
