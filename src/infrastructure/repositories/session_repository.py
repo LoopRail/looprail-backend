@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import List, Optional, Tuple
 
 from src.infrastructure.repositories.base import Base
@@ -53,7 +53,7 @@ class SessionRepository(Base[Session]):
         session, err = await self.get_session(session_id)
         if err:
             return err
-        session.revoked_at = datetime.utcnow()
+        session.revoked_at = datetime.now(UTC)
         _, err = await self.update(session)
         return err
 
@@ -70,7 +70,7 @@ class SessionRepository(Base[Session]):
     async def revoke_all_user_sessions(self, user_id: UserId) -> Error:
         sessions = await self.get_user_sessions(user_id)
         for session_instance in sessions:
-            session_instance.revoked_at = datetime.utcnow()
+            session_instance.revoked_at = datetime.now(UTC)
             _, err = await self.update(session_instance)
             if err:
                 return err

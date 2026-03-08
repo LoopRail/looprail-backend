@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Optional, Tuple
 
 from sqlmodel import select, update
@@ -22,7 +22,7 @@ class RefreshTokenRepository(Base[RefreshToken]):
         refresh_token_hash = hashlib.sha256(
             new_refresh_token_string.encode()
         ).hexdigest()
-        expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+        expires_at = datetime.now(UTC) + timedelta(days=expires_in_days)
 
         refresh_token = RefreshToken(
             session_id=session_id,
@@ -37,7 +37,7 @@ class RefreshTokenRepository(Base[RefreshToken]):
         statement = select(RefreshToken).where(
             RefreshToken.token_hash == refresh_token_hash,
             RefreshToken.revoked_at.is_(None),
-            RefreshToken.expires_at > datetime.utcnow(),
+            RefreshToken.expires_at > datetime.now(UTC),
             # RefreshToken.replaced_by_hash.is_(None),
         )
         result = await self.session.execute(statement)
@@ -53,7 +53,7 @@ class RefreshTokenRepository(Base[RefreshToken]):
         statement = select(RefreshToken).where(
             RefreshToken.session_id == session_id,
             RefreshToken.revoked_at.is_(None),
-            RefreshToken.expires_at > datetime.utcnow(),
+            RefreshToken.expires_at > datetime.now(UTC),
             RefreshToken.replaced_by_hash.is_(None),
         )
         result = await self.session.execute(statement)
@@ -73,7 +73,7 @@ class RefreshTokenRepository(Base[RefreshToken]):
         statement = (
             update(RefreshToken)
             .where(RefreshToken.session_id == session_id)
-            .values(revoked_at=datetime.utcnow())
+            .values(revoked_at=datetime.now(UTC))
         )
         await self.session.execute(statement)
         return None

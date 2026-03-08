@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Optional, Tuple, Type, TypeVar
 
 from jose import ExpiredSignatureError, JWTError, jwt
@@ -33,7 +33,7 @@ class JWTUsecase:
         )
         to_encode = data.model_dump()
 
-        expire = datetime.utcnow() + timedelta(minutes=exp_minutes)
+        expire = datetime.now(UTC) + timedelta(minutes=exp_minutes)
         to_encode.update({"exp": expire})
 
         encoded_jwt = jwt.encode(

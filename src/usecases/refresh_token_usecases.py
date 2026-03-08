@@ -1,6 +1,6 @@
 import hashlib
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 
 from src.infrastructure.config import settings
@@ -20,7 +20,7 @@ class RefreshTokenUseCase:
     ) -> tuple[str, RefreshTokenData]:
         raw_token = self._generate_random_token()
         token_hash = self._hash_token(raw_token)
-        expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+        expires_at = datetime.now(UTC) + timedelta(days=expires_in_days)
 
         refresh_token_data = RefreshTokenData(
             session_id=session_id,

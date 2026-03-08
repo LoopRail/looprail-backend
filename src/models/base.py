@@ -96,7 +96,7 @@ class DatabaseMixin:
     async def delete(self: "Base", session: AsyncSession) -> Error:
         if self.deleted_at is not None:
             return ItemDoesNotExistError
-        self.deleted_at = datetime.utcnow()
+        self.deleted_at = utc_now()
         self.on_delete()
         err = await self.save(session)
         return err

@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Optional, Self, Tuple
 
 from src.infrastructure.constants import (
@@ -115,14 +115,14 @@ class AuthLockService:
         )
         lock_duration = duration_minutes or ACCOUNT_LOCKOUT_DURATION_MINUTES
         key = await self._get_key(user_email, "account_lock")
-        lock_data = {"locked_at": datetime.utcnow().isoformat()}
+        lock_data = {"locked_at": datetime.now(UTC).isoformat()}
         await self.redis_client.create(
             key, json.dumps(lock_data), ttl=timedelta(minutes=lock_duration)
         )
         logger.info(
             "Account %s locked until: %s",
             user_email,
-            datetime.utcnow() + timedelta(minutes=lock_duration),
+            datetime.now(UTC) + timedelta(minutes=lock_duration),
         )
         return None
 
