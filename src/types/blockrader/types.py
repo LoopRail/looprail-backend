@@ -36,7 +36,7 @@ class AssetData(baseBlockRaderType):
     network: Network
     standard: Optional[str]
     symbol: str
-    precision: Optional[int]
+    precision: Optional[int] = None
     updatedAt: datetime | None = None
 
 
