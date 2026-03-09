@@ -17,7 +17,8 @@
           "standard": "erc20",
           "isActive": true,
           "logoUrl": "https://res.cloudinary.com/blockradar/image/upload/v1716800083/crypto-assets/usd-coin-usdc-logo_fs9mhv.png",
-          "network": "testnet"
+          "network": "testnet",
+          "precision": 1000000
         }
       ]
     }
