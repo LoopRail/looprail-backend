@@ -198,6 +198,7 @@ class WalletService:
                 network=asset.network,
                 address=asset.address,
                 standard=asset.standard,
+                precision=asset.precision,
                 is_active=asset.is_active,
             )
             asset_data_list.append(
@@ -253,7 +254,7 @@ class WalletService:
                 bal_resp.balance
                 - bal_resp.inflight_debit_balance
                 - bal_resp.queued_debit_balance
-            ) / 100
+            ) / Decimal(asset.precision)
         asset_balance = AssetBalance(
             asset_id=asset.get_prefixed_id(),
             name=asset.name,
@@ -264,6 +265,7 @@ class WalletService:
             network=asset.network,
             address=asset.address,
             standard=asset.standard,
+            precision=asset.precision,
             is_active=asset.is_active,
         )
 
@@ -462,6 +464,7 @@ class WalletManagerUsecase:
                 decimals=asset_data.decimals,
                 network=asset_data.network,
                 standard=asset_data.standard,
+                precision=asset_data.precision,
                 is_active=asset_data.isActive,
             )
             logger.debug(
@@ -622,7 +625,7 @@ class WalletManagerUsecase:
                 - bal_resp.queued_debit_balance
             )
 
-            total_needed_minor = int((withdrawal_request.amount + withdrawal_fee) * 100)
+            total_needed_minor = int((withdrawal_request.amount + withdrawal_fee) * asset.precision)
             if available_balance < total_needed_minor:
                 logger.warning(
                     "Insufficient funds for user %s: available=%s, needed=%s (minor units)",
@@ -751,7 +754,7 @@ class WalletManagerUsecase:
         total_ledger_amount = withdrawal_request.amount + withdrawal_fee
 
         ledger_txn_request = RecordTransactionRequest(
-            amount=int(total_ledger_amount * 100),
+            amount=int(total_ledger_amount * asset.precision),
             currency=withdrawal_request.currency.lower(),
             source=asset.ledger_balance_id,
             description=f"Withdrawal for {user.id} to {withdrawal_method}",
@@ -770,11 +773,11 @@ class WalletManagerUsecase:
             ledger_txn_request.destinations = [
                 Destination(
                     identifier=WorldLedger.WORLD_OUT,
-                    distribution=str(int(withdrawal_request.amount * 100)),
+                    distribution=str(int(withdrawal_request.amount * asset.precision)),
                 ),
                 Destination(
                     identifier=WorldLedger.PLATFORM_FEES,
-                    distribution=str(int(withdrawal_fee * 100)),
+                    distribution=str(int(withdrawal_fee * asset.precision)),
                 ),
             ]
         else:

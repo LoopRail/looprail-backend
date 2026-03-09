@@ -88,12 +88,7 @@ async def handle_deposit_swept_success(
         )
         return
     try:
-        amount_in_minor_units = int(float(event.data.amount) * 100)
-        logger.debug(
-            "Converted amount %s to minor units: %s",
-            event.data.amount,
-            amount_in_minor_units,
-        )
+        float(event.data.amount)
     except (ValueError, TypeError):
         logger.error(
             "Invalid amount format: %s for event %s", event.data.amount, event.data.id
@@ -276,12 +271,7 @@ async def handle_deposit_success(
     logger.info("Local transaction record created for event %s", event.data.id)
 
     try:
-        amount_in_minor_units = int(float(event.data.amount) * 100)
-        logger.debug(
-            "Converted amount %s to minor units: %s",
-            event.data.amount,
-            amount_in_minor_units,
-        )
+        amount = float(event.data.amount)
     except (ValueError, TypeError):
         logger.error(
             "Invalid amount format: %s for event %s", event.data.amount, event.data.id
@@ -289,7 +279,8 @@ async def handle_deposit_success(
         return
 
     transaction_request = RecordTransactionRequest(
-        amount=amount_in_minor_units,
+        amount=amount,
+        precision=source_asset.precision,
         currency=asset.symbol,
         source=WorldLedger.WORLD_IN,
         destination=asset.ledger_balance_id,
@@ -418,20 +409,28 @@ async def handle_withdraw_success(
     logger.info("Local transaction record created for event %s", event.data.id)
 
     try:
-        amount_in_minor_units = int(float(event.data.amount) * 100)
-        logger.debug(
-            "Converted amount %s to minor units: %s",
-            event.data.amount,
-            amount_in_minor_units,
-        )
+        amount = float(event.data.amount)
     except (ValueError, TypeError):
         logger.error(
             "Invalid amount format: %s for event %s", event.data.amount, event.data.id
         )
         return
 
+    source_wallet, err = config.block_rader.wallets.get_wallet(
+        wallet_id=event.data.wallet.wallet_id
+    )
+    if err:
+        logger.error(f"Source wallet not found for address %s", event.data.recipientAddress)
+        return
+
+    source_asset, err = source_wallet.get(asset_id=event.data.asset.asset_id)
+    if err:
+        logger.error("Asset not found in wallet %s", source_wallet.wallet_name)
+        return
+
     transaction_request = RecordTransactionRequest(
-        amount=amount_in_minor_units,
+        amount=amount,
+        precision=source_asset.precision,
         reference=event.data.id,
         currency=event.data.currency,
         source=asset.ledger_balance_id,
