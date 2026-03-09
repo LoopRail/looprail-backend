@@ -254,7 +254,7 @@ class WalletService:
                 bal_resp.balance
                 - bal_resp.inflight_debit_balance
                 - bal_resp.queued_debit_balance
-            ) / asset.precision
+            ) / int(asset.precision)
         asset_balance = AssetBalance(
             asset_id=asset.get_prefixed_id(),
             name=asset.name,
