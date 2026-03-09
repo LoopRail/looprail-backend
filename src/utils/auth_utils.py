@@ -1,9 +1,9 @@
-import hashlib
 import base64
-from uuid import uuid4
+import hashlib
 import hmac
 import re
 from typing import Optional
+from uuid import uuid4
 
 from argon2 import PasswordHasher, exceptions
 

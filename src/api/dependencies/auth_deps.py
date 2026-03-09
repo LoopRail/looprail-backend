@@ -23,8 +23,8 @@ from src.types import (
     OTPError,
     OtpStatus,
     TokenType,
-    httpError,
     WebhookProvider,
+    httpError,
 )
 from src.usecases import (
     JWTUsecase,
@@ -180,6 +180,7 @@ async def verify_otp_dep(
         raise InternaleServerError
     return otp
 
+
 async def get_verify_webhook_request(
     secrets_usecase: SecretsUsecase = Depends(get_secrets_usecase),
 ) -> "VerifyWebhookRequest":
@@ -233,6 +234,4 @@ class VerifyWebhookRequest:
         self, provider: WebhookProvider, body: bytes, secret: str, signature: str
     ) -> bool:
         logger.debug("Entering _verify_signature for provider: %s", provider.value)
-        if provider == WebhookProvider.BLOCKRADER:
-            return verify_signature(body, signature, secret)
-        return False
+        return verify_signature(body, signature, secret)
