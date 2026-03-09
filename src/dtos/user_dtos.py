@@ -127,7 +127,7 @@ class RefreshTokenRequest(Base):
 class CheckAvailabilityRequest(Base):
     email: Optional[EmailStr] = None
     username: Optional[str] = None
-    phone_number: Optional[PhoneNumber] = None
+    phone_number: Optional[PhoneNumber] = Field(None, alias="phone-number")
 
 
 class AvailabilityStatus(Base):

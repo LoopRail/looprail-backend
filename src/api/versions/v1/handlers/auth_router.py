@@ -454,7 +454,7 @@ async def login(
             body="Welcome back! You've successfully logged in. Your gateway to seamless cross-border payments is open.",
             type=NotificationType.PUSH,
         )
-        await notification_usecase.enqueue_push(welcome_notification)
+        notification_usecase.enqueue_push(welcome_notification)
         logger.info("Welcome push notification enqueued for user %s", user.id)
 
     logger.info(

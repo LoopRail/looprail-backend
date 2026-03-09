@@ -1,12 +1,13 @@
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Optional
 
 from fastapi import Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from src.api.dependencies.services import get_redis_service
 from src.infrastructure import RedisClient, get_logger
 from src.infrastructure.redis import RedisError
 from src.infrastructure.settings import ENVIRONMENT
@@ -76,7 +77,7 @@ RATE_LIMIT_CONFIG: Dict[str, RateLimitSubjectConfig] = {
             redis_expiry_seconds=7200,
         ),
         progressive_delay=ProgressiveDelayConfig(
-            delays={1: 0, 2: 0, 3: 30, 4: 120, 5: 900},
+            delays={1: 0, 2: 0, 3: 30, 4: 120, 5: 900, 6: 1800, 7: 3600},
             attempts_redis_expiry_seconds=3600,
             last_time_redis_expiry_seconds=3600,
         ),
@@ -97,7 +98,7 @@ RATE_LIMIT_CONFIG: Dict[str, RateLimitSubjectConfig] = {
             redis_expiry_seconds=7200,
         ),
         progressive_delay=ProgressiveDelayConfig(
-            delays={1: 0, 2: 0, 3: 30, 4: 120, 5: 900},
+            delays={1: 0, 2: 0, 3: 30, 4: 120, 5: 900, 6: 1800, 7: 3600},
             attempts_redis_expiry_seconds=3600,
             last_time_redis_expiry_seconds=3600,
         ),
@@ -322,7 +323,6 @@ class CustomRateLimiter:
         Main method to check various rate limits based on type.
         """
         ip = get_remote_address(request)
-        ip_retry_after: int | None = None
 
         allowed, error, email_retry_after = await self._check_email_limit(limit_type, identifier_value)
         if not allowed:
