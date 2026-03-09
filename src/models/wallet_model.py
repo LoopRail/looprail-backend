@@ -55,6 +55,7 @@ class Asset(Base, table=True):
     decimals: int = Field(nullable=False)
     network: Network = Field(nullable=False)
     standard: Optional[TokenStandard] = Field(default=None)
+    precision: int = Field(nullable=False, default=100)
     is_active: bool = Field(default=True, nullable=False)
 
     wallet: Wallet = Relationship(

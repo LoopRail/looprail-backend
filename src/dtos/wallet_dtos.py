@@ -89,6 +89,7 @@ class AssetPublic(Base):
     network: Network
     address: str
     standard: Optional[TokenStandard] = None
+    precision: int
     is_active: bool = Field(alias="is-active")
 
 
@@ -115,6 +116,7 @@ class AssetBalance(Base):
     network: Network
     address: str
     standard: Optional[TokenStandard] = None
+    precision: int
     is_active: bool = Field(alias="is-active")
 
 
