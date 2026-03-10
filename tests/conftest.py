@@ -248,7 +248,7 @@ def mock_resend_service() -> AsyncMock:
     from src.infrastructure.services import ResendService
     mock = AsyncMock(spec=ResendService)
     mock.send.return_value = ({"id": "test-id"}, None)
-    mock.default_sender_domain = "looprail.com"
+    mock.default_sender_domain = "looprail.xyz"
     app.dependency_overrides[get_resend_service] = lambda: mock
     yield mock
     if get_resend_service in app.dependency_overrides:

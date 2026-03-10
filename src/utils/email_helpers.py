@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 logger = get_logger(__name__)
 
-SENDER_EMAIL = os.getenv("SENDER_EMAIL", "notifications@looprail.com")
+SENDER_EMAIL = os.getenv("SENDER_EMAIL", "notifications@looprail.xyz")
 
 
 async def send_transactional_email(

@@ -56,7 +56,7 @@ def authenticated_client_fixture(
 
     mock_resend = AsyncMock(); mock_resend.send.return_value = ({"id": "test-id"}, None)
     mock_resend.send.return_value = ({"id": "test-id"}, None)
-    mock_resend.default_sender_domain = "looprail.com"
+    mock_resend.default_sender_domain = "looprail.xyz"
     app.dependency_overrides[get_resend_service] = lambda: mock_resend
 
     # Perform actual login so the refresh token is real
@@ -122,7 +122,7 @@ def test_login_success(
     app.dependency_overrides[get_notification_usecase] = lambda: mock_notif
 
     mock_resend = AsyncMock(); mock_resend.send.return_value = ({"id": "test-id"}, None)
-    mock_resend.default_sender_domain = "looprail.com"
+    mock_resend.default_sender_domain = "looprail.xyz"
     app.dependency_overrides[get_resend_service] = lambda: mock_resend
 
     response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
@@ -173,7 +173,7 @@ def test_login_invalid_credentials(
     mock_auth_lock.reset_failed_attempts.return_value = None
     app.dependency_overrides[login_auth_lock] = lambda: mock_auth_lock
 
-    mock_resend = AsyncMock(); mock_resend.send.return_value = ({"id": "test-id"}, None); mock_resend.default_sender_domain = "looprail.com"
+    mock_resend = AsyncMock(); mock_resend.send.return_value = ({"id": "test-id"}, None); mock_resend.default_sender_domain = "looprail.xyz"
     app.dependency_overrides[get_resend_service] = lambda: mock_resend
 
     response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
@@ -460,7 +460,7 @@ def test_login_with_fcm_token_success(
     app.dependency_overrides[get_notification_usecase] = lambda: mock_notif
 
     mock_resend = AsyncMock(); mock_resend.send.return_value = ({"id": "test-id"}, None)
-    mock_resend.default_sender_domain = "looprail.com"
+    mock_resend.default_sender_domain = "looprail.xyz"
     app.dependency_overrides[get_resend_service] = lambda: mock_resend
 
     response = client.post("/api/v1/auth/login", json=login_data, headers=headers)
