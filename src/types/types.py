@@ -95,6 +95,14 @@ class TransactionStatus(StrEnum):
     FAILED = "failed"
 
 
+class DepositStage(StrEnum):
+    """Tracks the sub-stage of a blockchain deposit lifecycle."""
+
+    PENDING = "pending"  # Created, awaiting DEPOSIT_SUCCESS webhook
+    RECEIVED = "received"  # DEPOSIT_SUCCESS processed; inflight ledger txn recorded
+    SWEPT = "swept"  # DEPOSIT_SWEPT_SUCCESS processed; ledger txn committed
+
+
 class Currency(StrEnum):
     NAIRA = "ngn"
     US_Dollar = "usd"

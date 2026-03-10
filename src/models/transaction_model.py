@@ -8,7 +8,13 @@ from sqlmodel import Column, Field, Relationship
 
 from src.models.base import Base
 from src.types.common_types import Address, Network, ReferenceId
-from src.types.types import Currency, PaymentMethod, TransactionStatus, TransactionType
+from src.types.types import (
+    Currency,
+    DepositStage,
+    PaymentMethod,
+    TransactionStatus,
+    TransactionType,
+)
 from src.utils.app_utils import generate_transaction_reference
 
 if TYPE_CHECKING:
@@ -53,6 +59,11 @@ class Transaction(Base, table=True):
         nullable=False,
         default=TransactionStatus.PENDING,
         index=True,
+    )
+    deposit_stage: Optional[DepositStage] = Field(
+        default=DepositStage.PENDING,
+        index=True,
+        description="Tracks blockchain deposit lifecycle: pending -> received -> swept",
     )
 
     # References
