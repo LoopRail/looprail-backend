@@ -13,6 +13,7 @@ from src.api.dependencies import (
     get_transaction_usecase,
     get_user_repository,
     get_wallet_repository,
+    get_rq_manager,
 )
 from src.api.webhooks.registry import get_registry
 from src.infrastructure.config_settings import Config
@@ -27,6 +28,7 @@ from src.infrastructure.repositories import (
 )
 from src.infrastructure.services import LedgerService, LockService
 from src.infrastructure.services.resend_service import ResendService
+from src.infrastructure.redis import RQManager
 from src.types.blockrader import WebhookEvent
 from src.usecases.notification_usecases import NotificationUseCase
 from src.usecases.transaction_usecases import TransactionUsecase
@@ -53,6 +55,7 @@ async def handle_blockrader_webhook(
     notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
     user_repo: UserRepository = Depends(get_user_repository),
     resend_service: ResendService = Depends(get_resend_service),
+    rq_manager: RQManager = Depends(get_rq_manager),
 ):
     logger.info("Handling BlockRadar webhook event of type: %s", webhook_event.event)
     logger.info("Received BlockRadar webhook event: %s", webhook_event.event)
@@ -84,6 +87,7 @@ async def handle_blockrader_webhook(
             notification_usecase=notification_usecase,
             user_repo=user_repo,
             resend_service=resend_service,
+            rq_manager=rq_manager,
         )
         logger.info("Webhook event %s processed successfully.", webhook_event.event)
         return {"message": "Webhook received and processed"}
