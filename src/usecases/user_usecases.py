@@ -243,9 +243,11 @@ class UserUseCase:
         logger.info("Onboarding completed successfully for user ID %s", user_id)
         return updated_user, None
 
-    async def get_user_by_id(self, user_id: UserId, from_cache: bool = True) -> Tuple[Optional[User], Error]:
+    async def get_user_by_id(
+        self, user_id: UserId, from_cache: bool = True
+    ) -> Tuple[Optional[User], Error]:
         logger.debug("Getting user by ID: %s", user_id)
-        
+
         if from_cache:
             # Try cache first
             cached_user = await self.cache.get("user", str(user_id), User)
@@ -321,7 +323,7 @@ class UserUseCase:
             user.pin.pin_hash = hashed_pin.password_hash
         else:
             user.pin = UserPin(pin_hash=hashed_pin.password_hash)
- 
+
         await self.cache.delete("user", str(user_id))
         updated_user, err = await self.save(user)
         if err:
@@ -340,7 +342,7 @@ class UserUseCase:
         self, user_id: UserId, pin: str
     ) -> Tuple[bool, Error]:
         logger.debug("Verifying transaction pin for user %s", user_id)
-        user, err = await self.get_user_by_id(user_id)
+        user, err = await self.repo.get_user_by_id(user_id=user_id)
         if err or not user:
             return False, err
 
@@ -357,7 +359,9 @@ class UserUseCase:
             logger.warning("Invalid transaction pin provided for user %s", user_id)
         return is_valid, None
 
-    async def load_public_user(self, user_id: UserId) -> Tuple[Optional[UserPublic], Error]:
+    async def load_public_user(
+        self, user_id: UserId
+    ) -> Tuple[Optional[UserPublic], Error]:
         logger.debug("Loading public user data for user %s", user_id)
         user, err = await self.get_user_by_id(user_id)
         if err or not user:

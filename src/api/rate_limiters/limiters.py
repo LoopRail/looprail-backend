@@ -88,12 +88,12 @@ RATE_LIMIT_CONFIG: Dict[str, RateLimitSubjectConfig] = {
     ),
     "withdrawal": RateLimitSubjectConfig(
         email=EmailRateLimitConfig(
-            count=10,
+            count=40,
             window_seconds=3600,
             redis_expiry_seconds=7200,
         ),
         ip=IpRateLimitConfig(
-            capacity=40,
+            capacity=80,
             refill_rate_per_hour=20,
             redis_expiry_seconds=7200,
         ),
@@ -171,7 +171,7 @@ class CustomRateLimiter:
 
             if count >= limit_count:
                 # Find the oldest timestamp to calculate retry after
-                oldest = await self.redis.zrange(key, 0, 0, with_scores=True)
+                oldest = await self.redis.zrange(key, 0, 0, withscores=True)
                 retry_after = 0
                 if oldest:
                     oldest_score = float(oldest[0][1])
