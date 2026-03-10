@@ -15,7 +15,13 @@ from src.dtos.wallet_dtos import (
     TransferType,
     WithdrawalRequest,
 )
-from src.infrastructure import BANK_TRASNFER_WITHDRAWAL_FEE, MASTER_BASE_WALLET
+from src.infrastructure import (
+    BANK_TRASNFER_WITHDRAWAL_FEE,
+    MASTER_BASE_WALLET,
+    MIN_BANK_TRANSFER_NGN,
+    BANK_TRANSFER_FEE_THRESHOLD_USD,
+    MIN_WALLET_TRANSFER_USD,
+)
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import (
@@ -23,7 +29,12 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.services import LedgerService, PaycrestService, WalletManager, GeolocationService
+from src.infrastructure.services import (
+    LedgerService,
+    PaycrestService,
+    WalletManager,
+    GeolocationService,
+)
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, Transaction, User, Wallet
 from src.types import (
@@ -91,7 +102,7 @@ class WalletService:
         self.paycrest_service = paycrest_service
         self.transaction_usecase = transaction_usecase
         self.geolocation_service = geolocation_service
- 
+
         self.ledger_service = ledger_service
 
         self._manager: Optional[WalletManager] = None
@@ -130,7 +141,9 @@ class WalletService:
 
         self._manager_id = wallet_id
         self._manager = WalletManager(self.blockrader_config, wallet_id)
-        manager_usecase = WalletManagerUsecase(self, self._manager, wallet_config, ledger)
+        manager_usecase = WalletManagerUsecase(
+            self, self._manager, wallet_config, ledger
+        )
         logger.debug(
             "WalletManagerUsecase created successfully for wallet ID: %s", wallet_id
         )
@@ -215,7 +228,7 @@ class WalletService:
             "is-active": wallet.is_active,
             "assets": asset_data_list,
         }
- 
+
         return wallet_dict, None
 
     async def get_asset_balance(
@@ -583,27 +596,52 @@ class WalletManagerUsecase:
             return None, error("Could not find asset")
         logger.debug("Asset %s retrieved for user %s.", asset.id, user.id)
 
-        # Calculate withdrawal fee
+        # Calculate withdrawal fee and validate minimums
         withdrawal_fee = Decimal("0")
+
+        # Get USD equivalent to check if > 10 USD
+        amount_in_usd = withdrawal_request.amount
+        rate_resp = None
+        if withdrawal_request.currency == types.Currency.NAIRA:
+            rate_resp, err = await self.service.paycrest_service.fetch_letest_usdc_rate(
+                amount=float(withdrawal_request.amount),
+                currency="NGN",
+            )
+            if not err and rate_resp and rate_resp.data:
+                try:
+                    amount_in_usd = withdrawal_request.amount / Decimal(
+                        str(rate_resp.data)
+                    )
+                except Exception:
+                    pass
+
         if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
-            withdrawal_fee = Decimal(BANK_TRASNFER_WITHDRAWAL_FEE)
-            # For NGN, convert 0.1 USD to NGN if the withdrawal currency is NGN
-            if withdrawal_request.currency == types.Currency.NAIRA:
-                (
-                    rate_resp,
-                    err,
-                ) = await self.service.paycrest_service.fetch_letest_usdc_rate(
-                    amount=float(withdrawal_request.amount),
-                    currency="NGN",
+            if (
+                withdrawal_request.currency == types.Currency.NAIRA
+                and withdrawal_request.amount < Decimal(MIN_BANK_TRANSFER_NGN)
+            ):
+                return None, ValidationError(
+                    f"Minimum bank transfer is {MIN_BANK_TRANSFER_NGN} NGN"
                 )
-                if not err and rate_resp and rate_resp.data:
-                    # We quantize to 2 decimal places for NGN (100 kobo = 1 NGN)
-                    withdrawal_fee = (
-                        Decimal("0.1") * Decimal(rate_resp.data)
-                    ).quantize(Decimal("0.01"))
-                else:
-                    # Fallback to a fixed NGN fee approx equivalent to 0.1 USD
-                    withdrawal_fee = Decimal("150")
+
+            if amount_in_usd > Decimal(BANK_TRANSFER_FEE_THRESHOLD_USD):
+                withdrawal_fee = Decimal(BANK_TRASNFER_WITHDRAWAL_FEE)
+                # For NGN, convert 0.1 USD to NGN if the withdrawal currency is NGN
+                if withdrawal_request.currency == types.Currency.NAIRA:
+                    if rate_resp and rate_resp.data:
+                        # We quantize to 2 decimal places for NGN (100 kobo = 1 NGN)
+                        withdrawal_fee = (
+                            Decimal("0.1") * Decimal(str(rate_resp.data))
+                        ).quantize(Decimal("0.01"))
+                    else:
+                        # Fallback to a fixed NGN fee approx equivalent to 0.1 USD
+                        withdrawal_fee = Decimal("150")
+
+        elif withdrawal_method == WithdrawalMethod.EXTERNAL_WALLET:
+            if amount_in_usd < Decimal(MIN_WALLET_TRANSFER_USD):
+                return None, ValidationError(
+                    f"Minimum wallet transfer is {MIN_WALLET_TRANSFER_USD} USD"
+                )
 
         # Proactive balance verification
         if asset.ledger_balance_id:
@@ -625,7 +663,9 @@ class WalletManagerUsecase:
                 - bal_resp.queued_debit_balance
             )
 
-            total_needed_minor = int((withdrawal_request.amount + withdrawal_fee) * asset.precision)
+            total_needed_minor = int(
+                (withdrawal_request.amount + withdrawal_fee) * asset.precision
+            )
             if available_balance < total_needed_minor:
                 logger.warning(
                     "Insufficient funds for user %s: available=%s, needed=%s (minor units)",
@@ -659,9 +699,13 @@ class WalletManagerUsecase:
         ip_address = withdrawal_request.authorization.ip_address
         location_str = "Unknown"
         if ip_address:
-            geo_data, _ = await self.service.geolocation_service.get_location(ip_address)
+            geo_data, _ = await self.service.geolocation_service.get_location(
+                ip_address
+            )
             if geo_data and geo_data.status == "success":
-                location_str = f"{geo_data.city}, {geo_data.regionName}, {geo_data.country}"
+                location_str = (
+                    f"{geo_data.city}, {geo_data.regionName}, {geo_data.country}"
+                )
 
         base_kwargs = {
             "wallet_id": user_wallet.id,
