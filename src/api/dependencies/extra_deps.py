@@ -11,8 +11,3 @@ def get_config(request: Request) -> Config:
 
 def get_app_environment(request: Request) -> ENVIRONMENT:
     return request.app.state.environment
-
-
-def get_rq_manager() -> RQManager:
-    config = load_config()
-    return RQManager(config.redis)

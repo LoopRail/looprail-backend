@@ -13,7 +13,7 @@ from src.api.dependencies import (
     get_user_usecases,
     get_wallet_manager_usecase,
 )
-from src.api.dependencies.extra_deps import get_rq_manager
+from src.api.dependencies import get_rq_manager
 from src.api.rate_limiters.rate_limiter import custom_rate_limiter
 from src.dtos import AssetBalance, WalletPublic
 from src.dtos.wallet_dtos import WithdrawalRequest

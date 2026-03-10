@@ -40,6 +40,7 @@ from src.api.dependencies.usecases import (
     get_user_usecases,
     get_wallet_manager_usecase,
     get_notification_usecase,
+    get_rq_manager,
 )
 from src.api.dependencies.webhooks import get_blockrader_webhook_event
 
@@ -53,6 +54,7 @@ __all__ = [
     "get_user_repository",
     "get_wallet_repository",
     "get_transaction_repository",
+    "get_rq_manager",
     "get_asset_repository",
     "get_wallet_manager_usecase",
     "get_blockrader_wallet_service",
