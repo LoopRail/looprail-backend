@@ -1161,8 +1161,41 @@ class WalletManagerUsecase:
             withdrawal_request.destination.data
         )
 
+        # Resolve the SWIFT/institution code from the numeric bank ID.
+        # transfer_data.bank_code holds the numeric ID (e.g. "070"), but Paycrest
+        # expects the institution code (e.g. "FIDTNGLA"). Look it up via banks_data.
+        country_code = get_country_code_by_currency(
+            self.service.config.countries, withdrawal_request.currency
+        )
+        if not country_code:
+            logger.error(
+                "Could not determine country code for currency '%s' — cannot resolve institution code",
+                withdrawal_request.currency,
+            )
+            return error("Could not determine country code for bank transfer")
+
+        found_banks = self.service.config.banks_data.get(
+            country_code=country_code, id=transfer_data.bank_code
+        )
+        if not found_banks or not found_banks[0].code:
+            logger.error(
+                "Could not resolve institution code for bank ID '%s' in country '%s'",
+                transfer_data.bank_code,
+                country_code,
+            )
+            return error(
+                f"Bank with ID '{transfer_data.bank_code}' not found or has no institution code"
+            )
+
+        institution_code = found_banks[0].code
+        logger.debug(
+            "Resolved institution code '%s' for bank ID '%s'",
+            institution_code,
+            transfer_data.bank_code,
+        )
+
         recipient = PaycrestRecipiant(
-            institution=transfer_data.bank_code,
+            institution=institution_code,
             account_identifier=transfer_data.account_number,
             account_name=transfer_data.account_name,
             memo=withdrawal_request.narration,
