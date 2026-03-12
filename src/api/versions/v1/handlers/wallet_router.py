@@ -9,11 +9,11 @@ from src.api.dependencies import (
     get_current_user,
     get_current_user_token,
     get_notification_usecase,
+    get_rq_manager,
     get_session_repository,
     get_user_usecases,
     get_wallet_manager_usecase,
 )
-from src.api.dependencies import get_rq_manager
 from src.api.rate_limiters.rate_limiter import custom_rate_limiter
 from src.dtos import AssetBalance, WalletPublic
 from src.dtos.wallet_dtos import WithdrawalRequest
@@ -25,6 +25,7 @@ from src.infrastructure.services import AuthLockService
 from src.models import User
 from src.types import AccessToken, AssetId
 from src.types.notification_types import NotificationAction
+from src.types.types import Currency
 from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
 from src.usecases.notification_usecases import NotificationUseCase
 from src.utils.notification_helpers import enqueue_notifications_for_user
@@ -192,6 +193,8 @@ async def withdraw(
         withdrawal_request.authorization.ip_address,
         withdrawal_request.authorization.user_agent,
     )
+
+    withdrawal_request.currency = Currency.NAIRA
 
     withdraw_queue = Queue("withdrawals", connection=rq_manager.get_connection())
     withdraw_queue.enqueue(
