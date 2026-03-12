@@ -80,7 +80,7 @@ class PaycrestService(PaycrestClient):
         if err:
             logger.error("Failed to create payment order: %s", err.message)
             return None, err
-        logger.info("Payment order created successfully with ID: %s", response.order_id)
+        logger.info("Payment order created successfully with ID: %s", response.payment_id)
         return response, None
 
     async def verify_account(
