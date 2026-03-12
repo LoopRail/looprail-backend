@@ -10,7 +10,7 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.services import LedgerService, PaycrestService, WalletManager
+from src.infrastructure.services import GeolocationService, LedgerService, PaycrestService, WalletManager
 from src.usecases import TransactionUsecase, WalletManagerUsecase, WalletService
 
 
@@ -50,6 +50,10 @@ class TaskDependenciesFactory:
         )
 
     @functools.cached_property
+    def geolocation_service(self) -> GeolocationService:
+        return GeolocationService()
+
+    @functools.cached_property
     def wallet_service(self) -> WalletService:
         return WalletService(
             self.wallet_repository,
@@ -60,6 +64,7 @@ class TaskDependenciesFactory:
             asset_repository=self.asset_repository,
             paycrest_service=self.paycrest_service,
             transaction_usecase=self.transaction_usecase,
+            geolocation_service=self.geolocation_service,
         )
 
     def get_wallet_manager_usecase(
