@@ -1255,8 +1255,8 @@ class WalletManagerUsecase:
             reference=transaction.reference,
             metadata={
                 "type": "bank",
-                "wallet_id": transaction.wallet_id,
-                "user_id": user.id,
+                "wallet_id": WalletId.new(transaction.wallet_id),
+                "user_id": user.get_prefixed_id(),
             },
         )
 
