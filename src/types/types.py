@@ -92,6 +92,7 @@ class WalletConfig(BaseModel):
 class TransactionStatus(StrEnum):
     COMPLETED = "completed"
     PENDING = "pending"
+    PROCESSING = "processing"
     FAILED = "failed"
 
 
