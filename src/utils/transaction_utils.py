@@ -8,8 +8,14 @@ from src.dtos.transaction_dtos import (
     WalletTransferParams,
 )
 from src.types.blockrader import DepositSuccessData, WithdrawSuccessData
+from src.types.common_types import UserId
 from src.types.country_types import CountriesData
-from src.types.types import DepositStage, TransactionStatus, TransactionType
+from src.types.types import (
+    DepositStage,
+    PaymentMethod,
+    TransactionStatus,
+    TransactionType,
+)
 from src.utils.country_utils import get_country_name_by_currency
 
 if TYPE_CHECKING:
@@ -33,13 +39,18 @@ def create_transaction_params_from_event(
     if event_data.metadata and isinstance(event_data.metadata, dict):
         session_id = event_data.metadata.get("session_id")
 
+    is_withdrawal = transaction_type == TransactionType.DEBIT
+
     base_kwargs = {
-        "user_id": wallet.user_id,
         "wallet_id": wallet.id,
         "amount": Decimal(event_data.amount),
         "currency": event_data.currency.lower(),
         "asset_id": asset_id,
         "transaction_type": transaction_type,
+        "payment_type": transaction_type,
+        "method": PaymentMethod.BLOCKCHAIN,
+        "sender": UserId.new(wallet.user_id) if is_withdrawal else event_data.senderAddress,
+        "receiver": event_data.recipientAddress if is_withdrawal else UserId.new(wallet.user_id),
         "transaction_hash": event_data.hash or "pending",
         "status": TransactionStatus.COMPLETED,
         "reference": event_data.reference,
@@ -61,6 +72,6 @@ def create_transaction_params_from_event(
 
     return WalletTransferParams(
         **base_kwargs,
-        address=event_data.recipientAddress,
-        network=wallet.network,
+        wallet_address=event_data.recipientAddress,
+        network=event_data.network,
     )
