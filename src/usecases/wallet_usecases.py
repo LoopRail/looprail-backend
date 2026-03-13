@@ -65,7 +65,7 @@ from src.types.blockrader import (
     NetworkFeeRequest,
     WalletAddressResponse,
 )
-from src.types.common_types import AssetId, Network, UserId
+from src.types.common_types import AssetId, Network, UserId, WalletId
 from src.types.ledger_types import Ledger
 from src.types.paycrest import PaycrestRecipiant
 from src.types.types import WithdrawalMethod
@@ -761,14 +761,13 @@ class WalletManagerUsecase:
             else:
                 return None, error("Invalid data for bank transfer")
 
-        elif (
-            withdrawal_method == WithdrawalMethod.EXTERNAL_WALLET
-            and isinstance(specific_data, ExternalWalletTransferData)
+        elif withdrawal_method == WithdrawalMethod.EXTERNAL_WALLET and isinstance(
+            specific_data, ExternalWalletTransferData
         ):
             common_transaction_params = WalletTransferParams(
                 **base_kwargs,
+                transaction_hash=f"pending_0x{uuid.uuid4()}",
                 wallet_address=specific_data.address,
-                network=asset.network,
             )
 
         else:
@@ -914,7 +913,10 @@ class WalletManagerUsecase:
                 transaction.ledger_transaction_id,
             )
             void_req = UpdateInflightTransactionRequest(status="void")
-            void_err = await self.service.ledger_service.transactions.update_inflight_transaction(
+            (
+                _,
+                void_err,
+            ) = await self.service.ledger_service.transactions.update_inflight_transaction(
                 transaction.ledger_transaction_id, void_req
             )
             if void_err:
@@ -1121,7 +1123,7 @@ class WalletManagerUsecase:
             )
         elif withdrawal_request.destination.event == WithdrawalMethod.EXTERNAL_WALLET:
             err = await self._execute_external_wallet_withdrawal(
-                withdrawal_request, transaction
+                user, withdrawal_request, transaction
             )
         else:
             logger.error(
@@ -1254,7 +1256,7 @@ class WalletManagerUsecase:
             metadata={
                 "type": "bank",
                 "wallet_id": transaction.wallet_id,
-                "user_id": transaction.user_id,
+                "user_id": user.id,
             },
         )
 
@@ -1275,6 +1277,7 @@ class WalletManagerUsecase:
 
     async def _execute_external_wallet_withdrawal(
         self,
+        user: User,
         withdrawal_request: WithdrawalRequest,
         transaction: Transaction,
     ) -> Optional[Error]:
@@ -1308,8 +1311,8 @@ class WalletManagerUsecase:
             reference=transaction.reference,
             metadata={
                 "type": "wallet",
-                "wallet_id": transaction.wallet_id,
-                "user_id": transaction.user_id,
+                "wallet_id": WalletId.new(transaction.wallet_id),
+                "user_id": user.get_prefixed_id(),
             },
         )
 
