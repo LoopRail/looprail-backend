@@ -131,10 +131,3 @@ async def get_task_dependencies_factory():
     config = load_config()
     async for session in get_session():
         yield TaskDependenciesFactory(session, config)
-
-
-async def get_task_wallet_manager_usecase(
-    wallet_id: str, ledger_id: str
-) -> WalletManagerUsecase:
-    async with get_task_dependencies_factory() as factory:
-        return factory.get_wallet_manager_usecase(wallet_id, ledger_id)

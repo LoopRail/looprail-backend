@@ -172,8 +172,16 @@ async def _process_deposit_swept_success_task_async(event_data: Dict[str, Any]):
             return
 
         # --- Update DB: COMPLETED + SWEPT stage ---
+        # Fetch again with deposit relationship
+        txn, err = await transaction_repo.find_one(id=txn.id, load_relationships=["deposit"])
+
         txn.status = TransactionStatus.COMPLETED
-        txn.deposit_stage = DepositStage.SWEPT
+        if txn.deposit:
+            txn.deposit.deposit_stage = DepositStage.SWEPT
+            await transaction_repo.update(txn.deposit)
+        else:
+            logger.warning("No DepositDetail found for transaction %s", txn.id)
+
         _, err = await transaction_repo.update(txn)
         if err:
             logger.error(
@@ -405,9 +413,17 @@ async def _process_deposit_success_task_async(event_data: Dict[str, Any]):
             return
 
         # --- Update DB: set ledger_transaction_id, external_reference, stage=RECEIVED ---
+        # Fetch again with deposit relationship
+        txn, err = await transaction_usecase.repo.find_one(id=txn.id, load_relationships=["deposit"])
+
         txn.ledger_transaction_id = ledger_txn.transaction_id
         txn.external_reference = event.data.reference
-        txn.deposit_stage = DepositStage.RECEIVED
+        if txn.deposit:
+            txn.deposit.deposit_stage = DepositStage.RECEIVED
+            await transaction_usecase.repo.update(txn.deposit)
+        else:
+            logger.warning("No DepositDetail found for transaction %s", txn.id)
+
         _, err = await transaction_usecase.repo.update(txn)
         if err:
             logger.error(

@@ -91,10 +91,4 @@ class TaskDependenciesFactory:
 
 
 # Helper function to be used by tasks
-async def get_task_wallet_manager_usecase(
-    wallet_id: str, ledger_id: str
-) -> WalletManagerUsecase:
-    config = load_config()  # TODO: Cache this
-    async for session in get_session():
-        factory = TaskDependenciesFactory(session, config)
-        return factory.get_wallet_manager_usecase(wallet_id, ledger_id)
+# (Use TaskDependenciesFactory directly within a session context in tasks)
