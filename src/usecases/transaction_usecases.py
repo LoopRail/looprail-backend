@@ -104,19 +104,6 @@ class TransactionUsecase:
                 }
             )
 
-            base_data.update(
-                {
-                    "external_reference": params.external_reference,
-                    "destination_data": {
-                        "bank_code": params.bank_code,
-                        "bank_name": params.bank_name,
-                        "account_number": params.account_number,
-                        "account_name": params.account_name,
-                        "provider": params.provider,
-                    },
-                }
-            )
-
         elif isinstance(params, WalletTransferParams):
             base_data.update(
                 {

@@ -4,6 +4,8 @@ from src.models.transaction_model import (
     Transaction,
     BankTransferDetail,
     WalletTransferDetail,
+    DepositDetail,
+    InternalTransferDetail
 )
 from src.models.user_model import User, UserCredentials, UserPin, UserProfile
 from src.models.wallet_model import Asset, Wallet
@@ -21,4 +23,6 @@ __all__ = [
     "Asset",
     "BankTransferDetail",
     "WalletTransferDetail",
+    "DepositDetail",
+    "InternalTransferDetail"
 ]

@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional, Union
+from typing import List, Optional, Union,Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
@@ -14,6 +14,7 @@ from src.types.types import (
     PaymentMethod,
     TransactionStatus,
     TransactionType,
+    DepositStage
 )
 
 
@@ -113,16 +114,6 @@ class DepositParams(BaseTransactionParams):
     provider_reference: Optional[str] = None
     deposit_stage: DepositStage = Field(default=DepositStage.PENDING)
 
-
-#
-# class InternalTransferParams(BaseTransactionParams):
-#     """Params for internal user-to-user transfers"""
-#
-#     recipient_user_id: UserId
-#     recipient_wallet_id: WalletId
-#     recipient_asset_id: AssetId
-#     transfer_type: str = Field(default="p2p")
-#
 
 CreateTransactionParams = (
     CryptoTransactionParams

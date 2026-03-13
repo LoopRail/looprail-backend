@@ -18,6 +18,9 @@ from src.dtos.transaction_dtos import (
     BankTransferParams,
     CreateTransactionParams,
     CryptoTransactionParams,
+    DepositParams,
+    InternalTransferParams,
+    WalletTransferParams
 )
 from src.dtos.user_dtos import (
     CompleteOnboardingRequest,
@@ -73,4 +76,7 @@ __all__ = [
     "CheckAvailabilityRequest",
     "AvailabilityResponse",
     "AvailabilityStatus",
+    "DepositParams"
+    "InternalTransferParams"
+    "WalletTransferParams"
 ]
