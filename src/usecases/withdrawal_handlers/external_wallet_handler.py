@@ -25,14 +25,15 @@ async def handle_external_wallet_transfer(
     create_transaction_params: CreateTransactionParams,
     **kwargs,
 ) -> Tuple[Optional[Transaction], Optional[Error]]:
+    user_id = user.id
     logger.info(
         "Handling external wallet transfer for user %s to address %s",
-        user.id,
+        user_id,
         transfer_data.address,
     )
     logger.info(
         "Preparing external wallet transfer for user %s to %s with asset %s amount %s",
-        user.id,
+        user_id,
         transfer_data.address,
         withdrawal_request.asset_id,
         withdrawal_request.amount,
@@ -45,7 +46,7 @@ async def handle_external_wallet_transfer(
 
     logger.debug(
         "Creating local transaction record for user %s with params: %s",
-        user.id,
+        user_id,
         crypto_specific_params.model_dump(),
     )
     (
@@ -56,12 +57,12 @@ async def handle_external_wallet_transfer(
     )
     if err:
         logger.error(
-            "Failed to record local transaction for user %s: %s", user.id, err.message
+            "Failed to record local transaction for user %s: %s", user_id, err.message
         )
         return None, error("Failed to record transaction")
     logger.info(
         "Local transaction record created for user %s with ID: %s",
-        user.id,
+        user_id,
         transaction.id,
     )
 

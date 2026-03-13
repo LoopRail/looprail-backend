@@ -24,9 +24,10 @@ async def handle_bank_transfer(
     create_transaction_params: CreateTransactionParams,
     **kwargs,
 ) -> Tuple[Optional[Transaction], Optional[Error]]:
+    user_id = user.id
     logger.info(
         "Handling bank transfer for user %s to account %s",
-        user.id,
+        user_id,
         transfer_data.account_number,
     )
 
@@ -36,7 +37,7 @@ async def handle_bank_transfer(
 
     logger.debug(
         "Creating local transaction record for user %s with params: %s",
-        user.id,
+        user_id,
         bank_transfer_specific_params.model_dump(),
     )
     (
@@ -47,12 +48,12 @@ async def handle_bank_transfer(
     )
     if err:
         logger.error(
-            "Failed to record local transaction for user %s: %s", user.id, err.message
+            "Failed to record local transaction for user %s: %s", user_id, err.message
         )
         return None, error("Failed to record transaction")
     logger.info(
         "Local transaction record created for user %s with ID: %s",
-        user.id,
+        user_id,
         transaction.id,
     )
 

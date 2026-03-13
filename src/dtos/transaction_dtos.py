@@ -17,6 +17,14 @@ from src.types.types import (
 )
 
 
+def has_relationship(obj: Any, name: str) -> bool:
+    """Check if an object has a relationship attribute populated"""
+    try:
+        return hasattr(obj, name) and getattr(obj, name) is not None
+    except Exception:
+        return False
+
+
 class BaseTransactionParams(Base):
     """Base params for all transaction types"""
 
@@ -34,6 +42,7 @@ class BaseTransactionParams(Base):
     network: Optional[Network] = Field(default=None)
     metadata: dict = Field(default_factory=dict)
     country: Optional[CountryShortName] = Field(default=None)
+    session_id: Optional[UUID] = Field(default=None)
 
 
 class CryptoTransactionParams(BaseTransactionParams):
@@ -56,6 +65,16 @@ class CryptoTransactionParams(BaseTransactionParams):
     memo: Optional[str] = None
 
 
+class WalletTransferParams(CryptoTransactionParams):
+    """Params for explicit wallet-to-wallet transfers"""
+
+    wallet_address: Address = Field(min_length=1)
+    network: Network
+    memo: Optional[str] = None
+    address_verified: bool = False
+    contract_address: Optional[str] = None
+
+
 class BankTransferParams(BaseTransactionParams):
     """Params specific to bank transfers"""
 
@@ -66,16 +85,33 @@ class BankTransferParams(BaseTransactionParams):
 
     # Provider info
     provider: str = Field(default="paycrest")
-    session_id: Optional[str] = None
     external_reference: Optional[str] = None
 
     @field_validator("account_number")
     @classmethod
     def validate_account_number(cls, v: str) -> str:
-        cleaned = v.replace(" ", "").replace("-", "")
+        cleaned = v.replace(" ", "").replace("-", "").strip()
         if not cleaned.isdigit():
             raise ValueError("Account number must contain only digits")
         return cleaned
+
+
+class InternalTransferParams(BaseTransactionParams):
+    """Params for internal user-to-user transfers"""
+
+    recipient_user_id: UserId
+    recipient_asset_id: AssetId
+    transfer_type: str = Field(default="p2p")
+
+
+class DepositParams(BaseTransactionParams):
+    """Params for recording deposits"""
+
+    source_type: str = Field(min_length=1)  # bank, card, chain
+    source_reference: Optional[str] = None
+    provider: Optional[str] = None
+    provider_reference: Optional[str] = None
+    deposit_stage: DepositStage = Field(default=DepositStage.PENDING)
 
 
 #
@@ -88,7 +124,13 @@ class BankTransferParams(BaseTransactionParams):
 #     transfer_type: str = Field(default="p2p")
 #
 
-CreateTransactionParams = CryptoTransactionParams | BankTransferParams
+CreateTransactionParams = (
+    CryptoTransactionParams
+    | BankTransferParams
+    | WalletTransferParams
+    | InternalTransferParams
+    | DepositParams
+)
 
 
 class TransactionRead(Base):
@@ -211,6 +253,28 @@ class WalletTransferDetailRead(BaseModel):
     contract_address: Optional[str] = Field(default=None, alias="contract-address")
 
 
+class InternalTransferDetailRead(BaseModel):
+    """Internal user-to-user transfer detail information"""
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    recipient_user_id: str = Field(alias="recipient-user-id")
+    recipient_asset_id: str = Field(alias="recipient-asset-id")
+    transfer_type: str = Field(alias="transfer-type")
+
+
+class DepositDetailRead(BaseModel):
+    """Deposit detail information"""
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    source_type: Optional[str] = Field(default=None, alias="source-type")
+    source_reference: Optional[str] = Field(default=None, alias="source-reference")
+    deposit_stage: DepositStage = Field(alias="deposit-stage")
+    provider: Optional[str] = None
+    provider_reference: Optional[str] = Field(default=None, alias="provider-reference")
+
+
 class TransactionDetailRead(TransactionRead):
     """Transaction with full detail information"""
 
@@ -220,6 +284,12 @@ class TransactionDetailRead(TransactionRead):
     )
     wallet_transfer_detail: Optional[WalletTransferDetailRead] = Field(
         default=None, alias="wallet-transfer-detail"
+    )
+    internal_transfer_detail: Optional[InternalTransferDetailRead] = Field(
+        default=None, alias="internal-transfer-detail"
+    )
+    deposit_detail: Optional[DepositDetailRead] = Field(
+        default=None, alias="deposit-detail"
     )
 
 
@@ -300,6 +370,23 @@ class TransactionResponseBuilder:
                     WalletTransferDetailRead.model_validate(transaction.wallet_transfer)
                 )
 
+            # Add internal transfer detail if present
+            if (
+                has_relationship(transaction, "internal_transfer")
+                and transaction.internal_transfer
+            ):
+                detail_data["internal_transfer_detail"] = (
+                    InternalTransferDetailRead.model_validate(
+                        transaction.internal_transfer
+                    )
+                )
+
+            # Add deposit detail if present
+            if has_relationship(transaction, "deposit") and transaction.deposit:
+                detail_data["deposit_detail"] = DepositDetailRead.model_validate(
+                    transaction.deposit
+                )
+
             return TransactionDetailRead(**detail_data)
 
         return TransactionRead(**base_data)
@@ -327,12 +414,21 @@ class TransactionResponseBuilder:
                 "memo": wt.memo,
             }
 
-        if hasattr(transaction, "internal_transfer") and transaction.internal_transfer:
+        if has_relationship(transaction, "internal_transfer") and transaction.internal_transfer:
             it = transaction.internal_transfer
             return {
                 "recipient-user-id": it.recipient_user_id,
                 "recipient-asset-id": it.recipient_asset_id,
                 "transfer-type": it.transfer_type,
+            }
+
+        if has_relationship(transaction, "deposit") and transaction.deposit:
+            dp = transaction.deposit
+            return {
+                "source-type": dp.source_type,
+                "source-reference": dp.source_reference,
+                "deposit-stage": dp.deposit_stage,
+                "provider": dp.provider,
             }
 
         # Fallback to destination_data field
