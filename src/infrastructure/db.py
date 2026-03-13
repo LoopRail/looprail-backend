@@ -35,14 +35,16 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
             logger.debug("Database session opened: %s", id(session))
             await session.begin()
             yield session
-            await session.commit()
+            if session.in_transaction():
+                await session.commit()
         except ConnectionRefusedError as e:
             logger.error(
                 "Database connection refused (session=%s)",
                 id(session),
                 exc_info=True,
             )
-            await session.rollback()  # Rollback on error
+            if session.in_transaction():
+                await session.rollback()
             raise InternaleServerError from e
         except SQLAlchemyError as e:
             logger.error(
@@ -50,11 +52,21 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
                 id(session),
                 exc_info=True,
             )
-            await session.rollback()
+            if session.in_transaction():
+                await session.rollback()
             raise InternaleServerError from e
+        except BaseException as e:
+            logger.debug(
+                "Non-SQLAlchemy exception in session generator (type=%s, session=%s)",
+                type(e).__name__,
+                id(session),
+            )
+            if session.in_transaction():
+                await session.rollback()
+            raise
         finally:
             logger.debug(
-                "Database session closed (session=%s, in_transaction=%s)",
+                "Database session cleanup (session=%s, in_transaction=%s)",
                 id(session),
                 session.in_transaction(),
             )

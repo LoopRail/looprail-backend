@@ -60,11 +60,6 @@ class Transaction(Base, table=True):
         default=TransactionStatus.PENDING,
         index=True,
     )
-    deposit_stage: Optional[DepositStage] = Field(
-        default=DepositStage.PENDING,
-        index=True,
-        description="Tracks blockchain deposit lifecycle: pending -> received -> swept",
-    )
 
     # References
     reference: ReferenceId = Field(
@@ -87,6 +82,7 @@ class Transaction(Base, table=True):
     gas_fee: Optional[str] = Field(default=None)
     gas_used: Optional[str] = Field(default=None)
     chain_id: Optional[int] = Field(default=None)
+    session_id: Optional[UUID] = Field(nullable=True, default=None)
 
     # General fields
     narration: Optional[str] = Field(default=None, max_length=500)
@@ -110,6 +106,14 @@ class Transaction(Base, table=True):
         sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"},
     )
     wallet_transfer: Optional["WalletTransferDetail"] = Relationship(
+        back_populates="transaction",
+        sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"},
+    )
+    internal_transfer: Optional["InternalTransferDetail"] = Relationship(
+        back_populates="transaction",
+        sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"},
+    )
+    deposit: Optional["DepositDetail"] = Relationship(
         back_populates="transaction",
         sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"},
     )
@@ -137,7 +141,6 @@ class BankTransferDetail(Base, table=True):
 
     # Provider details
     provider: str = Field(default="paycrest", max_length=50)
-    session_id: Optional[str] = Field(default=None)
     provider_reference: Optional[str] = Field(default=None, index=True)
 
     # Relationship
@@ -167,62 +170,49 @@ class WalletTransferDetail(Base, table=True):
     transaction: Transaction = Relationship(back_populates="wallet_transfer")
 
 
-#
-# class InternalTransferDetail(Base):
-#     """Details specific to internal user-to-user transfers"""
-#     __tablename__ = "internal_transfer_details"
-#
-#     id = Column(String, primary_key=True)
-#     transaction_id = Column(String, ForeignKey("transactions.id", ondelete="CASCADE"), unique=True, nullable=False)
-#
-#     # Recipient details
-#     recipient_user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
-#     recipient_asset_id = Column(String, ForeignKey("assets.id"), nullable=False)
-#     recipient_transaction_id = Column(String, nullable=True)  # The matching credit transaction
-#
-#     # Transfer metadata
-#     transfer_type = Column(String, default="p2p")  # p2p, gift, payment, etc.
-#
-#     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-#
-#     transaction = relationship("Transaction", back_populates="internal_transfer")
-#     recipient_user = relationship("User", foreign_keys=[recipient_user_id])
-#
-#     __table_args__ = (
-#         Index('idx_recipient_user', 'recipient_user_id'),
-#     )
-#
-#
-# class DepositDetail(Base):
-#     """Details specific to deposits (bank or card)"""
-#     __tablename__ = "deposit_details"
-#
-#     id = Column(String, primary_key=True)
-#     transaction_id = Column(String, ForeignKey("transactions.id", ondelete="CASCADE"), unique=True, nullable=False)
-#
-#     # Deposit source
-#     source_type = Column(String, nullable=False)  # bank, card
-#     source_reference = Column(String, index=True)  # Bank reference or card token
-#
-#     # Bank deposit details
-#     source_bank_code = Column(String, nullable=True)
-#     source_account_number = Column(String, nullable=True)
-#     source_account_name = Column(String, nullable=True)
-#
-#     # Card deposit details
-#     card_last4 = Column(String(4), nullable=True)
-#     card_brand = Column(String, nullable=True)  # visa, mastercard, verve
-#     card_exp = Column(String, nullable=True)
-#
-#     # Payment provider info
-#     provider = Column(String, nullable=False)  # paystack, flutterwave, etc.
-#     provider_reference = Column(String, index=True)
-#     authorization_code = Column(String, nullable=True)  # For recurring payments
-#
-#     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-#
-#     transaction = relationship("Transaction", back_populates="deposit_detail")
-#
-#     __table_args__ = (
-#         Index('idx_provider_ref', 'provider', 'provider_reference'),
-#     )
+class InternalTransferDetail(Base, table=True):
+    """Details specific to internal user-to-user transfers"""
+
+    __tablename__ = "internal_transfer_details"
+    __id_prefix__ = "itd_"
+
+    transaction_id: UUID = Field(
+        foreign_key="transactions.id", unique=True, nullable=False, ondelete="CASCADE"
+    )
+
+    # Recipient details
+    recipient_user_id: str = Field(nullable=False, index=True)
+    recipient_asset_id: str = Field(nullable=False)
+    transfer_type: str = Field(default="p2p", max_length=20)
+
+    # Relationship
+    transaction: Transaction = Relationship(back_populates="internal_transfer")
+
+
+class DepositDetail(Base, table=True):
+    """Details specific to deposits (bank or blockchain)"""
+
+    __tablename__ = "deposit_details"
+    __id_prefix__ = "dpd_"
+
+    transaction_id: UUID = Field(
+        foreign_key="transactions.id", unique=True, nullable=False, ondelete="CASCADE"
+    )
+
+    # Deposit source
+    source_type: str = Field(nullable=True, max_length=50)  # bank, chain
+    source_reference: Optional[str] = Field(default=None, index=True)
+
+    # Stage tracking (moved from main Transaction table)
+    deposit_stage: DepositStage = Field(
+        nullable=False,
+        default=DepositStage.PENDING,
+        index=True,
+    )
+
+    # Provider info
+    provider: str = Field(nullable=True, max_length=50)
+    provider_reference: Optional[str] = Field(default=None, index=True)
+
+    # Relationship
+    transaction: Transaction = Relationship(back_populates="deposit")
