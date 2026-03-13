@@ -28,6 +28,168 @@ MAX_DEPOSIT_SWEPT_RETRIES = 5
 DEPOSIT_SWEPT_RETRY_DELAY_SECONDS = 10
 
 
+async def _initialize_deposit_transaction(
+    event: WebhookDepositSuccess | WebhookDepositSweptSuccess,
+    factory: Any,
+    lock: Any,
+    lock_id: str,
+) -> tuple[Any, Any]:
+    """
+    Helper to resolve wallets/assets, create local transaction, and record inflight ledger entry.
+    Brings a deposit to the RECEIVED stage.
+    """
+    ledger_service = factory.ledger_service
+    wallet_repo = factory.wallet_repository
+    asset_repo = factory.asset_repository
+    transaction_usecase = factory.transaction_usecase
+    config = factory.config
+
+    # 1. Resolve source wallet/asset
+    source_wallet, err = config.block_rader.wallets.get_wallet(
+        wallet_id=event.data.wallet.wallet_id
+    )
+    if err:
+        logger.error(
+            "Source wallet not found for address %s: %s",
+            event.data.recipientAddress,
+            err.message,
+        )
+        await lock.release(event.data.hash, lock_id)
+        return None, err
+
+    source_asset, err = source_wallet.get(asset_id=event.data.asset.asset_id)
+    if err:
+        logger.error(
+            "Asset with ID %s not found in wallet %s",
+            event.data.asset.asset_id,
+            source_wallet.wallet_name,
+        )
+        await lock.release(event.data.hash, lock_id)
+        return None, err
+
+    # 2. Resolve internal wallet/asset
+    wallet, err = await wallet_repo.get_wallet_by_address(
+        address=event.data.recipientAddress
+    )
+    if err:
+        logger.error(
+            "Internal wallet not found for address %s: %s",
+            event.data.recipientAddress,
+            err.message,
+        )
+        await lock.release(event.data.hash, lock_id)
+        return None, err
+
+    asset, err = await asset_repo.find_one(
+        wallet_id=wallet.id, asset_id=source_asset.asset_id
+    )
+    if err:
+        logger.error(
+            "Internal asset %s not found for wallet %s: %s",
+            source_asset.asset_id,
+            wallet.get_prefixed_id(),
+            err.message,
+        )
+        await lock.release(event.data.hash, lock_id)
+        return None, err
+
+    if not asset.ledger_balance_id:
+        logger.error(
+            "Asset %s has no ledger balance ID for wallet %s",
+            asset.asset_id,
+            wallet.get_prefixed_id(),
+        )
+        await lock.release(event.data.hash, lock_id)
+        return None, error("Asset has no ledger balance ID")
+
+    # 3. Create local transaction
+    create_transaction_params = create_transaction_params_from_event(
+        event_data=event.data,
+        wallet=wallet,
+        asset_id=asset.id,
+        transaction_type=TransactionType.CREDIT,
+        countries=config.countries,
+    )
+    
+    # Check if transaction already exists (idempotency)
+    txn, err = await transaction_usecase.repo.find_one(
+        transaction_hash=event.data.hash
+    )
+    if err and err != NotFoundError:
+        logger.error("Error checking for existing transaction: %s", err)
+        await lock.release(event.data.hash, lock_id)
+        return None, err
+        
+    if not txn:
+        logger.debug("Creating local transaction record for event %s", event.data.id)
+        txn, err = await transaction_usecase.create_transaction(
+            create_transaction_params
+        )
+        if err:
+            logger.error(
+                "Failed to create local transaction for event %s: %s",
+                event.data.id,
+                err.message,
+            )
+            await lock.release(event.data.hash, lock_id)
+            return None, err
+        logger.info("Local transaction record created for event %s", event.data.id)
+    else:
+        logger.debug("Local transaction record already exists for event %s", event.data.id)
+
+    # 4. Record inflight ledger transaction (idempotent if handled by ledger service)
+    if not txn.ledger_transaction_id:
+        try:
+            amount = float(event.data.amount)
+        except (ValueError, TypeError):
+            logger.error("Invalid amount format: %s", event.data.amount)
+            await lock.release(event.data.hash, lock_id)
+            return None, error("Invalid amount format")
+
+        transaction_request = RecordTransactionRequest(
+            amount=amount,
+            precision=source_asset.precision,
+            currency=asset.symbol,
+            source=WorldLedger.WORLD_IN,
+            destination=asset.ledger_balance_id,
+            description=f"Deposit from {event.data.senderAddress}",
+            allow_overdraft=True,
+            reference=txn.reference,
+            inflight=True,
+        )
+        logger.debug("Recording inflight ledger transaction for event %s", event.data.id)
+        ledger_txn, err = await ledger_service.transactions.record_transaction(
+            transaction_request
+        )
+        if err:
+            logger.error(
+                "Failed to record ledger transaction for event %s: %s",
+                event.data.id,
+                err.message,
+            )
+            await lock.release(event.data.hash, lock_id)
+            return None, err
+            
+        # Update txn with ledger ID and stage
+        txn, err = await transaction_usecase.repo.find_one(id=txn.id, load=["deposit"])
+        txn.ledger_transaction_id = ledger_txn.transaction_id
+        txn.external_reference = event.data.reference
+        if txn.deposit:
+            txn.deposit.deposit_stage = DepositStage.RECEIVED
+            await transaction_usecase.repo.update(txn.deposit)
+        
+        _, err = await transaction_usecase.repo.update(txn)
+        if err:
+            logger.error("Failed to update transaction %s with ledger ID", txn.id)
+            await lock.release(event.data.hash, lock_id)
+            return None, err
+
+    # 5. Cache stage=RECEIVED in Redis
+    await lock.set_state(event.data.hash, DepositStage.RECEIVED)
+    
+    return txn, None
+
+
 async def _process_deposit_swept_success_task_async(event_data: Dict[str, Any]):
     event = WebhookDepositSweptSuccess.model_validate(event_data)
 
@@ -61,55 +223,38 @@ async def _process_deposit_swept_success_task_async(event_data: Dict[str, Any]):
             return
 
         # --- While holding the lock, check stage from Redis cache (not DB) ---
-        for attempt in range(1, MAX_DEPOSIT_SWEPT_RETRIES + 1):
-            stage, stage_err = await lock.get_state(event.data.hash)
+        stage, stage_err = await lock.get_state(event.data.hash)
 
-            if stage == DepositStage.RECEIVED:
-                logger.info(
-                    "[attempt %d/%d] Swept event %s: Redis cache shows stage=RECEIVED. Proceeding.",
-                    attempt,
-                    MAX_DEPOSIT_SWEPT_RETRIES,
-                    event.data.id,
-                )
-                break
-
-            if attempt < MAX_DEPOSIT_SWEPT_RETRIES:
-                logger.warning(
-                    "[attempt %d/%d] Swept event %s: stage is '%s' (expected RECEIVED). "
-                    "Waiting %ds before retry...",
-                    attempt,
-                    MAX_DEPOSIT_SWEPT_RETRIES,
-                    event.data.id,
-                    stage or "not set",
-                    DEPOSIT_SWEPT_RETRY_DELAY_SECONDS,
-                )
-                await asyncio.sleep(DEPOSIT_SWEPT_RETRY_DELAY_SECONDS)
-            else:
+        if stage != DepositStage.RECEIVED:
+            logger.info(
+                "Swept event %s: stage is '%s' (expected RECEIVED). Initializing transaction now.",
+                event.data.id,
+                stage or "not set",
+            )
+            # Initialize transaction on-the-fly
+            txn, err = await _initialize_deposit_transaction(
+                event=event,
+                factory=factory,
+                lock=lock,
+                lock_id=lock_id
+            )
+            if err:
+                # Error already logged in helper
+                return
+        else:
+            # --- Fetch transaction from DB (now that stage is RECEIVED) ---
+            txn, err = await transaction_repo.find_one(
+                external_reference=event.data.reference, load=["wallet"]
+            )
+            if err or txn is None:
                 logger.error(
-                    "Swept event %s: stage is still '%s' after %d attempts. "
-                    "Releasing lock and giving up.",
+                    "Swept event %s: transaction with reference %s not found despite Redis stage=RECEIVED: %s",
                     event.data.id,
-                    stage or "not set",
-                    MAX_DEPOSIT_SWEPT_RETRIES,
+                    event.data.reference,
+                    err,
                 )
                 await lock.release(event.data.hash, lock_id)
                 return
-
-        # --- Fetch transaction from DB (only once, now that stage is RECEIVED) ---
-        txn, err = await transaction_repo.find_one(
-            external_reference=event.data.reference, load=["wallet"]
-        )
-        if err or txn is None:
-            logger.error(
-                "Swept event %s: transaction with reference %s not found: %s",
-                event.data.id,
-                event.data.reference,
-                err,
-            )
-            await lock.release(event.data.hash, lock_id)
-            return
-
-        # Already fully processed — no need to commit again
         if txn.status == TransactionStatus.COMPLETED:
             logger.info(
                 "Swept event %s: transaction %s is already COMPLETED. Skipping.",
@@ -296,155 +441,17 @@ async def _process_deposit_success_task_async(event_data: Dict[str, Any]):
             return
 
         # --- Resolve wallet, asset, and create local transaction record ---
-        source_wallet, err = config.block_rader.wallets.get_wallet(
-            wallet_id=event.data.wallet.wallet_id
+        txn, err = await _initialize_deposit_transaction(
+            event=event,
+            factory=factory,
+            lock=lock,
+            lock_id=lock_id
         )
         if err:
-            logger.error(
-                "Source wallet not found for address %s: %s",
-                event.data.recipientAddress,
-                err.message,
-            )
-            await lock.release(event.data.hash, lock_id)
-            return
-        logger.debug("Source wallet found: %s", source_wallet.wallet_name)
-
-        source_asset, err = source_wallet.get(asset_id=event.data.asset.asset_id)
-        if err:
-            logger.error(
-                "Asset with ID %s not found in wallet %s",
-                event.data.asset.asset_id,
-                source_wallet.wallet_name,
-            )
-            await lock.release(event.data.hash, lock_id)
-            return
-        logger.debug("Processing transaction for asset %s", source_asset.name)
-
-        wallet, err = await wallet_repo.get_wallet_by_address(
-            address=event.data.recipientAddress
-        )
-        if err:
-            logger.error(
-                "Wallet not found for address %s: %s",
-                event.data.recipientAddress,
-                err.message,
-            )
-            await lock.release(event.data.hash, lock_id)
-            return
-        logger.debug("Wallet found: %s", wallet.get_prefixed_id())
-
-        asset, err = await asset_repo.find_one(
-            wallet_id=wallet.id, asset_id=source_asset.asset_id
-        )
-        if err:
-            logger.error(
-                "Asset %s not found for wallet %s: %s",
-                source_asset.asset_id,
-                wallet.get_prefixed_id(),
-                err.message,
-            )
-            await lock.release(event.data.hash, lock_id)
+            # Error already logged and lock released in helper
             return
 
-        if not asset.ledger_balance_id:
-            logger.error(
-                "Asset %s has no ledger balance ID for wallet %s",
-                asset.asset_id,
-                wallet.get_prefixed_id(),
-            )
-            await lock.release(event.data.hash, lock_id)
-            return
-
-        create_transaction_params = create_transaction_params_from_event(
-            event_data=event.data,
-            wallet=wallet,
-            asset_id=asset.id,
-            transaction_type=TransactionType.CREDIT,
-            countries=config.countries,
-        )
-        logger.debug("Creating local transaction record for event %s", event.data.id)
-        txn, err = await transaction_usecase.create_transaction(
-            create_transaction_params
-        )
-        if err:
-            logger.error(
-                "Failed to create local transaction for event %s: %s",
-                event.data.id,
-                err.message,
-            )
-            await lock.release(event.data.hash, lock_id)
-            return
-        logger.info("Local transaction record created for event %s", event.data.id)
-
-        # --- Record inflight ledger transaction ---
-        try:
-            amount = float(event.data.amount)
-        except (ValueError, TypeError):
-            logger.error(
-                "Invalid amount format: %s for event %s",
-                event.data.amount,
-                event.data.id,
-            )
-            await lock.release(event.data.hash, lock_id)
-            return
-
-        transaction_request = RecordTransactionRequest(
-            amount=amount,
-            precision=source_asset.precision,
-            currency=asset.symbol,
-            source=WorldLedger.WORLD_IN,
-            destination=asset.ledger_balance_id,
-            description=f"Deposit from {event.data.senderAddress}",
-            allow_overdraft=True,
-            reference=txn.reference,
-            inflight=True,
-        )
-        logger.debug("Recording inflight ledger transaction for event %s", event.data.id)
-        ledger_txn, err = await ledger_service.transactions.record_transaction(
-            transaction_request
-        )
-        if err:
-            logger.error(
-                "Failed to record ledger transaction for event %s: %s",
-                event.data.id,
-                err.message,
-            )
-            await lock.release(event.data.hash, lock_id)
-            return
-
-        # --- Update DB: set ledger_transaction_id, external_reference, stage=RECEIVED ---
-        # Fetch again with deposit relationship
-        txn, err = await transaction_usecase.repo.find_one(id=txn.id, load=["deposit"])
-
-        txn.ledger_transaction_id = ledger_txn.transaction_id
-        txn.external_reference = event.data.reference
-        if txn.deposit:
-            txn.deposit.deposit_stage = DepositStage.RECEIVED
-            await transaction_usecase.repo.update(txn.deposit)
-        else:
-            logger.warning("No DepositDetail found for transaction %s", txn.id)
-
-        _, err = await transaction_usecase.repo.update(txn)
-        if err:
-            logger.error(
-                "Failed to update transaction %s with ledger ID %s: %s",
-                txn.get_prefixed_id(),
-                ledger_txn.transaction_id,
-                err.message,
-            )
-            await lock.release(event.data.hash, lock_id)
-            return
-
-        # --- Cache stage=RECEIVED in Redis so swept task reads it without hitting DB ---
-        cache_err = await lock.set_state(event.data.hash, DepositStage.RECEIVED)
-        if cache_err:
-            logger.warning(
-                "Failed to cache RECEIVED stage for hash %s: %s",
-                event.data.hash,
-                cache_err,
-            )
-
-        # --- Release lock (swept task can now acquire and proceed) ---
+        # --- Release lock (swept task can now acquire and proceed if it's waiting) ---
         err = await lock.release(event.data.hash, lock_id)
         if err:
             logger.error(err)
