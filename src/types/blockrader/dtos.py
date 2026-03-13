@@ -133,7 +133,7 @@ class NetworkFeeResponse(baseResponse):
 
 
 class WithdrawalData(baseBlockRaderType):
-    transaction_hash: str = Field(alias="hash")
+    transaction_hash: Optional[str] = Field(alias="hash", datetime=None)
     transaction_id: str = Field(alias="id")
     transaction_type: str = Field(alias="type")
     amlScreening: Optional[AML] = None
@@ -150,7 +150,7 @@ class WithdrawalData(baseBlockRaderType):
     assetSweptSenderAddress: Optional[Address] = None
     blockHash: Optional[str] = None
     blockNumber: Optional[int] = None
-    blockNetwork: BlockchainData
+    blockNetwork: Optional[BlockchainData] = None
     NetworkId: Optional[int] = None
     confirmations: Optional[int] = None
     confirmed: bool

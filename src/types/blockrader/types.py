@@ -31,7 +31,7 @@ class AssetData(baseBlockRaderType):
     createdAt: datetime | None = None
     decimals: int
     isActive: bool
-    logoUrl: str
+    logoUrl: Optional[str] = None
     name: str
     network: Network
     standard: Optional[str]
@@ -64,9 +64,9 @@ class Analytics(baseBlockRaderType):
 
 
 class AML(baseBlockRaderType):
-    message: str
-    provider: str
-    status: str
+    message: Optional[str] = None
+    provider: Optional[str] = None
+    status: Optional[str] = None
 
 
 class Configurations(baseBlockRaderType):

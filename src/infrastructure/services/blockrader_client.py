@@ -164,15 +164,21 @@ class TransactionalMixin:
         )
 
     async def transfer(
-        self, asset_id: str, address: str, amount: str, reference: str
+        self,
+        asset_id: str,
+        address: str,
+        amount: str,
+        reference: str,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> Tuple[Optional[WithdrawalResponse], Error]:
         """Proxies a withdrawal as a transfer."""
         logger.debug(
-            "Proxying transfer: asset_id=%s, address=%s, amount=%s, reference=%s",
+            "Proxying transfer: asset_id=%s, address=%s, amount=%s, reference=%s, metadata=%s",
             asset_id,
             address,
             amount,
             reference,
+            metadata,
         )
         return await self.withdraw(
             WithdrawalRequest(
@@ -180,6 +186,7 @@ class TransactionalMixin:
                 address=address,
                 amount=amount,
                 reference=reference,
+                metadata=metadata,
             )
         )
 
