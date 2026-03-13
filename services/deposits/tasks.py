@@ -173,7 +173,7 @@ async def _process_deposit_swept_success_task_async(event_data: Dict[str, Any]):
 
         # --- Update DB: COMPLETED + SWEPT stage ---
         # Fetch again with deposit relationship
-        txn, err = await transaction_repo.find_one(id=txn.id, load_relationships=["deposit"])
+        txn, err = await transaction_repo.find_one(id=txn.id, load=["deposit"])
 
         txn.status = TransactionStatus.COMPLETED
         if txn.deposit:
@@ -414,7 +414,7 @@ async def _process_deposit_success_task_async(event_data: Dict[str, Any]):
 
         # --- Update DB: set ledger_transaction_id, external_reference, stage=RECEIVED ---
         # Fetch again with deposit relationship
-        txn, err = await transaction_usecase.repo.find_one(id=txn.id, load_relationships=["deposit"])
+        txn, err = await transaction_usecase.repo.find_one(id=txn.id, load=["deposit"])
 
         txn.ledger_transaction_id = ledger_txn.transaction_id
         txn.external_reference = event.data.reference
