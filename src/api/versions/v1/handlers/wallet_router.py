@@ -15,7 +15,7 @@ from src.api.dependencies import (
     get_wallet_manager_usecase,
 )
 from src.api.rate_limiters.rate_limiter import custom_rate_limiter
-from src.dtos import AssetBalance, WalletPublic, AccessToken
+from src.dtos import AssetBalance, WalletPublic
 from src.dtos.wallet_dtos import WithdrawalRequest
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
@@ -23,7 +23,7 @@ from src.infrastructure.redis import RQManager
 from src.infrastructure.repositories import SessionRepository
 from src.infrastructure.services import AuthLockService
 from src.models import User
-from src.types import AssetId
+from src.types import AssetId, AccessToken
 from src.types.notification_types import NotificationAction
 from src.types.types import Currency
 from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
@@ -166,7 +166,7 @@ async def withdraw(
         user=user,
         withdrawal_request=withdrawal_request,
         specific_withdrawal=specific_withdrawal,
-        session_id=token.session_id,
+        session_id=token.session_id.clean(),
     )
     if err:
         logger.error(
@@ -186,7 +186,7 @@ async def withdraw(
             status_code=status_code,
             content={"error": err.message},
         )
-    transaction_id = data.get("transaction_id")
+    transaction_id = resp.get("transaction_id")
     logger.info(
         "Withdrawal initiated successfully for user %s (email: %s), transaction ID: %s. IP: %s, User-Agent: %s",
         user.id,
