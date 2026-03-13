@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Dict, Optional, Self, Tuple
@@ -8,6 +9,7 @@ from src.dtos.transaction_dtos import (
     BankTransferParams,
     CreateTransactionParams,
     CryptoTransactionParams,
+    WalletTransferParams,
 )
 from src.dtos.wallet_dtos import (
     BankTransferData,
@@ -16,10 +18,10 @@ from src.dtos.wallet_dtos import (
     WithdrawalRequest,
 )
 from src.infrastructure import (
+    BANK_TRANSFER_FEE_THRESHOLD_USD,
     BANK_TRASNFER_WITHDRAWAL_FEE,
     MASTER_BASE_WALLET,
     MIN_BANK_TRANSFER_NGN,
-    BANK_TRANSFER_FEE_THRESHOLD_USD,
     MIN_WALLET_TRANSFER_USD,
 )
 from src.infrastructure.config_settings import Config
@@ -30,10 +32,10 @@ from src.infrastructure.repositories import (
     WalletRepository,
 )
 from src.infrastructure.services import (
+    GeolocationService,
     LedgerService,
     PaycrestService,
     WalletManager,
-    GeolocationService,
 )
 from src.infrastructure.settings import BlockRaderConfig
 from src.models import Asset, Transaction, User, Wallet
@@ -554,6 +556,7 @@ class WalletManagerUsecase:
         user: User,
         withdrawal_request: WithdrawalRequest,
         specific_withdrawal: TransferType,
+        session_id: Optional[UUID] = None,
     ) -> Tuple[Optional[Dict[str, Any]], Optional[Error]]:
         logger.info(
             "Initiating withdrawal for user %s, asset ID: %s, amount: %s",
@@ -599,7 +602,6 @@ class WalletManagerUsecase:
         # Calculate withdrawal fee and validate minimums
         withdrawal_fee = Decimal("0")
 
-        # Get USD equivalent to check if > 10 USD
         amount_in_usd = withdrawal_request.amount
         rate_resp = None
         if withdrawal_request.currency == types.Currency.NAIRA:
@@ -626,7 +628,6 @@ class WalletManagerUsecase:
 
             if amount_in_usd > Decimal(BANK_TRANSFER_FEE_THRESHOLD_USD):
                 withdrawal_fee = Decimal(BANK_TRASNFER_WITHDRAWAL_FEE)
-                # For NGN, convert 0.1 USD to NGN if the withdrawal currency is NGN
                 if withdrawal_request.currency == types.Currency.NAIRA:
                     if rate_resp and rate_resp.data:
                         # We quantize to 2 decimal places for NGN (100 kobo = 1 NGN)
@@ -728,6 +729,7 @@ class WalletManagerUsecase:
                 "ip_address": ip_address or "Unknown",
                 "location": location_str,
             },
+            "session_id": session_id,
         }
 
         if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
@@ -759,12 +761,21 @@ class WalletManagerUsecase:
             else:
                 return None, error("Invalid data for bank transfer")
 
+        elif (
+            withdrawal_method == WithdrawalMethod.EXTERNAL_WALLET
+            and isinstance(specific_data, ExternalWalletTransferData)
+        ):
+            common_transaction_params = WalletTransferParams(
+                **base_kwargs,
+                wallet_address=specific_data.address,
+                network=asset.network,
+            )
+
         else:
             # Default to Crypto params (External Wallet)
             common_transaction_params = CryptoTransactionParams(
                 **base_kwargs,
-                transaction_hash="pending",
-                network=asset.network,
+                transaction_hash=f"pending_0x{uuid.uuid4()}",
                 chain_id=None,
             )
 
@@ -1110,7 +1121,7 @@ class WalletManagerUsecase:
             )
         elif withdrawal_request.destination.event == WithdrawalMethod.EXTERNAL_WALLET:
             err = await self._execute_external_wallet_withdrawal(
-                user, withdrawal_request, transaction
+                withdrawal_request, transaction
             )
         else:
             logger.error(
@@ -1126,7 +1137,7 @@ class WalletManagerUsecase:
 
         err = await self._update_withdrawal_transaction_status(
             transaction_id,
-            TransactionStatus.COMPLETED,
+            TransactionStatus.PROCESSING,
         )
         if err:
             return err
@@ -1240,7 +1251,13 @@ class WalletManagerUsecase:
             address=paycrest_order.data.receive_address,
             amount=withdrawal_request.amount,
             reference=transaction.reference,
+            metadata={
+                "type": "bank",
+                "wallet_id": transaction.wallet_id,
+                "user_id": transaction.user_id,
+            },
         )
+
         if mw_err:
             logger.error(
                 "Master wallet transfer failed for Paycrest order %s: %s",
@@ -1258,7 +1275,6 @@ class WalletManagerUsecase:
 
     async def _execute_external_wallet_withdrawal(
         self,
-        user: User,
         withdrawal_request: WithdrawalRequest,
         transaction: Transaction,
     ) -> Optional[Error]:
@@ -1272,13 +1288,15 @@ class WalletManagerUsecase:
             withdrawal_request.destination.data
         )
 
-        blockrader_asset, err = self.wallet_config.get(
-            asset_id=str(withdrawal_request.asset_id.clean())
+        blockrader_asset_address, err = await self.service._asset_repository.get(
+            withdrawal_request.asset_id.clean()
         )
         if err:
             return err
 
-        user_wallet, err = await self._get_user_wallet(user_id=user.id)
+        blockrader_asset, err = self.wallet_config.get(
+            address=blockrader_asset_address.address
+        )
         if err:
             return err
 
@@ -1288,6 +1306,11 @@ class WalletManagerUsecase:
             address=transfer_data.address,
             amount=str(withdrawal_request.amount),
             reference=transaction.reference,
+            metadata={
+                "type": "wallet",
+                "wallet_id": transaction.wallet_id,
+                "user_id": transaction.user_id,
+            },
         )
 
         if err:
@@ -1317,7 +1340,11 @@ class WalletManagerUsecase:
         return None
 
     async def _transfer_from_master_wallet(
-        self, address: str, amount: Decimal, reference: str
+        self,
+        address: str,
+        amount: Decimal,
+        reference: str,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> Tuple[Optional[str], Optional[Error]]:
         """
         Transfers USDC from the master wallet to the specified address.
@@ -1349,6 +1376,7 @@ class WalletManagerUsecase:
             address=address,
             amount=str(amount),
             reference=f"mw:{reference}",
+            metadata=metadata,
         )
 
         if err:

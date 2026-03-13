@@ -15,7 +15,7 @@ from src.api.dependencies import (
     get_wallet_manager_usecase,
 )
 from src.api.rate_limiters.rate_limiter import custom_rate_limiter
-from src.dtos import AssetBalance, WalletPublic
+from src.dtos import AssetBalance, WalletPublic, AccessToken
 from src.dtos.wallet_dtos import WithdrawalRequest
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
@@ -23,7 +23,7 @@ from src.infrastructure.redis import RQManager
 from src.infrastructure.repositories import SessionRepository
 from src.infrastructure.services import AuthLockService
 from src.models import User
-from src.types import AccessToken, AssetId
+from src.types import AssetId
 from src.types.notification_types import NotificationAction
 from src.types.types import Currency
 from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
@@ -48,7 +48,7 @@ async def get_user_wallet_info(
     wallet_service: WalletService = Depends(get_blockrader_wallet_service),
 ):
     wallet_dict, err = await wallet_service.get_wallet_with_assets(
-        user_id=token.user_id
+        user_id=token.user_id.clean()
     )
 
     if err:
@@ -80,7 +80,7 @@ async def get_asset_balance(
     return asset_balance
 
 
-@router.post("/withdraw", status_code=status.HTTP_200_OK)
+@router.post("/withdraw", status_code=status.HTTP_201_CREATED)
 @custom_rate_limiter(
     limit_type="withdrawal", identifier_arg="user", identifier_field="email"
 )
@@ -88,6 +88,7 @@ async def withdraw(
     request: Request,
     withdrawal_request: WithdrawalRequest,
     user: User = Depends(get_current_user),
+    token: AccessToken = Depends(get_current_user_token),
     wallet_manager: WalletManagerUsecase = Depends(get_wallet_manager_usecase),
     config: Config = Depends(get_config),
     rq_manager: RQManager = Depends(get_rq_manager),
@@ -95,7 +96,7 @@ async def withdraw(
     auth_lock_service: AuthLockService = Depends(withdraw_auth_lock),
     session_repo: SessionRepository = Depends(get_session_repository),
     notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
-):
+) -> JSONResponse:
     withdrawal_request.authorization.ip_address = request.client.host
     withdrawal_request.authorization.user_agent = request.headers.get("user-agent")
 
@@ -161,10 +162,11 @@ async def withdraw(
             status_code=status.HTTP_400_BAD_REQUEST, detail={"error": err.message}
         )
 
-    data, err = await wallet_manager.initiate_withdrawal(
+    resp, err = await wallet_manager.initiate_withdrawal(
         user=user,
         withdrawal_request=withdrawal_request,
         specific_withdrawal=specific_withdrawal,
+        session_id=token.session_id,
     )
     if err:
         logger.error(
@@ -194,7 +196,7 @@ async def withdraw(
         withdrawal_request.authorization.user_agent,
     )
 
-    withdrawal_request.currency = Currency.NAIRA
+    withdrawal_request.currency = Currency.NAIRA  # NOTE: temp fix talk to mobile dev
 
     withdraw_queue = Queue("withdrawals", connection=rq_manager.get_connection())
     withdraw_queue.enqueue(

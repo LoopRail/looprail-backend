@@ -21,6 +21,7 @@ from src.types.blockrader import (
 )
 from src.usecases import TransactionUsecase
 from src.utils.transaction_utils import create_transaction_params_from_event
+from src.types.types import TransactionStatus
 
 logger = get_logger(__name__)
 
@@ -69,14 +70,13 @@ async def handle_withdraw_success(
     **kwargs,
 ):
     logger.info("Handling withdraw success event: %s", event.data.id)
-    logger.debug(
-        "Attempting to get wallet for sender address: %s", event.data.senderAddress
-    )
+    
     lock = lock_service.get("withdrawals")
     lock_id, err = await lock.acquire(event.data.hash)
     if err:
         logger.error(err)
         return
+    
     txn, err = await transaction_usecase.repo.find_one(transaction_hash=event.data.hash)
     if err and err != NotFoundError:
         logger.debug(
@@ -87,13 +87,29 @@ async def handle_withdraw_success(
         )
         logger.error(err)
         return
-    wallet, err = await wallet_repo.get_wallet_by_address(
-        address=event.data.senderAddress
-    )
+
+    # Use metadata for wallet lookup to avoid main pool address issue
+    wallet_id = None
+    txn_type = None
+    if event.data.metadata and isinstance(event.data.metadata, dict):
+        wallet_id = event.data.metadata.get("wallet_id")
+        txn_type = event.data.metadata.get("type")
+
+    if wallet_id:
+        wallet, err = await wallet_repo.get(wallet_id)
+    else:
+        logger.warning(
+            "No wallet_id in metadata for withdrawal success event %s. Falling back to senderAddress lookup.",
+            event.data.id,
+        )
+        wallet, err = await wallet_repo.get_wallet_by_address(
+            address=event.data.senderAddress
+        )
+
     if err:
         logger.error(
-            "Wallet not found for address %s: %s",
-            event.data.senderAddress,
+            "Wallet lookup failed for withdrawal event %s: %s",
+            event.data.id,
             err.message,
         )
         return
@@ -117,15 +133,6 @@ async def handle_withdraw_success(
         return
     logger.debug("Asset found: %s", asset.get_prefixed_id())
 
-    if not asset.ledger_balance_id:
-        logger.error(
-            "Asset %s has no ledger balance ID for wallet %s",
-            asset.asset_id,
-            wallet.get_prefixed_id(),
-        )
-        return
-    logger.debug("Asset ledger balance ID: %s", asset.ledger_balance_id)
-
     create_transaction_params = create_transaction_params_from_event(
         event_data=event.data,
         wallet=wallet,
@@ -133,64 +140,40 @@ async def handle_withdraw_success(
         transaction_type=TransactionType.DEBIT,
         countries=config.countries,
     )
-    logger.debug("Creating local transaction record for event %s", event.data.id)
+    
+    logger.debug("Creating/Updating local transaction record for event %s", event.data.id)
     err = await transaction_usecase.create_transaction(create_transaction_params)
     if err:
         logger.error(
-            "Failed to create local transaction record for event %s: %s",
+            "Failed to create/update local transaction record for event %s: %s",
             event.data.id,
             err.message,
         )
         return
-    logger.info("Local transaction record created for event %s", event.data.id)
 
-    try:
-        amount = float(event.data.amount)
-    except (ValueError, TypeError):
-        logger.error(
-            "Invalid amount format: %s for event %s", event.data.amount, event.data.id
-        )
-        return
-
-    source_wallet, err = config.block_rader.wallets.get_wallet(
-        wallet_id=event.data.wallet.wallet_id
-    )
-    if err:
-        logger.error(
-            "Source wallet not found for address %s", event.data.recipientAddress
-        )
-        return
-
-    source_asset, err = source_wallet.get(asset_id=event.data.asset.asset_id)
-    if err:
-        logger.error("Asset not found in wallet %s", source_wallet.wallet_name)
-        return
-
-    transaction_request = RecordTransactionRequest(
-        amount=amount,
-        precision=source_asset.precision,
-        reference=event.data.id,
-        currency=event.data.currency,
-        source=asset.ledger_balance_id,
-        destination=WorldLedger.WORLD_OUT,
-        description=f"Withdrawal to {event.data.recipientAddress}",
-    )
-    logger.debug("Recording transaction on ledger for event %s", event.data.id)
-    _, err = await ledger_service.transactions.record_transaction(transaction_request)
-    if err:
-        logger.error(
-            "Failed to record withdrawal transaction on ledger for event %s: %s",
-            event.data.id,
-            err.message,
-        )
-        return
+    # Conditionally finalize status to COMPLETED
+    # Bank transfers are handled separately (not marked COMPLETED here)
+    if txn:
+        if event.data.hash:
+            txn.transaction_hash = event.data.hash
+        
+        if txn_type != "bank":
+            txn.status = TransactionStatus.COMPLETED
+            logger.info("Local transaction %s marked as COMPLETED for event %s", txn.id, event.data.id)
+        else:
+            logger.info("Local transaction %s (bank transfer) status NOT updated via webhook", txn.id)
+            
+        await transaction_usecase.repo.update(txn)
+    else:
+        logger.info("Local transaction record updated for event %s", event.data.id)
 
     err = await lock.release(event.data.hash, lock_id)
     if err:
         logger.error(err)
         return
+    
     logger.info(
-        "Withdrawal transaction successfully recorded on ledger for event %s",
+        "Withdrawal success event %s processed successfully.",
         event.data.id,
     )
     return
@@ -221,38 +204,38 @@ async def handle_withdraw_failed(
         "Local transaction status updated to failed for event %s", event.data.id
     )
 
-    logger.debug(
-        "Attempting to get wallet for sender address: %s", event.data.senderAddress
-    )
-    wallet, err = await wallet_repo.get_wallet_by_address(
-        address=event.data.senderAddress
-    )
+    # Use metadata for wallet lookup if available
+    wallet_id = None
+    if event.data.metadata and isinstance(event.data.metadata, dict):
+        wallet_id = event.data.metadata.get("wallet_id")
+
+    if wallet_id:
+        wallet, err = await wallet_repo.get(wallet_id)
+    else:
+        wallet, err = await wallet_repo.get_wallet_by_address(
+            address=event.data.senderAddress
+        )
+
     if err:
         logger.error(
-            "Wallet not found for address %s: %s",
-            event.data.senderAddress,
+            "Wallet lookup failed for withdrawal failed event %s: %s",
+            event.data.id,
             err.message,
         )
         return
     logger.debug("Wallet found: %s", wallet.get_prefixed_id())
 
-    logger.debug(
-        "Attempting to get asset %s for wallet %s",
-        event.data.asset.asset_id,
-        wallet.get_prefixed_id(),
-    )
     asset, err = await asset_repo.find_one(
         wallet_id=wallet.id, asset_id=event.data.asset.asset_id
     )
     if err:
         logger.error(
-            "Asset with type %s not found for wallet %s: %s",
+            "Asset %s not found for wallet %s: %s",
             event.data.asset.asset_id,
             wallet.get_prefixed_id(),
             err.message,
         )
         return
-    logger.debug("Asset found: %s", asset.get_prefixed_id())
 
     if not asset.ledger_balance_id:
         logger.error(
@@ -261,7 +244,6 @@ async def handle_withdraw_failed(
             wallet.get_prefixed_id(),
         )
         return
-    logger.debug("Asset ledger balance ID: %s", asset.ledger_balance_id)
 
     transaction_request = RecordTransactionRequest(
         amount=0,
@@ -313,38 +295,38 @@ async def handle_withdraw_cancelled(
         "Local transaction status updated to cancelled for event %s", event.data.id
     )
 
-    logger.debug(
-        "Attempting to get wallet for sender address: %s", event.data.senderAddress
-    )
-    wallet, err = await wallet_repo.get_wallet_by_address(
-        address=event.data.senderAddress
-    )
+    # Use metadata for wallet lookup if available
+    wallet_id = None
+    if event.data.metadata and isinstance(event.data.metadata, dict):
+        wallet_id = event.data.metadata.get("wallet_id")
+
+    if wallet_id:
+        wallet, err = await wallet_repo.get(wallet_id)
+    else:
+        wallet, err = await wallet_repo.get_wallet_by_address(
+            address=event.data.senderAddress
+        )
+
     if err:
         logger.error(
-            "Wallet not found for address %s: %s",
-            event.data.senderAddress,
+            "Wallet lookup failed for withdrawal cancelled event %s: %s",
+            event.data.id,
             err.message,
         )
         return
     logger.debug("Wallet found: %s", wallet.get_prefixed_id())
 
-    logger.debug(
-        "Attempting to get asset %s for wallet %s",
-        event.data.asset.asset_id,
-        wallet.get_prefixed_id(),
-    )
     asset, err = await asset_repo.find_one(
         wallet_id=wallet.id, asset_id=event.data.asset.asset_id
     )
     if err:
         logger.error(
-            "Asset with type %s not found for wallet %s: %s",
+            "Asset %s not found for wallet %s: %s",
             event.data.asset.asset_id,
             wallet.get_prefixed_id(),
             err.message,
         )
         return
-    logger.debug("Asset found: %s", asset.get_prefixed_id())
 
     if not asset.ledger_balance_id:
         logger.error(
@@ -353,7 +335,6 @@ async def handle_withdraw_cancelled(
             wallet.get_prefixed_id(),
         )
         return
-    logger.debug("Asset ledger balance ID: %s", asset.ledger_balance_id)
 
     transaction_request = RecordTransactionRequest(
         amount=0,

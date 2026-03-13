@@ -5,10 +5,19 @@ from src.dtos import (
     BankTransferParams,
     CreateTransactionParams,
     CryptoTransactionParams,
+    DepositParams,
+    InternalTransferParams,
+    WalletTransferParams,
 )
 from src.infrastructure.logger import get_logger
 from src.infrastructure.repositories import TransactionRepository
-from src.models import BankTransferDetail, Transaction, WalletTransferDetail
+from src.models import (
+    BankTransferDetail,
+    DepositDetail,
+    InternalTransferDetail,
+    Transaction,
+    WalletTransferDetail,
+)
 from src.types import Error, TransactionStatus
 from src.types.blockrader import WithdrawCancelledData, WithdrawFailedData
 from src.types.common_types import TransactionId, WalletId
@@ -95,7 +104,6 @@ class TransactionUsecase:
                 }
             )
 
-        elif isinstance(params, BankTransferParams):
             base_data.update(
                 {
                     "external_reference": params.external_reference,
@@ -108,6 +116,44 @@ class TransactionUsecase:
                     },
                 }
             )
+
+        elif isinstance(params, WalletTransferParams):
+            base_data.update(
+                {
+                    "network": params.network,
+                    "destination_data": {
+                        "wallet_address": params.wallet_address,
+                        "memo": params.memo,
+                    },
+                }
+            )
+
+        elif isinstance(params, InternalTransferParams):
+            base_data.update(
+                {
+                    "receiver": params.recipient_user_id,
+                    "destination_data": {
+                        "recipient_user_id": params.recipient_user_id,
+                        "recipient_asset_id": params.recipient_asset_id,
+                        "transfer_type": params.transfer_type,
+                    },
+                }
+            )
+
+        elif isinstance(params, DepositParams):
+            base_data.update(
+                {
+                    "external_reference": params.provider_reference,
+                    "destination_data": {
+                        "source_type": params.source_type,
+                        "source_reference": params.source_reference,
+                        "provider": params.provider,
+                    },
+                }
+            )
+
+        if params.session_id:
+            base_data["session_id"] = params.session_id
 
         return base_data
 
@@ -122,11 +168,14 @@ class TransactionUsecase:
         if isinstance(params, BankTransferParams):
             return await self._create_bank_transfer_detail(params, transaction_id)
 
-        if (
-            isinstance(params, CryptoTransactionParams)
-            and params.destination_wallet_address
-        ):
+        if isinstance(params, WalletTransferParams):
             return await self._create_wallet_transfer_detail(params, transaction_id)
+
+        if isinstance(params, InternalTransferParams):
+            return await self._create_internal_transfer_detail(params, transaction_id)
+
+        if isinstance(params, DepositParams):
+            return await self._create_deposit_detail(params, transaction_id)
 
         return None
 
@@ -150,14 +199,46 @@ class TransactionUsecase:
         return err
 
     async def _create_wallet_transfer_detail(
-        self, params: CryptoTransactionParams, transaction_id: TransactionId
+        self, params: WalletTransferParams, transaction_id: TransactionId
     ) -> Optional[Error]:
         """Create wallet transfer detail record"""
         detail = WalletTransferDetail(
             transaction_id=transaction_id,
-            wallet_address=params.destination_wallet_address,
+            wallet_address=params.wallet_address,
             network=params.network,
             memo=params.memo,
+            address_verified=params.address_verified,
+            contract_address=params.contract_address,
+        )
+
+        _, err = await self.repo.create(detail)
+        return err
+
+    async def _create_internal_transfer_detail(
+        self, params: InternalTransferParams, transaction_id: TransactionId
+    ) -> Optional[Error]:
+        """Create internal transfer detail record"""
+        detail = InternalTransferDetail(
+            transaction_id=transaction_id,
+            recipient_user_id=params.recipient_user_id,
+            recipient_asset_id=params.recipient_asset_id,
+            transfer_type=params.transfer_type,
+        )
+
+        _, err = await self.repo.create(detail)
+        return err
+
+    async def _create_deposit_detail(
+        self, params: DepositParams, transaction_id: TransactionId
+    ) -> Optional[Error]:
+        """Create deposit detail record"""
+        detail = DepositDetail(
+            transaction_id=transaction_id,
+            source_type=params.source_type,
+            source_reference=params.source_reference,
+            deposit_stage=params.deposit_stage,
+            provider=params.provider,
+            provider_reference=params.provider_reference,
         )
 
         _, err = await self.repo.create(detail)
