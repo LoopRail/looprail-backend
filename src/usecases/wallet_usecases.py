@@ -905,7 +905,7 @@ class WalletManagerUsecase:
             await self.service.transaction_usecase.update_transaction_status(
                 transaction_id=transaction.id,
                 new_status=TransactionStatus.FAILED,
-                error_message=f"Failed to fetch paycrest rate: {err.message}",
+                error_message=f"Failed to fetch rate: {err.message}",
             )
             # Cancel in-flight ledger transaction
             logger.error(
