@@ -12,6 +12,7 @@ from src.api.dependencies import (
     get_geolocation_service,
     get_jwt_usecase,
     get_notification_usecase,
+    get_otp_token,
     get_otp_usecase,
     get_resend_service,
     get_security_usecase,
@@ -40,6 +41,9 @@ from src.dtos import (
     OtpCreate,
     PasscodeLoginRequest,
     PasscodeSetRequest,
+    PasswordResetRequest,
+    PasswordResetVerifyRequest,
+    PasswordResetResponse,
     PushNotificationDTO,
     RefreshTokenRequest,
     SetTransactionPinRequest,
@@ -63,6 +67,9 @@ from src.types import (
     NotificationType,
     OnBoardingToken,
     OnBoardingTokenSub,
+    OtpType,
+    OtpStatus,
+    OTPError,
     Platform,
     TokenType,
     UserAlreadyExistsError,
@@ -822,6 +829,114 @@ async def logout(
         )
     logger.info("Logout successful for session: %s", current_token.session_id)
     return {"message": "Logged out successfully"}
+
+
+@router.post(
+    "/password-reset/request",
+    response_model=PasswordResetResponse,
+    response_model_exclude_none=True,
+)
+@limiter.limit("3/minute")
+async def request_password_reset(
+    request: Request,
+    reset_request: PasswordResetRequest,
+    user_usecases: UserUseCase = Depends(get_user_usecases),
+    otp_usecases: OtpUseCase = Depends(get_otp_usecase),
+    resend_service: ResendService = Depends(get_resend_service),
+    config: Config = Depends(get_config),
+):
+    logger.info("Received password reset request for email: %s", reset_request.email)
+    user, err = await user_usecases.get_user_by_email(reset_request.email)
+    if err or not user:
+        logger.warning(
+            "Password reset requested for non-existent email: %s", reset_request.email
+        )
+        return {"message": "If your email is registered, you will receive an OTP code."}
+
+    otp_code, token, err = await otp_usecases.generate_otp(
+        user_email=user.email, otp_type=OtpType.PASSWORD_RESET
+    )
+    if err:
+        logger.error(
+            "Failed to generate password reset OTP for %s: %s",
+            user.email,
+            err.message,
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Could not generate OTP"},
+        )
+
+    await send_transactional_email(
+        resend_service=resend_service,
+        to=user.email,
+        subject="Reset Your LoopRail Password",
+        template_name="password_reset_otp",
+        app_logo_url=config.app.full_logo_url or config.app.logo_url,
+        otp_code=otp_code,
+    )
+
+    logger.info("Password reset OTP sent to %s. Token: %s", user.email, token)
+    return {
+        "message": "If your email is registered, you will receive an OTP code.",
+        "otp_token": token,
+    }
+
+
+@router.post(
+    "/password-reset/verify",
+    response_model=MessageResponse,
+    response_model_exclude_none=True,
+)
+@limiter.limit("3/minute")
+async def verify_password_reset(
+    request: Request,
+    verify_request: PasswordResetVerifyRequest,
+    otp_token: str = Depends(get_otp_token),
+    otp_usecases: OtpUseCase = Depends(get_otp_usecase),
+    user_usecases: UserUseCase = Depends(get_user_usecases),
+):
+    logger.info("Verifying password reset OTP for token: %s", otp_token)
+
+    otp, err = await otp_usecases.get_otp(otp_token, OtpType.PASSWORD_RESET)
+    if err:
+        logger.error("Error getting OTP for token %s: %s", otp_token, err)
+        raise OTPError("Invalid OTP token")
+
+    if otp.is_expired():
+        otp.status = OtpStatus.EXPIRED
+        await otp_usecases.delete_otp(otp.user_email)
+        raise OTPError("OTP expired")
+
+    otp.attempts += 1
+    if otp.attempts > 3:
+        otp.status = OtpStatus.ATTEMPT_EXCEEDED
+        await otp_usecases.delete_otp(otp.user_email)
+        logger.error("OTP %s exceeded max attempts", otp_token)
+        raise OTPError("Invalid OTP")
+
+    await otp_usecases.update_otp(otp_token, otp)
+
+    is_valid = await otp_usecases.verify_code(verify_request.code, otp.code_hash)
+    if not is_valid:
+        raise OTPError("Invalid OTP")
+
+    await otp_usecases.delete_otp(otp.user_email)
+
+    _, err = await user_usecases.reset_password(
+        email=otp.user_email, new_password=verify_request.new_password
+    )
+    if err:
+        logger.error(
+            "Failed to reset password for user %s: %s", otp.user_email, err.message
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Failed to reset password"},
+        )
+
+    logger.info("Password reset successfully for user: %s", otp.user_email)
+    return {"message": "Password reset successfully"}
 
 
 @router.post(
