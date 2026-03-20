@@ -184,7 +184,7 @@ async def verify_otp_dep(
 async def get_verify_webhook_request(
     secrets_usecase: SecretsUsecase = Depends(get_secrets_usecase),
 ) -> "VerifyWebhookRequest":
-    return VerifyWebhookRequest(secrets_usecase)
+    return VerifyWebhookRequest(secrets_usecase)()
 
 
 class VerifyWebhookRequest:

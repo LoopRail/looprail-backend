@@ -1,9 +1,8 @@
 from fastapi import Depends, Request, status
 from pydantic import ValidationError
 
-from src.api.dependencies import get_verify_webhook_request
 from src.infrastructure.logger import get_logger
-from src.types import httpError, WebhookProvider
+from src.types import httpError
 from src.types.blockrader import GenericWebhookEvent, WebhookEvent
 
 logger = get_logger(__name__)
@@ -11,11 +10,8 @@ logger = get_logger(__name__)
 
 async def get_blockrader_webhook_event(
     request: Request,
-    verify: WebhookProvider = Depends(get_verify_webhook_request),
 ) -> WebhookEvent:
     logger.debug("Entering get_blockrader_webhook_event")
-    # Verify signature before processing
-    await verify(request)
 
     body = await request.json()
     try:

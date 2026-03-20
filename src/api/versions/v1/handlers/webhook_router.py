@@ -8,17 +8,18 @@ from src.api.dependencies import (
     get_lock_service,
     get_notification_usecase,
     get_resend_service,
+    get_rq_manager,
     get_session_repository,
     get_transaction_repository,
     get_transaction_usecase,
     get_user_repository,
+    get_verify_webhook_request,
     get_wallet_repository,
-    get_rq_manager,
 )
 from src.api.webhooks.registry import get_registry
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
-from src.infrastructure.settings import ENVIRONMENT
+from src.infrastructure.redis import RQManager
 from src.infrastructure.repositories import (
     AssetRepository,
     SessionRepository,
@@ -28,17 +29,23 @@ from src.infrastructure.repositories import (
 )
 from src.infrastructure.services import LedgerService, LockService
 from src.infrastructure.services.resend_service import ResendService
-from src.infrastructure.redis import RQManager
+from src.infrastructure.settings import ENVIRONMENT
 from src.types.blockrader import WebhookEvent
+from src.types.common_types import Network
 from src.usecases.notification_usecases import NotificationUseCase
 from src.usecases.transaction_usecases import TransactionUsecase
-from src.types.common_types import Network
 
 logger = get_logger(__name__)
 router = APIRouter(
     prefix="/webhooks",
     tags=["Webhook"],
+    dependencies=[Depends(get_verify_webhook_request)],
 )
+
+
+@router.post("/blockrader", status_code=status.HTTP_200_OK)
+async def handle_blockrader_webhook():
+    pass
 
 
 @router.post("/blockrader", status_code=status.HTTP_200_OK)
