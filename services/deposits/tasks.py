@@ -1,9 +1,8 @@
 import asyncio
 from typing import Any, Dict
 
-from src.infrastructure.logger import get_logger
 from services.deposits.dependencies import get_task_dependencies_factory
-from src.types.blockrader import WebhookDepositSweptSuccess, WebhookDepositSuccess
+from src.infrastructure.logger import get_logger
 from src.types import (
     DepositStage,
     NotFoundError,
@@ -15,6 +14,7 @@ from src.types.blnk.dtos import (
     RecordTransactionRequest,
     UpdateInflightTransactionRequest,
 )
+from src.types.blockrader import WebhookDepositSuccess, WebhookDepositSweptSuccess
 from src.types.notification_types import NotificationAction
 from src.utils.email_helpers import send_transactional_email
 from src.utils.notification_helpers import enqueue_notifications_for_user
@@ -110,16 +110,14 @@ async def _initialize_deposit_transaction(
         transaction_type=TransactionType.CREDIT,
         countries=config.countries,
     )
-    
+
     # Check if transaction already exists (idempotency)
-    txn, err = await transaction_usecase.repo.find_one(
-        transaction_hash=event.data.hash
-    )
+    txn, err = await transaction_usecase.repo.find_one(transaction_hash=event.data.hash)
     if err and err != NotFoundError:
         logger.error("Error checking for existing transaction: %s", err)
         await lock.release(event.data.hash, lock_id)
         return None, err
-        
+
     if not txn:
         logger.debug("Creating local transaction record for event %s", event.data.id)
         txn, err = await transaction_usecase.create_transaction(
@@ -135,7 +133,9 @@ async def _initialize_deposit_transaction(
             return None, err
         logger.info("Local transaction record created for event %s", event.data.id)
     else:
-        logger.debug("Local transaction record already exists for event %s", event.data.id)
+        logger.debug(
+            "Local transaction record already exists for event %s", event.data.id
+        )
 
     # 4. Record inflight ledger transaction (idempotent if handled by ledger service)
     if not txn.ledger_transaction_id:
@@ -157,7 +157,9 @@ async def _initialize_deposit_transaction(
             reference=txn.reference,
             inflight=True,
         )
-        logger.debug("Recording inflight ledger transaction for event %s", event.data.id)
+        logger.debug(
+            "Recording inflight ledger transaction for event %s", event.data.id
+        )
         ledger_txn, err = await ledger_service.transactions.record_transaction(
             transaction_request
         )
@@ -169,7 +171,7 @@ async def _initialize_deposit_transaction(
             )
             await lock.release(event.data.hash, lock_id)
             return None, err
-            
+
         # Update txn with ledger ID and stage
         txn, err = await transaction_usecase.repo.find_one(id=txn.id, load=["deposit"])
         txn.ledger_transaction_id = ledger_txn.transaction_id
@@ -177,7 +179,7 @@ async def _initialize_deposit_transaction(
         if txn.deposit:
             txn.deposit.deposit_stage = DepositStage.RECEIVED
             await transaction_usecase.repo.update(txn.deposit)
-        
+
         _, err = await transaction_usecase.repo.update(txn)
         if err:
             logger.error("Failed to update transaction %s with ledger ID", txn.id)
@@ -186,7 +188,7 @@ async def _initialize_deposit_transaction(
 
     # 5. Cache stage=RECEIVED in Redis
     await lock.set_state(event.data.hash, DepositStage.RECEIVED)
-    
+
     return txn, None
 
 
@@ -233,10 +235,7 @@ async def _process_deposit_swept_success_task_async(event_data: Dict[str, Any]):
             )
             # Initialize transaction on-the-fly
             txn, err = await _initialize_deposit_transaction(
-                event=event,
-                factory=factory,
-                lock=lock,
-                lock_id=lock_id
+                event=event, factory=factory, lock=lock, lock_id=lock_id
             )
             if err:
                 # Error already logged in helper
@@ -380,10 +379,9 @@ async def _process_deposit_swept_success_task_async(event_data: Dict[str, Any]):
                     template_name="deposit_confirmed",
                     app_logo_url=config.app.full_logo_url or config.app.logo_url,
                     amount=event.data.amount,
-                    currency=event.data.currency,
+                    currency=event.data.currency.upper(),
                     transaction_id=str(txn.id),
                 )
-
 
 
 async def _process_deposit_success_task_async(event_data: Dict[str, Any]):
@@ -442,10 +440,7 @@ async def _process_deposit_success_task_async(event_data: Dict[str, Any]):
 
         # --- Resolve wallet, asset, and create local transaction record ---
         txn, err = await _initialize_deposit_transaction(
-            event=event,
-            factory=factory,
-            lock=lock,
-            lock_id=lock_id
+            event=event, factory=factory, lock=lock, lock_id=lock_id
         )
         if err:
             # Error already logged and lock released in helper
@@ -465,6 +460,7 @@ async def _process_deposit_success_task_async(event_data: Dict[str, Any]):
 
 def process_deposit_swept_success_task(event_data: Dict[str, Any]):
     asyncio.run(_process_deposit_swept_success_task_async(event_data))
+
 
 def process_deposit_success_task(event_data: Dict[str, Any]):
     asyncio.run(_process_deposit_success_task_async(event_data))

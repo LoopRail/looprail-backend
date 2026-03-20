@@ -76,7 +76,7 @@ async def _send_withdrawal_processed_email(
                 template_name="withdrawal_processed",
                 app_logo_url=app_settings.logo_url,
                 amount=amount,
-                currency=currency,
+                currency=currency.upper(),
                 transaction_id=transaction_id or "",
             )
     except Exception as e:
@@ -102,7 +102,9 @@ async def _process_withdrawal_task_async(
     config = load_config()
     async for session in get_session():
         factory = TaskDependenciesFactory(session, config)
-        wallet_manager_usecase = factory.get_wallet_manager_usecase(wallet_id, ledger_id)
+        wallet_manager_usecase = factory.get_wallet_manager_usecase(
+            wallet_id, ledger_id
+        )
 
         err = await wallet_manager_usecase.execute_withdrawal_processing(
             user_id=user_id,
