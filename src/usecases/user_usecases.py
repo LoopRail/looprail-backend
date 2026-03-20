@@ -359,6 +359,37 @@ class UserUseCase:
             logger.warning("Invalid transaction pin provided for user %s", user_id)
         return is_valid, None
 
+    async def reset_password(
+        self, email: str, new_password: str
+    ) -> Tuple[Optional[User], Error]:
+        logger.info("Resetting password for user with email: %s", email)
+        user, err = await self.get_user_by_email(email)
+        if err or not user:
+            return None, err or NotFoundError
+
+        hashed_password_obj = hash_password(new_password, self.argon2_config)
+
+        if user.credentials:
+            user.credentials.password_hash = hashed_password_obj.password_hash
+            user.credentials.failed_attempts = 0
+            user.credentials.locked_until = None
+        else:
+            user.credentials = UserCredentials(
+                password_hash=hashed_password_obj.password_hash,
+                failed_attempts=0,
+                locked_until=None,
+            )
+
+        updated_user, err = await self.save(user)
+        if err:
+            logger.error(
+                "Failed to reset password for user %s: %s", user.id, err.message
+            )
+            return None, err
+
+        logger.info("Password reset successfully for user %s", user.id)
+        return updated_user, None
+
     async def load_public_user(
         self, user_id: UserId
     ) -> Tuple[Optional[UserPublic], Error]:

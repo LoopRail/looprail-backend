@@ -25,11 +25,15 @@ class OtpUseCase:
         logger.debug("OTP code verification result: %s", is_valid)
         return is_valid
 
-    async def generate_otp(self, user_email: str) -> Tuple[str, str, Error]:
-        logger.debug("Generating OTP for user email: %s", user_email)
+    async def generate_otp(
+        self,
+        user_email: str,
+        otp_type: OtpType = OtpType.ONBOARDING_EMAIL_VERIFICATION,
+    ) -> Tuple[str, str, Error]:
+        logger.debug("Generating %s OTP for user email: %s", otp_type, user_email)
         code = generate_otp_code(self.__otp_config.otp_length)
         hashed_code = hash_otp(code, self.__otp_config.hmac_secret)
-        otp = Otp(user_email=user_email, code_hash=hashed_code)
+        otp = Otp(user_email=user_email, code_hash=hashed_code, otp_type=otp_type)
         token = make_token()
 
         tx = await self.__redis_client.transaction()
@@ -44,7 +48,9 @@ class OtpUseCase:
                 err.message,
             )
             return "", "", err
-        logger.info("OTP generated and saved for user email: %s", user_email)
+        logger.info(
+            "%s OTP generated and saved for user email: %s", otp_type, user_email
+        )
         return code, token, None
 
     async def update_otp(self, token, otp: Otp) -> Error:
