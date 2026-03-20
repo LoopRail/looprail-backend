@@ -176,6 +176,7 @@ class KYCStatus(StrEnum):
 
 class OtpType(StrEnum):
     ONBOARDING_EMAIL_VERIFICATION = "onboarding_email_verification"
+    PASSWORD_RESET = "password_reset"
 
 
 class OtpStatus(StrEnum):

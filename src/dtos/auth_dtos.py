@@ -58,3 +58,17 @@ class BiometricLoginRequest(Base):
     public_key: str
     signature: str
     device_id: DeviceID
+
+
+class PasswordResetRequest(Base):
+    email: str
+
+
+class PasswordResetVerifyRequest(Base):
+    code: str
+    new_password: str
+
+
+class PasswordResetResponse(Base):
+    message: str
+    otp_token: str | None = None
