@@ -80,8 +80,20 @@ class UserUseCase:
             logger.error("Failed to save user %s: %s", user.id, err.message)
         else:
             logger.info("User %s saved successfully.", user.id)
-            await self.cache.set("user", str(user.id), user)
+            await self._cache_user(user)
         return user, err
+
+    async def _cache_user(self, user: User) -> None:
+        """Helper to cache user with relationships (excluding sensitive data)"""
+        user_data = user.model_dump()
+        for rel in ["wallet", "profile"]:
+            try:
+                val = getattr(user, rel, None)
+                if val:
+                    user_data[rel] = val.model_dump()
+            except Exception:
+                continue
+        await self.cache.set("user", str(user.id), user_data)
 
     async def update_user(
         self, user_id: UserId, /, **kwargs
@@ -249,18 +261,36 @@ class UserUseCase:
         logger.debug("Getting user by ID: %s", user_id)
 
         if from_cache:
-            # Try cache first
-            cached_user = await self.cache.get("user", str(user_id), User)
-            if cached_user:
+            data = await self.cache.get("user", str(user_id))
+            if data and isinstance(data, dict):
                 logger.debug("User %s found in cache.", user_id)
-                return cached_user, None
+                try:
+                    user = User.model_validate(data)
+                    # Manually restore relationships
+                    from src.models import (
+                        UserCredentials,
+                        UserPin,
+                        UserProfile,
+                        Wallet,
+                    )
+
+                    rel_models = {
+                        "wallet": Wallet,
+                        "profile": UserProfile,
+                    }
+                    for rel, model_cls in rel_models.items():
+                        if rel in data and data[rel]:
+                            setattr(user, rel, model_cls.model_validate(data[rel]))
+                    return user, None
+                except Exception as e:
+                    logger.warning("Failed to restore user from cache: %s", str(e))
 
         user, err = await self.repo.get_user_by_id(user_id=user_id)
         if err:
             logger.debug("User %s not found: %s", user_id, err.message)
         else:
             logger.debug("User %s retrieved from DB.", user_id)
-            await self.cache.set("user", str(user_id), user)
+            await self._cache_user(user)
         return user, err
 
     async def get_user_by_email(self, user_email: str) -> Tuple[Optional[User], Error]:
@@ -342,7 +372,8 @@ class UserUseCase:
         self, user_id: UserId, pin: str
     ) -> Tuple[bool, Error]:
         logger.debug("Verifying transaction pin for user %s", user_id)
-        user, err = await self.repo.get_user_by_id(user_id=user_id)
+        user_id_clean = user_id.clean()
+        user, err = await self.repo.get_user_by_id(user_id=user_id_clean)
         if err or not user:
             return False, err
 
