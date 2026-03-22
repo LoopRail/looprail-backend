@@ -19,15 +19,23 @@ class NotificationService:
         self,
         resend_service: ResendService,
         firebase_config: FirebaseConfig,
-        environment: ENVIRONMENT = ENVIRONMENT.PRODUCTION,
-        app_logo_url: Optional[str] = None,
+        environment: ENVIRONMENT | None = None,
+        app_logo_url: str | None = None,
     ) -> None:
+        """Initializes the NotificationService.
+
+        Args:
+            resend_service: The Resend service.
+            firebase_config: The Firebase configuration.
+            environment: The application environment. If not provided, it will be taken from the config.
+            app_logo_url: The URL of the application logo.
+        """
         self.resend_service = resend_service
         self.firebase_config = firebase_config
-        self.environment = environment
+        self.environment = environment or firebase_config.environment
         self.app_logo_url = app_logo_url
         self._initialize_firebase()
-        logger.debug("NotificationService initialized in %s environment.", environment.value)
+        logger.debug("NotificationService initialized in %s environment.", self.environment.value)
 
     def _initialize_firebase(self):
         try:
@@ -105,8 +113,20 @@ class NotificationService:
             )
         )
 
+        from src.infrastructure.config_settings import load_config
+        config = load_config()
+        if self.environment == ENVIRONMENT.DEVELOPMENT or not config.app.enable_notifications:
+            logger.info(
+                "Skipping push notification send. Environment: %s, Notifications Enabled: %s. Token: %s, Title: %s",
+                self.environment.value,
+                config.app.enable_notifications,
+                notification.token,
+                notification.title,
+            )
+            return True, None
+
         try:
-            response = messaging.send(message, dry_run=self.environment == ENVIRONMENT.DEVELOPMENT)
+            response = messaging.send(message)
             logger.info(f"Successfully sent message: {response}")
             return True, None
         except FirebaseError as e:

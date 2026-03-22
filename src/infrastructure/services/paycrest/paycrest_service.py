@@ -2,6 +2,7 @@ from decimal import Decimal
 from typing import Optional, Tuple
 
 from src.dtos import VerifyAccountResponse
+from src.infrastructure.logger import get_logger
 from src.infrastructure.services.base_client import BaseClient
 from src.infrastructure.settings import PayCrestConfig
 from src.types import Chain, Error, error
@@ -10,7 +11,6 @@ from src.types.paycrest import (
     FetchLatestRatesResponse,
     PaycrestRecipiant,
 )
-from src.infrastructure.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -77,10 +77,13 @@ class PaycrestService(PaycrestClient):
         response, err = await self._post(
             CreateOrderResponse, path_suffix="/sender/orders", data=order_data
         )
+        logger.info(response.data)
         if err:
             logger.error("Failed to create payment order: %s", err.message)
             return None, err
-        logger.info("Payment order created successfully with ID: %s", response.data.payment_id)
+        logger.info(
+            "Payment order created successfully with ID: %s", response.data.payment_id
+        )
         return response, None
 
     async def verify_account(

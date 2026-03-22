@@ -20,9 +20,17 @@ class TransactionRepository(Base[Transaction]):
         self, *, wallet_id: WalletId, limit: int = 20, offset: int = 0
     ) -> Tuple[list[Transaction], Error]:
         try:
+            from sqlalchemy.orm import selectinload
             statement = (
                 select(Transaction)
+                .options(
+                    selectinload(Transaction.bank_transfer),
+                    selectinload(Transaction.wallet_transfer),
+                    selectinload(Transaction.internal_transfer),
+                    selectinload(Transaction.deposit),
+                )
                 .where(Transaction.wallet_id == wallet_id)
+                .order_by(Transaction.created_at.desc())
                 .offset(offset)
                 .limit(limit)
             )

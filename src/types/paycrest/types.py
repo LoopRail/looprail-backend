@@ -28,6 +28,6 @@ class PaycrestPaymentOrder(basePaycrestType):
     network: str
     receive_address: str
     valid_until: datetime
-    sender_fee: int
+    sender_fee: str
     transaction_fee: int
     reference: str

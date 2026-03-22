@@ -58,6 +58,7 @@ class AppSettings(ServerConfig):
     logo_url: str | None = Field(default=None, alias="APP_LOGO_URL")
     full_logo_url: str | None = Field(default=None, alias="APP_FULL_LOGO_URL")
     icon_logo_url: str | None = Field(default=None, alias="APP_ICON_LOGO_URL")
+    enable_notifications: bool = Field(default=True, alias="ENABLE_NOTIFICATIONS")
 
 
 class LedgderServiceConfig(ServerConfig):

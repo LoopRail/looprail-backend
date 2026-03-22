@@ -98,7 +98,7 @@ RATE_LIMIT_CONFIG: Dict[str, RateLimitSubjectConfig] = {
             redis_expiry_seconds=7200,
         ),
         progressive_delay=ProgressiveDelayConfig(
-            delays={1: 0, 2: 0, 3: 30, 4: 120, 5: 900, 6: 1800, 7: 3600},
+            delays={1: 0, 2: 0, 3: 0, 4: 30, 5: 120, 6: 900, 7: 1800, 8: 3600},
             attempts_redis_expiry_seconds=3600,
             last_time_redis_expiry_seconds=3600,
         ),
@@ -176,7 +176,7 @@ class CustomRateLimiter:
                 if oldest:
                     oldest_score = float(oldest[0][1])
                     retry_after = int(oldest_score + limit_window_seconds - now)
-                
+
                 return (
                     False,
                     f"Maximum {limit_count} requests per hour for this email",
@@ -265,7 +265,7 @@ class CustomRateLimiter:
             attempts_val = await self.redis.get(attempts_key)
             current_attempts = int(attempts_val) if attempts_val else 0
             next_attempt = current_attempts + 1
-            
+
             required_delay = delays.get(next_attempt, 900)
 
             if required_delay > 0:
@@ -274,7 +274,11 @@ class CustomRateLimiter:
                     elapsed = time.time() - float(last_time)
                     if elapsed < required_delay:
                         remaining = int(required_delay - elapsed)
-                        return False, f"Please wait {remaining} seconds", current_attempts
+                        return (
+                            False,
+                            f"Please wait {remaining} seconds",
+                            current_attempts,
+                        )
 
             # Only increment if we allowed the attempt
             attempts = await self.redis.incr(attempts_key)
@@ -324,7 +328,9 @@ class CustomRateLimiter:
         """
         ip = get_remote_address(request)
 
-        allowed, error, email_retry_after = await self._check_email_limit(limit_type, identifier_value)
+        allowed, error, email_retry_after = await self._check_email_limit(
+            limit_type, identifier_value
+        )
         if not allowed:
             return False, error, None, email_retry_after
 

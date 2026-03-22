@@ -1,4 +1,5 @@
 from typing import Optional, Tuple, override
+from uuid import UUID
 
 from pydantic import EmailStr
 from sqlalchemy.exc import SQLAlchemyError
@@ -42,7 +43,9 @@ class UserRepository(Base[User]):
 
             return await self.create(user)
 
-    async def get_user_by_id(self, *, user_id: UserId) -> Tuple[Optional[User], Error]:
+    async def get_user_by_id(
+        self, *, user_id: UUID | str
+    ) -> Tuple[Optional[User], Error]:
         # return await self.get(User, user_id)
         query = (
             select(User)

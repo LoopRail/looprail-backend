@@ -16,17 +16,17 @@ resend.api_key = ""
 class ResendService:
     """A service for sending emails via the Resend API."""
 
-    def __init__(self, config: ResendConfig, environment: ENVIRONMENT = ENVIRONMENT.PRODUCTION) -> None:
+    def __init__(self, config: ResendConfig, environment: ENVIRONMENT | None = None) -> None:
         """Initializes the ResendService.
 
         Args:
             config: The Resend configuration.
-            environment: The application environment.
+            environment: The application environment. If not provided, it will be taken from the config.
         """
         resend.api_key = config.resend_api_key
-        self.environment = environment
+        self.environment = environment or config.environment
         self.default_sender_domain = config.default_sender_domain
-        logger.debug("ResendService initialized in %s environment with domain %s.", environment.value, self.default_sender_domain)
+        logger.debug("ResendService initialized in %s environment with domain %s.", self.environment.value, self.default_sender_domain)
 
     async def send(
         self,
@@ -54,9 +54,13 @@ class ResendService:
             _from,
             subject,
         )
-        if self.environment == ENVIRONMENT.DEVELOPMENT:
+        from src.infrastructure.config_settings import load_config
+        config = load_config()
+        if self.environment == ENVIRONMENT.DEVELOPMENT or not config.app.enable_notifications:
             logger.info(
-                "Skipping email send in DEVELOPMENT environment to: %s with subject: %s",
+                "Skipping email send. Environment: %s, Notifications Enabled: %s. Recipient: %s, Subject: %s",
+                self.environment.value,
+                config.app.enable_notifications,
                 to,
                 subject,
             )
