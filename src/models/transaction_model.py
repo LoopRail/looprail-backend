@@ -143,6 +143,9 @@ class BankTransferDetail(Base, table=True):
     provider: str = Field(default="paycrest", max_length=50)
     provider_reference: Optional[str] = Field(default=None, index=True)
 
+    # Conversion rate (Asset per 1 Unit of Withdrawal Currency)
+    rate: Optional[Decimal] = Field(default=None)
+
     # Relationship
     transaction: Transaction = Relationship(back_populates="bank_transfer")
 

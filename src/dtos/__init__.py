@@ -3,7 +3,6 @@ from src.dtos.account_dtos import (
     VerifyAccountRequest,
     VerifyAccountResponse,
 )
-from src.dtos.notification_dtos import PushNotificationDTO
 from src.dtos.auth_dtos import (
     AuthTokensResponse,
     AuthWithTokensAndUserResponse,
@@ -13,9 +12,10 @@ from src.dtos.auth_dtos import (
     PasscodeLoginRequest,
     PasscodeSetRequest,
     PasswordResetRequest,
-    PasswordResetVerifyRequest,
     PasswordResetResponse,
+    PasswordResetVerifyRequest,
 )
+from src.dtos.notification_dtos import PushNotificationDTO
 from src.dtos.otp_dtos import OtpCreate, OTPSuccessResponse, VerifyOtpRequest
 from src.dtos.transaction_dtos import (
     BankTransferParams,
@@ -23,26 +23,27 @@ from src.dtos.transaction_dtos import (
     CryptoTransactionParams,
     DepositParams,
     InternalTransferParams,
-    WalletTransferParams
+    WalletTransferParams,
 )
 from src.dtos.user_dtos import (
+    AvailabilityResponse,
+    AvailabilityStatus,
+    CheckAvailabilityRequest,
     CompleteOnboardingRequest,
     LoginRequest,
     RefreshTokenRequest,
     SetTransactionPinRequest,
     UserCreate,
     UserPublic,
-    CheckAvailabilityRequest,
-    AvailabilityResponse,
-    AvailabilityStatus,
 )
 from src.dtos.wallet_dtos import (
-    AssetPublic,
-    WalletPublic,
     AssetBalance,
+    AssetPublic,
     BankTransferRequest,
+    WalletPublic,
     WalletWithAssets,
     WithdrawalRequest,
+    WithdrawalResponse,
 )
 
 __all__ = [
@@ -79,10 +80,17 @@ __all__ = [
     "CheckAvailabilityRequest",
     "AvailabilityResponse",
     "AvailabilityStatus",
-    "DepositParams"
-    "InternalTransferParams",
     "WalletTransferParams",
     "PasswordResetRequest",
     "PasswordResetVerifyRequest",
-    "PasswordResetResponse"
+    "PasswordResetResponse",
+    "InternalTransferParams",
+    "DepositParams",
+    "PasswordResetRequest",
+    "PasswordResetVerifyRequest",
+    "PasswordResetResponse",
+    "InternalTransferParams",
+    "DepositParams",
+    "OTPSuccessResponse",
+    "WithdrawalResponse",
 ]

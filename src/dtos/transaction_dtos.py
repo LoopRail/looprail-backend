@@ -87,6 +87,7 @@ class BankTransferParams(BaseTransactionParams):
     # Provider info
     provider: str = Field(default="paycrest")
     external_reference: Optional[str] = None
+    rate: Optional[Decimal] = None
 
     @field_validator("account_number")
     @classmethod
@@ -230,6 +231,7 @@ class BankTransferDetailRead(BaseModel):
     provider: str
     session_id: Optional[str] = Field(default=None, alias="session-id")
     account_verified: bool = Field(default=False, alias="account-verified")
+    rate: Optional[Decimal] = Field(default=None, alias="rate")
 
 
 class WalletTransferDetailRead(BaseModel):

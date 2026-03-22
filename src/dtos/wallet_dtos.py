@@ -4,7 +4,14 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 from pydantic import Field, field_validator
 
 from src.dtos.base import Base
-from src.types.common_types import Address, AssetId, Chain, Network, WalletId
+from src.types.common_types import (
+    Address,
+    AssetId,
+    Chain,
+    Network,
+    TransactionId,
+    WalletId,
+)
 from src.types.error import Error, error
 from src.types.types import AssetType, Currency, TokenStandard, WithdrawalMethod
 
@@ -53,9 +60,9 @@ class GenericWithdrawalRequest(Base):
     data: Dict[str, Any]
 
     def to_specific_event(self) -> Tuple[Optional[TransferType], Error]:
-        WITHDRAWAL_REQUEST_MAP: dict[str, Type[TransferType]] = {
-            "withdraw:bank-transfer": BankTransferRequest,
-            "withdraw:external-wallet": ExtranalWalletTransferRequest,
+        WITHDRAWAL_REQUEST_MAP: dict[str, TransferType] = {
+            WithdrawalMethod.BANK_TRANSFER.value: BankTransferRequest,
+            WithdrawalMethod.EXTERNAL_WALLET.value: ExtranalWalletTransferRequest,
         }
 
         event_class = WITHDRAWAL_REQUEST_MAP.get(self.event)
@@ -78,6 +85,20 @@ class WithdrawalRequest(Base):
     narration: str
     destination: GenericWithdrawalRequest
     authorization: AuthorizationDetails
+
+    @field_validator("currency")
+    @classmethod
+    def validate_currency(cls, v: str) -> Currency:
+        if v not in Currency.__members__:
+            return Currency.NAIRA
+        return Currency(v)
+
+    @field_validator("narration")
+    @classmethod
+    def validate_narration(cls, v: str) -> str:
+        if v.strip() == "":
+            raise error("narration cannot be empty")
+        return v
 
 
 class AssetPublic(Base):
@@ -127,3 +148,9 @@ class WalletWithAssets(Base):
     provider: str
     is_active: bool = Field(alias="is-active")
     assets: List[AssetBalance]
+
+
+class WithdrawalResponse(Base):
+    transaction_id: Optional[TransactionId] = None
+    error: Optional[str] = None
+    message: str
