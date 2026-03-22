@@ -14,8 +14,9 @@ from src.api.dependencies import (
     get_wallet_manager_usecase,
     get_config,
     get_user_usecases,
+    get_session_repository,
+    get_rq_manager,
 )
-from src.api.dependencies.extra_deps import get_rq_manager
 from src.api.rate_limiters.rate_limiter import get_custom_rate_limiter
 from src.main import app
 from src.models import User
@@ -60,6 +61,7 @@ async def test_get_user_wallet_info_success(
                     "balance": "0.0",
                     "network": "mainnet",
                     "address": "0x...",
+                    "precision": 100,
                     "is-active": True,
                 }
             ],
@@ -116,6 +118,7 @@ async def test_get_user_balance_success(
             "asset-type": "usdt",
             "network": "mainnet",
             "address": "0x...",
+            "precision": 100,
             "is-active": True,
         },
         None,
@@ -137,6 +140,7 @@ async def test_get_user_balance_success(
                     "balance": "1.0",
                     "network": "mainnet",
                     "address": "0x...",
+                    "precision": 100,
                     "is-active": True,
                 }
             ],
@@ -189,6 +193,7 @@ async def test_get_asset_balance_success(
             "balance": "1.0",
             "network": "mainnet",
             "address": "0x...",
+            "precision": 100,
             "is-active": True,
         },
         None,
@@ -292,6 +297,25 @@ async def test_withdraw_success(
         return_value=({"transaction_id": "txn_123"}, None)
     )
 
+    # Token
+    token = AccessToken(
+        sub="access_ses_123",
+        user_id=f"usr_{mock_current_user.id}",
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id="ses_123",
+        platform="web",
+    )
+
+    # Overrides
+    app.dependency_overrides[get_current_user_token] = lambda: token
+    app.dependency_overrides[get_current_user] = lambda: mock_current_user
+    app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
+    app.dependency_overrides[get_config] = lambda: mock_config
+    app.dependency_overrides[get_rq_manager] = lambda: mock_rq_manager
+    app.dependency_overrides[get_user_usecases] = lambda: mock_user_usecase
+    app.dependency_overrides[withdraw_auth_lock] = lambda: mock_auth_lock_service
+    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_custom_limiter
+
     # Payload
     withdrawal_data = {
         "asset_id": f"ast_{uuid4()}",
@@ -319,22 +343,13 @@ async def test_withdraw_success(
     
     mock_session_repo = AsyncMock()
     mock_session_repo.get_user_sessions.return_value = []
-    from src.api.dependencies import get_session_repository
     app.dependency_overrides[get_session_repository] = lambda: mock_session_repo
-
-    app.dependency_overrides[get_current_user] = lambda: mock_current_user
-    app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
-    app.dependency_overrides[get_config] = lambda: mock_config
-    app.dependency_overrides[get_rq_manager] = lambda: mock_rq_manager
-    app.dependency_overrides[get_user_usecases] = lambda: mock_user_usecase
-    app.dependency_overrides[withdraw_auth_lock] = lambda: mock_auth_lock_service
-    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_custom_limiter
 
     with TestClient(app) as client:
         response = client.post("/api/v1/wallets/withdraw", json=withdrawal_data)
 
     # Assertions
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_201_CREATED
     assert response.json()["message"] == "Withdrawal processing initiated successfully."
 
     mock_auth_lock_service.is_account_locked.assert_called_once_with(
@@ -363,6 +378,25 @@ async def test_withdraw_invalid_pin(
     mock_user_usecase.verify_transaction_pin = AsyncMock(return_value=(False, None))
     mock_auth_lock_service.increment_failed_attempts = AsyncMock(return_value=(1, None))
 
+    # Token
+    token = AccessToken(
+        sub="access_ses_123",
+        user_id=f"usr_{mock_current_user.id}",
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id="ses_123",
+        platform="web",
+    )
+
+    # Overrides
+    app.dependency_overrides[get_current_user_token] = lambda: token
+    app.dependency_overrides[get_current_user] = lambda: mock_current_user
+    app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
+    app.dependency_overrides[get_config] = lambda: mock_config
+    app.dependency_overrides[get_rq_manager] = lambda: mock_rq_manager
+    app.dependency_overrides[get_user_usecases] = lambda: mock_user_usecase
+    app.dependency_overrides[withdraw_auth_lock] = lambda: mock_auth_lock_service
+    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_custom_limiter
+
     # Payload
     withdrawal_data = {
         "asset_id": f"ast_{uuid4()}",
@@ -390,23 +424,14 @@ async def test_withdraw_invalid_pin(
     
     mock_session_repo = AsyncMock()
     mock_session_repo.get_user_sessions.return_value = []
-    from src.api.dependencies import get_session_repository
     app.dependency_overrides[get_session_repository] = lambda: mock_session_repo
-
-    app.dependency_overrides[get_current_user] = lambda: mock_current_user
-    app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
-    app.dependency_overrides[get_config] = lambda: mock_config
-    app.dependency_overrides[get_rq_manager] = lambda: mock_rq_manager
-    app.dependency_overrides[get_user_usecases] = lambda: mock_user_usecase
-    app.dependency_overrides[withdraw_auth_lock] = lambda: mock_auth_lock_service
-    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_custom_limiter
 
     with TestClient(app) as client:
         response = client.post("/api/v1/wallets/withdraw", json=withdrawal_data)
 
     # Assertions
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    assert response.json()["message"] == "Invalid transaction PIN"
+    assert response.json()["error"] == "Invalid transaction PIN"
 
     mock_auth_lock_service.increment_failed_attempts.assert_called_once_with(
         mock_current_user.email
@@ -428,6 +453,25 @@ async def test_withdraw_account_locked(
 ):
     # Setup mocks
     mock_auth_lock_service.is_account_locked = AsyncMock(return_value=(True, None))
+
+    # Token
+    token = AccessToken(
+        sub="access_ses_123",
+        user_id=f"usr_{mock_current_user.id}",
+        token_type=TokenType.ACCESS_TOKEN,
+        session_id="ses_123",
+        platform="web",
+    )
+
+    # Overrides
+    app.dependency_overrides[get_current_user_token] = lambda: token
+    app.dependency_overrides[get_current_user] = lambda: mock_current_user
+    app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
+    app.dependency_overrides[get_config] = lambda: mock_config
+    app.dependency_overrides[get_rq_manager] = lambda: mock_rq_manager
+    app.dependency_overrides[get_user_usecases] = lambda: mock_user_usecase
+    app.dependency_overrides[withdraw_auth_lock] = lambda: mock_auth_lock_service
+    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_custom_limiter
 
     # Payload
     withdrawal_data = {
@@ -456,16 +500,7 @@ async def test_withdraw_account_locked(
     
     mock_session_repo = AsyncMock()
     mock_session_repo.get_user_sessions.return_value = []
-    from src.api.dependencies import get_session_repository
     app.dependency_overrides[get_session_repository] = lambda: mock_session_repo
-
-    app.dependency_overrides[get_current_user] = lambda: mock_current_user
-    app.dependency_overrides[get_wallet_manager_usecase] = lambda: mock_wallet_manager
-    app.dependency_overrides[get_config] = lambda: mock_config
-    app.dependency_overrides[get_rq_manager] = lambda: mock_rq_manager
-    app.dependency_overrides[get_user_usecases] = lambda: mock_user_usecase
-    app.dependency_overrides[withdraw_auth_lock] = lambda: mock_auth_lock_service
-    app.dependency_overrides[get_custom_rate_limiter] = lambda: mock_custom_limiter
 
     with TestClient(app) as client:
         response = client.post("/api/v1/wallets/withdraw", json=withdrawal_data)
@@ -473,7 +508,7 @@ async def test_withdraw_account_locked(
     # Assertions
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert (
-        response.json()["message"]
+        response.json()["error"]
         == "Account is locked due to too many failed attempts."
     )
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request, Response, status
 from fastapi.responses import JSONResponse
 from rq import Queue
 
@@ -15,7 +15,7 @@ from src.api.dependencies import (
     get_wallet_manager_usecase,
 )
 from src.api.rate_limiters.rate_limiter import custom_rate_limiter
-from src.dtos import AssetBalance, WalletPublic
+from src.dtos import AssetBalance, WalletPublic, WithdrawalResponse
 from src.dtos.wallet_dtos import WithdrawalRequest
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
@@ -23,7 +23,7 @@ from src.infrastructure.redis import RQManager
 from src.infrastructure.repositories import SessionRepository
 from src.infrastructure.services import AuthLockService
 from src.models import User
-from src.types import AssetId, AccessToken
+from src.types import AccessToken, AssetId, InsufficientBalanceError, UserId
 from src.types.notification_types import NotificationAction
 from src.types.types import Currency
 from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
@@ -86,6 +86,7 @@ async def get_asset_balance(
 )
 async def withdraw(
     request: Request,
+    response: Response,
     withdrawal_request: WithdrawalRequest,
     user: User = Depends(get_current_user),
     token: AccessToken = Depends(get_current_user_token),
@@ -96,7 +97,7 @@ async def withdraw(
     auth_lock_service: AuthLockService = Depends(withdraw_auth_lock),
     session_repo: SessionRepository = Depends(get_session_repository),
     notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
-) -> JSONResponse:
+) -> WithdrawalResponse:
     withdrawal_request.authorization.ip_address = request.client.host
     withdrawal_request.authorization.user_agent = request.headers.get("user-agent")
 
@@ -119,14 +120,15 @@ async def withdraw(
             withdrawal_request.authorization.ip_address,
             withdrawal_request.authorization.user_agent,
         )
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content={"message": "Account is locked due to too many failed attempts."},
+        response.status_code = status.HTTP_403_FORBIDDEN
+        return WithdrawalResponse(
+            error="Account is locked due to too many failed attempts.",
+            message="Withdrawal request failed",
         )
 
     # 1. Verify Transaction PIN
     valid, err = await user_usecase.verify_transaction_pin(
-        user.id, withdrawal_request.authorization.pin
+        UserId(user.id), withdrawal_request.authorization.pin
     )
     if err or not valid:
         current_attempts, _ = await auth_lock_service.increment_failed_attempts(
@@ -140,9 +142,10 @@ async def withdraw(
             withdrawal_request.authorization.ip_address,
             withdrawal_request.authorization.user_agent,
         )
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={"message": "Invalid transaction PIN"},
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        return WithdrawalResponse(
+            error="Invalid transaction PIN",
+            message="Withdrawal request failed",
         )
 
     # Reset failed attempts on successful PIN verification
@@ -179,12 +182,16 @@ async def withdraw(
         )
 
         status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        if hasattr(err, "code") and err.code:
+        if isinstance(err, InsufficientBalanceError):
+            status_code = status.HTTP_400_BAD_REQUEST
+        elif hasattr(err, "code") and err.code:
             status_code = err.code
+        
+        response.status_code = status_code
 
-        return JSONResponse(
-            status_code=status_code,
-            content={"error": err.message},
+        return WithdrawalResponse(
+            error=err.message,
+            message="Withdrawal request failed",
         )
     transaction_id = resp.get("transaction_id")
     logger.info(
@@ -223,13 +230,13 @@ async def withdraw(
         user_id=str(user.id),
         session_repo=session_repo,
         notification_usecase=notification_usecase,
-        title="Withdrawal Submitted 📤",
-        body="Your withdrawal request has been submitted and is being processed.",
+        title="Withdrawal initiated",
+        body="Your withdrawal is being processed.",
         action=NotificationAction.WITHDRAWAL_INITIATED,
         data={"transaction_id": transaction_id or ""},
     )
 
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={"message": "Withdrawal processing initiated successfully."},
+    return WithdrawalResponse(
+        message="Withdrawal processing initiated successfully.",
+        transaction_id=transaction_id,
     )
