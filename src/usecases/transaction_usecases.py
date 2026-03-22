@@ -53,7 +53,9 @@ class TransactionUsecase:
         detail_err = await self._create_transaction_details(params, created_txn.id)
         if detail_err:
             logger.error("Failed to create transaction details: %s", detail_err.message)
-            await self.repo.update_status(created_txn.id, TransactionStatus.FAILED)
+            await self.update_transaction_status(
+                transaction_id=created_txn.id, new_status=TransactionStatus.FAILED
+            )
             return None, detail_err
 
         return created_txn, None
@@ -180,6 +182,7 @@ class TransactionUsecase:
             provider=params.provider,
             session_id=params.session_id,
             provider_reference=params.external_reference,
+            rate=params.rate,
         )
 
         _, err = await self.repo.create(detail)
@@ -257,7 +260,17 @@ class TransactionUsecase:
         self, *, transaction_id: TransactionId
     ) -> Tuple[Optional[Transaction], Error]:
         logger.debug("Getting transaction with ID: %s", transaction_id)
-        transaction, err = await self.repo.get(transaction_id)
+        transaction, err = await self.repo.get(
+            transaction_id,
+            load=[
+                "bank_transfer",
+                "wallet_transfer",
+                "internal_transfer",
+                "deposit",
+                "wallet",
+                "asset",
+            ],
+        )
         if err:
             logger.debug("Transaction %s not found: %s", transaction_id, err.message)
             return None, err

@@ -623,7 +623,7 @@ class WalletManagerUsecase:
                 and withdrawal_request.amount < Decimal(MIN_BANK_TRANSFER_NGN)
             ):
                 return None, ValidationError(
-                    f"Minimum bank transfer is {MIN_BANK_TRANSFER_NGN} NGN"
+                    f"Minimum bank transfer is {MIN_BANK_TRANSFER_NGN} {withdrawal_request.currency.value.upper()}"
                 )
 
             if amount_in_usd > Decimal(BANK_TRANSFER_FEE_THRESHOLD_USD):
@@ -664,9 +664,31 @@ class WalletManagerUsecase:
                 - bal_resp.queued_debit_balance
             )
 
-            total_needed_minor = int(
-                (withdrawal_request.amount + withdrawal_fee) * asset.precision
-            )
+            effective_rate = None
+            if asset.symbol.upper() != withdrawal_request.currency.value.upper():
+                if not rate_resp:
+                    rate_resp, _ = await self.service.paycrest_service.fetch_letest_usdc_rate(
+                        amount=float(withdrawal_request.amount),
+                        currency=withdrawal_request.currency.value.upper(),
+                    )
+
+                if rate_resp and rate_resp.data:
+                    effective_rate = Decimal("1") / Decimal(str(rate_resp.data))
+
+                if not effective_rate:
+                    logger.error("Conversion rate missing for cross-currency withdrawal")
+                    return None, error("Conversion rate missing")
+
+                total_needed_minor = int(
+                    (withdrawal_request.amount + withdrawal_fee)
+                    * effective_rate
+                    * asset.precision
+                )
+            else:
+                total_needed_minor = int(
+                    (withdrawal_request.amount + withdrawal_fee) * asset.precision
+                )
+
             if available_balance < total_needed_minor:
                 logger.warning(
                     "Insufficient funds for user %s: available=%s, needed=%s (minor units)",
@@ -675,7 +697,7 @@ class WalletManagerUsecase:
                     total_needed_minor,
                 )
 
-                return None, ValidationError("Insufficient balance")
+                return None, InsufficientBalanceError("Insufficient balance")
 
         # Map WithdrawalMethod to PaymentMethod
         payment_method = PaymentMethod.BLOCKCHAIN
@@ -757,6 +779,7 @@ class WalletManagerUsecase:
                     account_number=specific_data.account_number,
                     account_name=specific_data.account_name,
                     provider="paycrest",
+                    rate=effective_rate,
                 )
             else:
                 return None, error("Invalid data for bank transfer")
@@ -805,10 +828,10 @@ class WalletManagerUsecase:
             "Creating in-flight ledger transaction for withdrawal %s", transaction.id
         )
 
-        total_ledger_amount = withdrawal_request.amount + withdrawal_fee
-
+        # amount on ledger must be in asset's units (minor)
+        # we already calculated total_needed_minor for the balance check
         ledger_txn_request = RecordTransactionRequest(
-            amount=int(total_ledger_amount * asset.precision),
+            amount=total_needed_minor,
             currency=withdrawal_request.currency.lower(),
             source=asset.ledger_balance_id,
             description=f"Withdrawal for {user.id} to {withdrawal_method}",
@@ -824,14 +847,22 @@ class WalletManagerUsecase:
         )
 
         if withdrawal_fee > 0:
+            # We need to distribute the minor units
+            if effective_rate:
+                item_amount_minor = int(withdrawal_request.amount * effective_rate * asset.precision)
+                fee_amount_minor = total_needed_minor - item_amount_minor
+            else:
+                item_amount_minor = int(withdrawal_request.amount * asset.precision)
+                fee_amount_minor = int(withdrawal_fee * asset.precision)
+
             ledger_txn_request.destinations = [
                 Destination(
                     identifier=WorldLedger.WORLD_OUT,
-                    distribution=str(int(withdrawal_request.amount * asset.precision)),
+                    distribution=str(item_amount_minor),
                 ),
                 Destination(
                     identifier=WorldLedger.PLATFORM_FEES,
-                    distribution=str(int(withdrawal_fee * asset.precision)),
+                    distribution=str(fee_amount_minor),
                 ),
             ]
         else:
@@ -1174,9 +1205,7 @@ class WalletManagerUsecase:
             withdrawal_request.destination.data
         )
 
-        # Resolve the SWIFT/institution code from the numeric bank ID.
-        # transfer_data.bank_code holds the numeric ID (e.g. "070"), but Paycrest
-        # expects the institution code (e.g. "FIDTNGLA"). Look it up via banks_data.
+
         country_code = get_country_code_by_currency(
             self.service.config.countries, withdrawal_request.currency
         )
