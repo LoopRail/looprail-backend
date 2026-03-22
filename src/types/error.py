@@ -62,6 +62,11 @@ class OTPError(error):
         super().__init__(message)
 
 
+class InsufficientBalanceError(httpError):
+    def __init__(self, message: str = "Insufficient balance", *, code: int = 400):
+        super().__init__(code, message)
+
+
 class ValidationError(httpError):
     def __init__(
         self,
