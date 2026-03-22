@@ -86,12 +86,15 @@ class WithdrawalRequest(Base):
     destination: GenericWithdrawalRequest
     authorization: AuthorizationDetails
 
-    @field_validator("currency")
+    @field_validator("currency", mode="before")
     @classmethod
-    def validate_currency(cls, v: str) -> Currency:
-        if v not in Currency.__members__:
+    def validate_currency(cls, v: Any) -> Currency:
+        if isinstance(v, Currency):
+            return v
+        try:
+            return Currency(v)
+        except ValueError:
             return Currency.NAIRA
-        return Currency(v)
 
     @field_validator("narration")
     @classmethod

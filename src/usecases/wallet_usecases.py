@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_CEILING
 from typing import Any, Dict, Optional, Self, Tuple
 from uuid import UUID
 
@@ -43,6 +43,7 @@ from src.types import (
     AssetType,
     Error,
     IdentiyType,
+    InsufficientBalanceError,
     PaymentMethod,
     Provider,
     TransactionStatus,
@@ -604,44 +605,71 @@ class WalletManagerUsecase:
 
         amount_in_usd = withdrawal_request.amount
         rate_resp = None
-        if withdrawal_request.currency == types.Currency.NAIRA:
+        if withdrawal_request.currency == types.Currency.NAIRA or (
+            withdrawal_request.currency == types.Currency.US_Dollar
+            and withdrawal_method == WithdrawalMethod.BANK_TRANSFER
+        ):
+            rate_amount = max(1.0, float(withdrawal_request.amount))
             rate_resp, err = await self.service.paycrest_service.fetch_letest_usdc_rate(
-                amount=float(withdrawal_request.amount),
+                amount=rate_amount,
                 currency="NGN",
             )
             if not err and rate_resp and rate_resp.data:
-                try:
-                    amount_in_usd = withdrawal_request.amount / Decimal(
-                        str(rate_resp.data)
-                    )
-                except Exception:
-                    pass
+                if withdrawal_request.currency == types.Currency.NAIRA:
+                    try:
+                        amount_in_usd = withdrawal_request.amount / Decimal(
+                            str(rate_resp.data)
+                        )
+                    except Exception:
+                        pass
 
         if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
-            if (
-                withdrawal_request.currency == types.Currency.NAIRA
-                and withdrawal_request.amount < Decimal(MIN_BANK_TRANSFER_NGN)
+            min_bank_ngn = Decimal(MIN_BANK_TRANSFER_NGN)
+            curr_code = str(withdrawal_request.currency).upper()
+            if withdrawal_request.currency == types.Currency.NAIRA:
+                if withdrawal_request.amount < min_bank_ngn:
+                    return None, ValidationError(
+                        f"Minimum bank transfer is {min_bank_ngn:f} {curr_code}"
+                    )
+            elif (
+                withdrawal_request.currency == types.Currency.US_Dollar
             ):
-                return None, ValidationError(
-                    f"Minimum bank transfer is {MIN_BANK_TRANSFER_NGN} {withdrawal_request.currency.value.upper()}"
-                )
+                if rate_resp and rate_resp.data:
+                    min_bank_usd = (
+                        min_bank_ngn / Decimal(str(rate_resp.data))
+                    ).quantize(Decimal("0.01"))
+                    if withdrawal_request.amount < min_bank_usd:
+                        return None, ValidationError(
+                            f"Minimum bank transfer is {min_bank_usd:f} {curr_code}"
+                        )
 
             if amount_in_usd > Decimal(BANK_TRANSFER_FEE_THRESHOLD_USD):
                 withdrawal_fee = Decimal(BANK_TRASNFER_WITHDRAWAL_FEE)
                 if withdrawal_request.currency == types.Currency.NAIRA:
                     if rate_resp and rate_resp.data:
-                        # We quantize to 2 decimal places for NGN (100 kobo = 1 NGN)
                         withdrawal_fee = (
                             Decimal("0.1") * Decimal(str(rate_resp.data))
                         ).quantize(Decimal("0.01"))
                     else:
-                        # Fallback to a fixed NGN fee approx equivalent to 0.1 USD
                         withdrawal_fee = Decimal("150")
 
         elif withdrawal_method == WithdrawalMethod.EXTERNAL_WALLET:
             if amount_in_usd < Decimal(MIN_WALLET_TRANSFER_USD):
+                min_wallet_usd = Decimal(MIN_WALLET_TRANSFER_USD)
+                curr_code = str(withdrawal_request.currency).upper()
+                if (
+                    withdrawal_request.currency == types.Currency.NAIRA
+                    and rate_resp
+                    and rate_resp.data
+                ):
+                    min_wallet_ngn = (
+                        min_wallet_usd * Decimal(str(rate_resp.data))
+                    ).quantize(Decimal("1e1"), rounding=ROUND_CEILING)
+                    return None, ValidationError(
+                        f"Minimum wallet transfer is {int(min_wallet_ngn):,} {curr_code}"
+                    )
                 return None, ValidationError(
-                    f"Minimum wallet transfer is {MIN_WALLET_TRANSFER_USD} USD"
+                    f"Minimum wallet transfer is {min_wallet_usd:f} {curr_code}"
                 )
 
         # Proactive balance verification
@@ -665,11 +693,13 @@ class WalletManagerUsecase:
             )
 
             effective_rate = None
-            if asset.symbol.upper() != withdrawal_request.currency.value.upper():
+            curr_is_usd = str(withdrawal_request.currency).upper() == "USD"
+
+            if asset.symbol.upper() != str(withdrawal_request.currency).upper() and not curr_is_usd:
                 if not rate_resp:
                     rate_resp, _ = await self.service.paycrest_service.fetch_letest_usdc_rate(
                         amount=float(withdrawal_request.amount),
-                        currency=withdrawal_request.currency.value.upper(),
+                        currency=str(withdrawal_request.currency).upper(),
                     )
 
                 if rate_resp and rate_resp.data:
@@ -678,7 +708,7 @@ class WalletManagerUsecase:
                 if not effective_rate:
                     logger.error("Conversion rate missing for cross-currency withdrawal")
                     return None, error("Conversion rate missing")
-
+            if effective_rate is not None:
                 total_needed_minor = int(
                     (withdrawal_request.amount + withdrawal_fee)
                     * effective_rate
@@ -711,6 +741,14 @@ class WalletManagerUsecase:
             specific_data = ExternalWalletTransferData.model_validate(
                 specific_withdrawal.data
             )
+            # Disallow self-transfer to own wallet address
+            if specific_data.address.lower() == user_wallet.address.lower():
+                logger.warning(
+                    "User %s attempted self-transfer to wallet %s",
+                    user.id,
+                    user_wallet.address,
+                )
+                return None, error("Transfers to your own wallet address are not allowed")
         else:
             return None, error(
                 f"Invalid specific withdrawal data for method: {withdrawal_method}"
