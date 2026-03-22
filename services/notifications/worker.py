@@ -1,4 +1,5 @@
 from rq import Worker, Queue
+from services.notifications import tasks
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RQManager
 from src.infrastructure.settings import RedisConfig

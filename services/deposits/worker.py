@@ -1,4 +1,5 @@
 from rq import Queue, Worker
+from services.deposits import tasks
 
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RQManager
