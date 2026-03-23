@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastapi import Depends, Header, HTTPException, Request, status
+from rq import Queue
 
 from src.api.dependencies.extra_deps import get_config
 from src.api.dependencies.repositories import (
@@ -13,19 +14,19 @@ from src.api.dependencies.repositories import (
 )
 from src.api.dependencies.services import (
     get_blockrader_config,
+    get_cache_service,
+    get_geolocation_service,
     get_ledger_config,
     get_ledger_service,
+    get_paycrest_config,
     get_paycrest_service,
     get_redis_service,
     get_rq_manager,
-    get_geolocation_service,
-    get_cache_service,
 )
 from src.infrastructure import CUSTOMER_WALLET_LEDGER, MASTER_BASE_WALLET
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RedisClient, RQManager
-from rq import Queue
 from src.infrastructure.repositories import (
     AssetRepository,
     RefreshTokenRepository,
@@ -34,8 +35,13 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
-from src.infrastructure.services import LedgerService, PaycrestService, GeolocationService, CacheService
-from src.infrastructure.settings import BlockRaderConfig
+from src.infrastructure.services import (
+    CacheService,
+    GeolocationService,
+    LedgerService,
+    PaycrestService,
+)
+from src.infrastructure.settings import BlockRaderConfig, PayCrestConfig
 from src.types import LedgerConfig
 from src.usecases import (
     JWTUsecase,
@@ -81,9 +87,10 @@ async def get_otp_usecase(
 
 async def get_secrets_usecase(
     blockrader_config: BlockRaderConfig = Depends(get_blockrader_config),
+    paycrest_config: PayCrestConfig = Depends(get_paycrest_config),
 ) -> SecretsUsecase:
     logger.debug("Entering get_secrets_usecase")
-    yield SecretsUsecase(blockrader_config)
+    yield SecretsUsecase(blockrader_config, paycrest_config)
 
 
 async def get_security_usecase(
@@ -114,7 +121,7 @@ async def get_notification_usecase(
     rq_manager: RQManager = Depends(get_rq_manager),
 ) -> NotificationUseCase:
     logger.debug("Entering get_notification_usecase")
-    notif_queue = Queue('notifications', connection=rq_manager.get_connection())
+    notif_queue = Queue("notifications", connection=rq_manager.get_connection())
     yield NotificationUseCase(notif_queue)
 
 

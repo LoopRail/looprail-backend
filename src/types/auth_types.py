@@ -16,3 +16,4 @@ class HashedPassword(BaseModel):
 
 class WebhookProvider(str, Enum):
     BLOCKRADER = "blockrader"
+    PAYCREST = "paycrest"

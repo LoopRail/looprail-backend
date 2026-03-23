@@ -43,8 +43,8 @@ router = APIRouter(
 )
 
 
-@router.post("/blockrader", status_code=status.HTTP_200_OK)
-async def handle_blockrader_webhook():
+@router.post("/paycrest", status_code=status.HTTP_200_OK)
+async def handle_paycrest_webhook():
     pass
 
 

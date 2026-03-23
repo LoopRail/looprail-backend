@@ -1,17 +1,17 @@
 from fastapi import Depends, Request
 
-from src.infrastructure.redis import RQManager, RedisClient
+from src.infrastructure.redis import RedisClient, RQManager
 from src.infrastructure.services import (
     AuthLockService,
+    CacheService,
+    GeolocationService,
     LedgerService,
     LockService,
     PaycrestService,
     PaystackService,
     ResendService,
-    GeolocationService,
-    CacheService,
 )
-from src.infrastructure.settings import BlockRaderConfig
+from src.infrastructure.settings import BlockRaderConfig, PayCrestConfig
 
 
 def get_blockrader_config(request: Request) -> BlockRaderConfig:
@@ -20,6 +20,10 @@ def get_blockrader_config(request: Request) -> BlockRaderConfig:
 
 def get_ledger_config(request: Request) -> BlockRaderConfig:
     return request.app.state.ledger_config
+
+
+def get_paycrest_config(request: Request) -> PayCrestConfig:
+    return request.app.state.paycrest_config
 
 
 def get_ledger_service(request: Request) -> LedgerService:

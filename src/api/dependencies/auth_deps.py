@@ -184,7 +184,7 @@ async def verify_otp_dep(
 async def get_verify_webhook_request(
     secrets_usecase: SecretsUsecase = Depends(get_secrets_usecase),
 ) -> "VerifyWebhookRequest":
-    return VerifyWebhookRequest(secrets_usecase)()
+    return VerifyWebhookRequest(secrets_usecase)
 
 
 class VerifyWebhookRequest:
@@ -224,10 +224,13 @@ class VerifyWebhookRequest:
 
     def _detect_provider(self, headers, request: Request) -> Optional[WebhookProvider]:
         logger.debug("Entering _detect_provider")
+        # TODO: Add origin checking here (e.g., IP whitelisting)
         if "X-BlockRadar-Signature" in headers:
             request.state.webhook_signature = headers.get("X-BlockRadar-Signature")
-            # TODO: Add origin checking here (e.g., IP whitelisting)
             return WebhookProvider.BLOCKRADER
+        if "X-Paycrest-Signature" in headers:
+            request.state.webhook_signature = headers.get("X-Paycrest-Signature")
+            return WebhookProvider.PAYCREST
         return None
 
     def _verify_signature(
