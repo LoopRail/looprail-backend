@@ -142,6 +142,8 @@ class BankTransferDetail(Base, table=True):
     # Provider details
     provider: str = Field(default="paycrest", max_length=50)
     provider_reference: Optional[str] = Field(default=None, index=True)
+    paycrest_txn_id: Optional[str] = Field(default=None, index=True)
+    paycrest_status: Optional[str] = Field(default=None)
 
     # Conversion rate (Asset per 1 Unit of Withdrawal Currency)
     rate: Optional[Decimal] = Field(default=None)
