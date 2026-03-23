@@ -16,7 +16,6 @@ from src.api.dependencies.repositories import get_session
 from src.api.dependencies.services import get_ledger_service, get_redis_service
 from src.api.middlewares import RequestLoggerMiddleware
 from src.infrastructure import RedisClient, RQManager, get_logger, load_config
-from src.infrastructure.settings import ENVIRONMENT
 from src.infrastructure.services import (
     AuthLockService,
     GeolocationService,
@@ -25,6 +24,7 @@ from src.infrastructure.services import (
     PaystackService,
     ResendService,
 )
+from src.infrastructure.settings import ENVIRONMENT
 from src.types import Error, InternaleServerError, error
 from src.utils.redaction import redact_dict, redact_pydantic_errors
 
@@ -50,6 +50,7 @@ async def lifespan(app_: FastAPI):
     app_.state.geolocation = GeolocationService()
 
     app_.state.blockrader_config = config.block_rader
+    app_.state.paycrest_config = config.paycrest
     app_.state.ledger_config = config.ledger
     app_.state.argon2_config = config.argon2
 
@@ -67,7 +68,9 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url=None if config.app.environment == ENVIRONMENT.PRODUCTION else "/docs",
     redoc_url=None if config.app.environment == ENVIRONMENT.PRODUCTION else "/redoc",
-    openapi_url=None if config.app.environment == ENVIRONMENT.PRODUCTION else "/openapi.json",
+    openapi_url=None
+    if config.app.environment == ENVIRONMENT.PRODUCTION
+    else "/openapi.json",
 )
 
 add_rate_limiter(app)

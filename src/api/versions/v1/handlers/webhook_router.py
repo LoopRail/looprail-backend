@@ -58,17 +58,6 @@ async def handle_paycrest_webhook(
     notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
-    signature = request.headers.get("X-Paycrest-Signature")
-    if not signature:
-        raise HTTPException(status_code=401, detail="No signature")
-
-    body = await request.body()
-    secret = config.paycrest.paycrest_api_secret.encode('utf-8')
-    calculated_signature = hmac.new(secret, body, hashlib.sha256).hexdigest()
-
-    if signature != calculated_signature:
-        logger.warning("Invalid Paycrest signature")
-        raise HTTPException(status_code=401, detail="Invalid signature")
 
     try:
         payload = await request.json()
