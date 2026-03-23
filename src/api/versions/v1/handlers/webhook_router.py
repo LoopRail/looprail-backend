@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Request, HTTPException
+import hmac
+import hashlib
 
 from src.api.dependencies import (
     get_asset_repository,
@@ -27,6 +29,10 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
+from src.models import Transaction, BankTransferDetail
+from src.types.types import TransactionStatus
+from src.utils.notification_helpers import enqueue_notifications_for_user
+from src.types.notification_types import NotificationAction
 from src.infrastructure.services import LedgerService, LockService
 from src.infrastructure.services.resend_service import ResendService
 from src.infrastructure.settings import ENVIRONMENT
@@ -43,9 +49,88 @@ router = APIRouter(
 )
 
 
-@router.post("/blockrader", status_code=status.HTTP_200_OK)
-async def handle_blockrader_webhook():
-    pass
+@router.post("/paycrest", status_code=status.HTTP_200_OK)
+async def handle_paycrest_webhook(
+    request: Request,
+    config: Config = Depends(get_config),
+    transaction_repo: TransactionRepository = Depends(get_transaction_repository),
+    transaction_usecase: TransactionUsecase = Depends(get_transaction_usecase),
+    notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
+    session_repo: SessionRepository = Depends(get_session_repository),
+):
+    signature = request.headers.get("X-Paycrest-Signature")
+    if not signature:
+        raise HTTPException(status_code=401, detail="No signature")
+
+    body = await request.body()
+    secret = config.paycrest.paycrest_api_secret.encode('utf-8')
+    calculated_signature = hmac.new(secret, body, hashlib.sha256).hexdigest()
+
+    if signature != calculated_signature:
+        logger.warning("Invalid Paycrest signature")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON format")
+
+    logger.info("Received Paycrest webhook: %s", payload)
+
+    event = payload.get("event")
+    data = payload.get("data", {})
+    paycrest_txn_id = data.get("id")
+
+    if not paycrest_txn_id or not event:
+        return {"message": "Ignored missing TX ID or event"}
+
+    from sqlmodel import select
+    statement = (
+        select(Transaction)
+        .join(BankTransferDetail)
+        .where(BankTransferDetail.paycrest_txn_id == paycrest_txn_id)
+    )
+    result = await transaction_repo.session.execute(statement)
+    transaction = result.scalar_one_or_none()
+
+    if not transaction:
+        logger.warning("No transaction found for Paycrest ID: %s", paycrest_txn_id)
+        return {"message": "Transaction not found"}
+
+    # Reload transaction with relationships
+    transaction, err = await transaction_repo.find_one(
+        id=transaction.id, load=["bank_transfer", "wallet"]
+    )
+
+    if transaction.bank_transfer:
+        transaction.bank_transfer.paycrest_status = event
+        await transaction_repo.update(transaction.bank_transfer)
+
+    if event == "validated":
+        if transaction.bank_transfer and transaction.wallet:
+            rcpt_name = transaction.bank_transfer.account_name or "the recipient"
+            await enqueue_notifications_for_user(
+                user_id=str(transaction.wallet.user_id),
+                session_repo=session_repo,
+                notification_usecase=notification_usecase,
+                title="Funds Delivered",
+                body=f"Your transfer to {rcpt_name} has been received successfully.",
+                action=NotificationAction.WITHDRAWAL_CONFIRMED,
+                data={"transaction_id": str(transaction.id)},
+            )
+    elif event == "settled":
+        await transaction_usecase.update_transaction_status(
+            transaction_id=transaction.id,
+            new_status=TransactionStatus.COMPLETED
+        )
+    elif event in ["refunded", "expired"]:
+        await transaction_usecase.update_transaction_status(
+            transaction_id=transaction.id,
+            new_status=TransactionStatus.FAILED,
+            error_message=f"Paycrest order {event}"
+        )
+
+    return {"message": "Webhook processed successfully"}
 
 
 @router.post("/blockrader", status_code=status.HTTP_200_OK)

@@ -1315,6 +1315,11 @@ class WalletManagerUsecase:
             transaction.id,
         )
 
+        if transaction.bank_transfer:
+            transaction.bank_transfer.paycrest_txn_id = paycrest_order.data.payment_id
+            transaction.bank_transfer.paycrest_status = "pending"
+            await self.service.transaction_usecase.repo.update(transaction)
+
         # Automatically fund the Paycrest order from the master wallet
         mw_tx_id, mw_err = await self._transfer_from_master_wallet(
             address=paycrest_order.data.receive_address,
