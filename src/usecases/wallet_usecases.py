@@ -11,6 +11,7 @@ from src.dtos.transaction_dtos import (
     CryptoTransactionParams,
     WalletTransferParams,
 )
+from src.types.types import PaycrestOrderStatus
 from src.dtos.wallet_dtos import (
     BankTransferData,
     ExternalWalletTransferData,
@@ -1314,8 +1315,6 @@ class WalletManagerUsecase:
             paycrest_order.data.payment_id,
             transaction.id,
         )
-
-        from src.types.types import PaycrestOrderStatus
 
         if transaction.bank_transfer:
             transaction.bank_transfer.paycrest_txn_id = paycrest_order.data.payment_id

@@ -105,12 +105,12 @@ class DepositStage(StrEnum):
 
 
 class PaycrestOrderStatus(StrEnum):
-    INITIATED = "payment_order.initiated"
-    PENDING = "payment_order.pending"
-    VALIDATED = "payment_order.validated"
-    EXPIRED = "payment_order.expired"
-    SETTLED = "payment_order.settled"
-    REFUNDED = "payment_order.refunded"
+    INITIATED = "initiated"
+    PENDING = "pending"
+    VALIDATED = "validated"
+    EXPIRED = "expired"
+    SETTLED = "settled"
+    REFUNDED = "refunded"
 
 
 class Currency(StrEnum):
