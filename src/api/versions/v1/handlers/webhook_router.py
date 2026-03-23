@@ -1,6 +1,4 @@
 from fastapi import APIRouter, Depends, status, Request, HTTPException
-import hmac
-import hashlib
 
 from src.api.dependencies import (
     get_asset_repository,
@@ -30,7 +28,7 @@ from src.infrastructure.repositories import (
     WalletRepository,
 )
 from src.models import Transaction, BankTransferDetail
-from src.types.types import TransactionStatus
+from src.types.types import TransactionStatus, PaycrestOrderStatus
 from src.utils.notification_helpers import enqueue_notifications_for_user
 from src.types.notification_types import NotificationAction
 from src.infrastructure.services import LedgerService, LockService
@@ -92,10 +90,13 @@ async def handle_paycrest_webhook(
     )
 
     if transaction.bank_transfer:
-        transaction.bank_transfer.paycrest_status = event
+        try:
+            transaction.bank_transfer.paycrest_status = PaycrestOrderStatus(event)
+        except ValueError:
+            transaction.bank_transfer.paycrest_status = event
         await transaction_repo.update(transaction.bank_transfer)
 
-    if event == "validated":
+    if event == PaycrestOrderStatus.VALIDATED:
         if transaction.bank_transfer and transaction.wallet:
             rcpt_name = transaction.bank_transfer.account_name or "the recipient"
             await enqueue_notifications_for_user(
@@ -107,12 +108,12 @@ async def handle_paycrest_webhook(
                 action=NotificationAction.WITHDRAWAL_CONFIRMED,
                 data={"transaction_id": str(transaction.id)},
             )
-    elif event == "settled":
+    elif event == PaycrestOrderStatus.SETTLED:
         await transaction_usecase.update_transaction_status(
             transaction_id=transaction.id,
             new_status=TransactionStatus.COMPLETED
         )
-    elif event in ["refunded", "expired"]:
+    elif event in [PaycrestOrderStatus.REFUNDED, PaycrestOrderStatus.EXPIRED]:
         await transaction_usecase.update_transaction_status(
             transaction_id=transaction.id,
             new_status=TransactionStatus.FAILED,

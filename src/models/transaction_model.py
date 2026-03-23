@@ -14,6 +14,7 @@ from src.types.types import (
     PaymentMethod,
     TransactionStatus,
     TransactionType,
+    PaycrestOrderStatus,
 )
 from src.utils.app_utils import generate_transaction_reference
 
@@ -143,7 +144,7 @@ class BankTransferDetail(Base, table=True):
     provider: str = Field(default="paycrest", max_length=50)
     provider_reference: Optional[str] = Field(default=None, index=True)
     paycrest_txn_id: Optional[str] = Field(default=None, index=True)
-    paycrest_status: Optional[str] = Field(default=None)
+    paycrest_status: Optional[PaycrestOrderStatus] = Field(default=None)
 
     # Conversion rate (Asset per 1 Unit of Withdrawal Currency)
     rate: Optional[Decimal] = Field(default=None)

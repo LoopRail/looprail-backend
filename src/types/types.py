@@ -104,6 +104,15 @@ class DepositStage(StrEnum):
     SWEPT = "swept"  # DEPOSIT_SWEPT_SUCCESS processed; ledger txn committed
 
 
+class PaycrestOrderStatus(StrEnum):
+    INITIATED = "payment_order.initiated"
+    PENDING = "payment_order.pending"
+    VALIDATED = "payment_order.validated"
+    EXPIRED = "payment_order.expired"
+    SETTLED = "payment_order.settled"
+    REFUNDED = "payment_order.refunded"
+
+
 class Currency(StrEnum):
     NAIRA = "ngn"
     US_Dollar = "usd"
