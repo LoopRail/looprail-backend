@@ -7,6 +7,7 @@ from src.infrastructure.repositories.base import Base
 from src.models import Transaction
 from src.types.common_types import WalletId
 from src.types.error import Error, error
+from src.types.types import TransactionStatus
 
 
 class TransactionRepository(Base[Transaction]):
@@ -30,6 +31,7 @@ class TransactionRepository(Base[Transaction]):
                     selectinload(Transaction.deposit),
                 )
                 .where(Transaction.wallet_id == wallet_id)
+                .where(Transaction.status != TransactionStatus.PENDING)
                 .order_by(Transaction.created_at.desc())
                 .offset(offset)
                 .limit(limit)
