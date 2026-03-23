@@ -50,7 +50,6 @@ router = APIRouter(
 @router.post("/paycrest", status_code=status.HTTP_200_OK)
 async def handle_paycrest_webhook(
     request: Request,
-    config: Config = Depends(get_config),
     transaction_repo: TransactionRepository = Depends(get_transaction_repository),
     transaction_usecase: TransactionUsecase = Depends(get_transaction_usecase),
     notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
@@ -71,14 +70,7 @@ async def handle_paycrest_webhook(
     if not paycrest_txn_id or not event:
         return {"message": "Ignored missing TX ID or event"}
 
-    from sqlmodel import select
-    statement = (
-        select(Transaction)
-        .join(BankTransferDetail)
-        .where(BankTransferDetail.paycrest_txn_id == paycrest_txn_id)
-    )
-    result = await transaction_repo.session.execute(statement)
-    transaction = result.scalar_one_or_none()
+    transaction, err = await transaction_repo.get_by_paycrest_txn_id(paycrest_txn_id)
 
     if not transaction:
         logger.warning("No transaction found for Paycrest ID: %s", paycrest_txn_id)
@@ -98,7 +90,7 @@ async def handle_paycrest_webhook(
 
     if event == PaycrestOrderStatus.VALIDATED:
         if transaction.bank_transfer and transaction.wallet:
-            rcpt_name = transaction.bank_transfer.account_name or "the recipient"
+            rcpt_name = transaction.bank_transfer.account_name
             await enqueue_notifications_for_user(
                 user_id=str(transaction.wallet.user_id),
                 session_repo=session_repo,

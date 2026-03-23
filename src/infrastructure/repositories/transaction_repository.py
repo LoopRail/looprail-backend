@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
@@ -40,3 +40,18 @@ class TransactionRepository(Base[Transaction]):
             return result.scalars().all(), None
         except SQLAlchemyError as e:
             return [], error(str(e))
+
+    async def get_by_paycrest_txn_id(
+        self, paycrest_txn_id: str
+    ) -> Tuple[Optional[Transaction], Optional[Error]]:
+        try:
+            from src.models import BankTransferDetail
+            statement = (
+                select(Transaction)
+                .join(BankTransferDetail)
+                .where(BankTransferDetail.paycrest_txn_id == paycrest_txn_id)
+            )
+            result = await self.session.execute(statement)
+            return result.scalars().first(), None
+        except SQLAlchemyError as e:
+            return None, error(str(e))
