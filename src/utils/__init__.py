@@ -15,7 +15,7 @@ from src.utils.auth_utils import (
 )
 from src.utils.country_utils import get_country_info, is_valid_country_code
 from src.utils.otp_utils import generate_otp_code, hash_otp, make_token
-from src.utils.phone_number_utils import validate_and_format_phone_number
+from src.utils.phone_number_utils import is_phone_number_from_allowed_country
 
 # NOTE: Heavy utilities that depend on DTOs/repos are NOT exported via __init__ to avoid circular imports.
 # Import them directly from their modules:
@@ -36,7 +36,7 @@ __all__ = [
     "make_token",
     "is_valid_country_code",
     "get_country_info",
-    "validate_and_format_phone_number",
+    "is_phone_number_from_allowed_country",
     "verify_password",
     "hash_password",
     "validate_password_strength",

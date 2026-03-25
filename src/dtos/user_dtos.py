@@ -11,6 +11,7 @@ from src.types.error import error
 from src.types.types import Gender, KYCStatus
 from src.utils.app_utils import is_valid_email
 from src.utils.auth_utils import validate_password_strength
+from src.utils.phone_number_utils import is_phone_number_from_allowed_country
 
 USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]{4,16}$")
 
@@ -66,6 +67,19 @@ class UserCreate(Base):
             raise error("Config not set")
         if not is_valid_email(v, config):
             raise error("Invalid email address")
+        return v
+
+    @field_validator("phone_number")
+    @classmethod
+    def _validate_phone_country(cls, v: str) -> str:
+        allowed_countries = cls.dto_config.get("allowed_countries")
+        if allowed_countries is None:
+            raise error("Config not set")
+        is_allowed, err = is_phone_number_from_allowed_country(
+            str(v), allowed_countries
+        )
+        if not is_allowed or err:
+            raise err
         return v
 
 

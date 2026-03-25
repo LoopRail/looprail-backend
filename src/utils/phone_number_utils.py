@@ -1,69 +1,27 @@
-"""
-Currently not being used
-see src/types/common_types.py
-"""
+from typing import Tuple
 
-import re
-from typing import Callable, Dict, Tuple
+import phonenumbers
 
+from src.types.country_types import CountriesData
 from src.types.error import Error, error
 
 
-def validate_strip_leading_zero_11_to_10(
-    cleaned_number: str, country: str
-) -> Tuple[str | None, Error]:
-    if cleaned_number.startswith("0"):
-        if len(cleaned_number) == 11:
-            return cleaned_number[1:], None
-        return None, error(f"Invalid {country} phone number length")
-
-    if len(cleaned_number) == 10:
-        return cleaned_number, None
-
-    return None, error(f"Invalid {country} phone number length")
-
-
-def _validate_ng_number(cleaned_number: str) -> Tuple[str | None, Error]:
-    """Validate and format a Nigerian phone number."""
-    return validate_strip_leading_zero_11_to_10(cleaned_number, "Nigerian")
-
-
-def _validate_us_number(cleaned_number: str) -> Tuple[str | None, Error]:
-    """Validate and format a US phone number."""
-    if len(cleaned_number) == 10:
-        return cleaned_number
-    if len(cleaned_number) == 11 and cleaned_number.startswith("1"):
-        return cleaned_number[1:]
-    return None, error("Invalid US phone number length")
-
-
-def _validate_uk_number(cleaned_number: str) -> Tuple[str | None, Error]:
-    """Validate and format a UK phone number."""
-    return validate_strip_leading_zero_11_to_10(cleaned_number, "UK")
-
-
-VALIDATORS: Dict[str, Callable[[str], str]] = {
-    "NG": _validate_ng_number,
-    "US": _validate_us_number,
-    "UK": _validate_uk_number,
-}
-
-
-def validate_and_format_phone_number(
-    number: str, country_code: str
-) -> Tuple[str | None, Error]:
+def is_phone_number_from_allowed_country(
+    phone_number: str, allowed_countries: CountriesData
+) -> Tuple[bool, Error]:
     """
-    Validates and formats a phone number based on its country code.
-    - Cleans the number by removing non-digit characters.
-    - Applies country-specific validation rules.
-    - Formats the number for storage (e.g., removing leading zeros).
-    Returns the formatted number if valid, otherwise raises an error.
+    Checks if a phone number belongs to one of the enabled countries
+    by matching its dial code against enabled country dial codes.
     """
-    cleaned_number = re.sub(r"\D", "", number)
-    country_code_upper = country_code.upper()
+    try:
+        parsed = phonenumbers.parse(phone_number)
+    except phonenumbers.NumberParseException:
+        return False, error("Invalid phone number")
 
-    validator = VALIDATORS.get(country_code_upper)
+    country_code_str = f"+{parsed.country_code}"
 
-    if validator:
-        return validator(cleaned_number)
-    return cleaned_number
+    for info in allowed_countries.countries.values():
+        if info.enabled and info.dial_code == country_code_str:
+            return True, None
+
+    return False, error("Phone number country is not supported")

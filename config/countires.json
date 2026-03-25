@@ -23,6 +23,38 @@
       "dial_code": "+234",
       "currency": "NGN",
       "enabled": true
+    },
+    "ZA": {
+      "name": "South Africa",
+      "iso2": "ZA",
+      "iso3": "ZAF",
+      "dial_code": "+27",
+      "currency": "ZAR",
+      "enabled": true
+    },
+    "TZ": {
+      "name": "Tanzania",
+      "iso2": "TZ",
+      "iso3": "TZA",
+      "dial_code": "+255",
+      "currency": "TZS",
+      "enabled": true
+    },
+    "KE": {
+      "name": "Kenya",
+      "iso2": "KE",
+      "iso3": "KEN",
+      "dial_code": "+254",
+      "currency": "KES",
+      "enabled": true
+    },
+    "GH": {
+      "name": "Ghana",
+      "iso2": "GH",
+      "iso3": "GHA",
+      "dial_code": "+233",
+      "currency": "GHS",
+      "enabled": true
     }
   }
 }
