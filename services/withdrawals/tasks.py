@@ -2,6 +2,7 @@ import asyncio
 import logging
 from typing import Any, Dict
 
+from rq import Queue
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.withdrawals.dependencies import TaskDependenciesFactory
@@ -25,33 +26,29 @@ async def _send_withdrawal_processed_notification(
     Enqueue a WITHDRAWAL_PROCESSED push notification for the user.
     Uses the provided session to avoid redundant session creation.
     """
-    try:
-        redis_config = RedisConfig()
-        rq_manager = RQManager(redis_config)
-        from rq import Queue
+    redis_config = RedisConfig()  # TODO: we should not be creating a new object here
+    rq_manager = RQManager(redis_config)
 
-        notif_queue = Queue("notifications", connection=rq_manager.get_connection())
+    notif_queue = Queue("notifications", connection=rq_manager.get_connection())
 
-        session_repo = SessionRepository(session)
-        sessions = await session_repo.get_user_sessions(user_id)
-        for s in sessions:
-            if not s.allow_notifications or not s.fcm_token:
-                continue
-            notif_queue.enqueue(
-                "services.notifications.tasks.send_push_notification_task",
-                {
-                    "user_id": str(user_id),
-                    "token": s.fcm_token,
-                    "title": "Withdrawal Processed ✅",
-                    "body": "Your withdrawal has been successfully processed.",
-                    "action": NotificationAction.WITHDRAWAL_PROCESSED,
-                    "data": {"transaction_id": transaction_id or ""},
-                    "type": "push",
-                },
-            )
-        logger.info("Enqueued WITHDRAWAL_PROCESSED notification for user %s", user_id)
-    except Exception as e:
-        logger.error("Failed to send withdrawal processed notification: %s", e)
+    session_repo = SessionRepository(session)
+    sessions = await session_repo.get_user_sessions(user_id)
+    for s in sessions:
+        if not s.allow_notifications or not s.fcm_token:
+            continue
+        notif_queue.enqueue(
+            "services.notifications.tasks.send_push_notification_task",
+            {
+                "user_id": str(user_id),
+                "token": s.fcm_token,
+                "title": "Withdrawal Processed ✅",
+                "body": "Your withdrawal has been successfully processed.",
+                "action": NotificationAction.WITHDRAWAL_PROCESSED.value,
+                "data": {"transaction_id": transaction_id or ""},
+                "type": "push",
+            },
+        )
+    logger.info("Enqueued WITHDRAWAL_PROCESSED notification for user %s", user_id)
 
 
 async def _send_withdrawal_processed_email(
@@ -62,25 +59,22 @@ async def _send_withdrawal_processed_email(
     currency: str = "",
 ):
     """Send withdrawal processed email to the user using the provided session."""
-    try:
-        resend_config = ResendConfig()
-        resend_service = ResendService(resend_config)
-        user_repo = UserRepository(session)
-        user, _ = await user_repo.find_one(id=user_id)
-        if user:
-            app_settings = AppSettings()
-            await send_transactional_email(
-                resend_service=resend_service,
-                to=user.email,
-                subject="Your Withdrawal Has Been Processed",
-                template_name="withdrawal_processed",
-                app_logo_url=app_settings.logo_url,
-                amount=amount,
-                currency=currency.upper(),
-                transaction_id=transaction_id or "",
-            )
-    except Exception as e:
-        logger.error("Failed to send withdrawal processed email: %s", e)
+    resend_config = ResendConfig()
+    resend_service = ResendService(resend_config)
+    user_repo = UserRepository(session)
+    user, _ = await user_repo.find_one(id=user_id)
+    if user:
+        app_settings = AppSettings()
+        await send_transactional_email(
+            resend_service=resend_service,
+            to=user.email,
+            subject="Your Withdrawal Has Been Processed",
+            template_name="withdrawal_processed",
+            app_logo_url=app_settings.logo_url,
+            amount=amount,
+            currency=currency.upper(),
+            transaction_id=transaction_id or "",
+        )
 
 
 async def _process_withdrawal_task_async(
@@ -129,7 +123,7 @@ async def _process_withdrawal_task_async(
 
         # Notify user their withdrawal has been processed (push + email)
         await _send_withdrawal_processed_notification(
-            str(user_id), transaction_id, session
+            str(user_id), str(transaction_id), session
         )
         amount = str(withdrawal_request_data.get("amount", ""))
         currency = str(withdrawal_request_data.get("currency", ""))
