@@ -1,5 +1,6 @@
 from typing import Tuple, Optional
 
+from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
 
@@ -19,9 +20,20 @@ class TransactionRepository(Base[Transaction]):
 
     async def get_transactions_by_wallet_id(
         self, *, wallet_id: WalletId, limit: int = 20, offset: int = 0
-    ) -> Tuple[list[Transaction], Error]:
+    ) -> Tuple[list[Transaction], int, Error]:
         try:
             from sqlalchemy.orm import selectinload
+
+            base_filter = (
+                Transaction.wallet_id == wallet_id,
+                Transaction.status != TransactionStatus.PENDING,
+            )
+
+            count_result = await self.session.execute(
+                select(func.count()).select_from(Transaction).where(*base_filter)
+            )
+            total = count_result.scalar_one()
+
             statement = (
                 select(Transaction)
                 .options(
@@ -30,16 +42,15 @@ class TransactionRepository(Base[Transaction]):
                     selectinload(Transaction.internal_transfer),
                     selectinload(Transaction.deposit),
                 )
-                .where(Transaction.wallet_id == wallet_id)
-                .where(Transaction.status != TransactionStatus.PENDING)
+                .where(*base_filter)
                 .order_by(Transaction.created_at.desc())
                 .offset(offset)
                 .limit(limit)
             )
             result = await self.session.execute(statement)
-            return result.scalars().all(), None
+            return result.scalars().all(), total, None
         except SQLAlchemyError as e:
-            return [], error(str(e))
+            return [], 0, error(str(e))
 
     async def get_by_paycrest_txn_id(
         self, paycrest_txn_id: str

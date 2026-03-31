@@ -433,6 +433,7 @@ class TransactionResponseBuilder:
     @staticmethod
     def from_transaction_list(
         transactions: List["Transaction"],
+        total: int = 0,
         page: Optional[int] = None,
         page_size: Optional[int] = None,
     ) -> TransactionReadList:
@@ -441,7 +442,7 @@ class TransactionResponseBuilder:
             transactions=[
                 TransactionResponseBuilder.from_transaction(txn) for txn in transactions
             ],
-            total=len(transactions),
+            total=total,
             page=page,
             page_size=page_size,
         )

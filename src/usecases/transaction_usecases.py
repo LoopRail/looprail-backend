@@ -236,25 +236,25 @@ class TransactionUsecase:
 
     async def get_transactions_by_wallet_id(
         self, *, wallet_id: WalletId, limit: int = 20, offset: int = 0
-    ) -> Tuple[List[Transaction], Error]:
+    ) -> Tuple[List[Transaction], int, Error]:
         logger.debug(
             "Getting transactions for wallet %s with limit %s and offset %s",
             wallet_id,
             limit,
             offset,
         )
-        transactions, err = await self.repo.get_transactions_by_wallet_id(
+        transactions, total, err = await self.repo.get_transactions_by_wallet_id(
             wallet_id=wallet_id, limit=limit, offset=offset
         )
         if err:
             logger.error(
                 "Failed to get transactions for wallet %s: %s", wallet_id, err.message
             )
-            return [], err
+            return [], 0, err
         logger.debug(
             "Retrieved %s transactions for wallet %s", len(transactions), wallet_id
         )
-        return transactions, err
+        return transactions, total, err
 
     async def get_transaction_by_id(
         self, *, transaction_id: TransactionId
