@@ -62,15 +62,9 @@ async def list_transactions(
             page_size=page_size,
         )
     wallet_id = current_user.wallet.id
-    (
-        transactions,
-        err,
-    ) = await transaction_usecase.get_transactions_by_wallet_id(
-        wallet_id=wallet_id, offset=page, limit=page_size
+    transactions, total, err = await transaction_usecase.get_transactions_by_wallet_id(
+        wallet_id=wallet_id, offset=(page - 1) * page_size, limit=page_size
     )
-    # transaction_type=transaction_type,
-    # status=transaction_status,
-    # )
 
     if err:
         logger.error(
@@ -86,6 +80,7 @@ async def list_transactions(
 
     return TransactionResponseBuilder.from_transaction_list(
         transactions=transactions,
+        total=total,
         page=page,
         page_size=page_size,
     )
