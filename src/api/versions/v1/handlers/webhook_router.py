@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Request, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from src.api.dependencies import (
     get_asset_repository,
@@ -27,17 +27,16 @@ from src.infrastructure.repositories import (
     UserRepository,
     WalletRepository,
 )
-from src.models import Transaction, BankTransferDetail
-from src.types.types import TransactionStatus, PaycrestOrderStatus
-from src.utils.notification_helpers import enqueue_notifications_for_user
-from src.types.notification_types import NotificationAction
 from src.infrastructure.services import LedgerService, LockService
 from src.infrastructure.services.resend_service import ResendService
 from src.infrastructure.settings import ENVIRONMENT
 from src.types.blockrader import WebhookEvent
 from src.types.common_types import Network
+from src.types.notification_types import NotificationAction
+from src.types.types import PaycrestOrderStatus, TransactionStatus
 from src.usecases.notification_usecases import NotificationUseCase
 from src.usecases.transaction_usecases import TransactionUsecase
+from src.utils.notification_helpers import enqueue_notifications_for_user
 
 logger = get_logger(__name__)
 router = APIRouter(
@@ -71,9 +70,9 @@ async def handle_paycrest_webhook(
         return {"message": "Ignored missing TX ID or event"}
 
     transaction, err = await transaction_repo.get_by_paycrest_txn_id(paycrest_txn_id)
-
-    if not transaction:
+    if err or not transaction:
         logger.warning("No transaction found for Paycrest ID: %s", paycrest_txn_id)
+        logger.warning("Error: %s", err)
         return {"message": "Transaction not found"}
 
     # Reload transaction with relationships
@@ -89,6 +88,9 @@ async def handle_paycrest_webhook(
         await transaction_repo.update(transaction.bank_transfer)
 
     if event == PaycrestOrderStatus.VALIDATED:
+        await transaction_usecase.update_transaction_status(
+            transaction_id=transaction.id, new_status=TransactionStatus.COMPLETED
+        )
         if transaction.bank_transfer and transaction.wallet:
             rcpt_name = transaction.bank_transfer.account_name
             await enqueue_notifications_for_user(
@@ -96,20 +98,15 @@ async def handle_paycrest_webhook(
                 session_repo=session_repo,
                 notification_usecase=notification_usecase,
                 title="Funds Delivered",
-                body=f"Your transfer to {rcpt_name} has been received successfully.",
+                body=f"Your transfer to {rcpt_name} has been completed successfully.",
                 action=NotificationAction.WITHDRAWAL_CONFIRMED,
                 data={"transaction_id": str(transaction.id)},
             )
-    elif event == PaycrestOrderStatus.SETTLED:
-        await transaction_usecase.update_transaction_status(
-            transaction_id=transaction.id,
-            new_status=TransactionStatus.COMPLETED
-        )
     elif event in [PaycrestOrderStatus.REFUNDED, PaycrestOrderStatus.EXPIRED]:
         await transaction_usecase.update_transaction_status(
             transaction_id=transaction.id,
             new_status=TransactionStatus.FAILED,
-            error_message=f"Paycrest order {event}"
+            error_message=f"Paycrest order {event}",
         )
 
     return {"message": "Webhook processed successfully"}
