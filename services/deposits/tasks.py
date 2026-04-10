@@ -15,17 +15,12 @@ from src.types.blnk.dtos import (
     UpdateInflightTransactionRequest,
 )
 from src.types.blockrader import WebhookDepositSuccess, WebhookDepositSweptSuccess
-from src.types.notification_types import NotificationAction
+from src.types.notification_types import NotificationAction, NotificationMessages
 from src.utils.email_helpers import send_transactional_email
 from src.utils.notification_helpers import enqueue_notifications_for_user
 from src.utils.transaction_utils import create_transaction_params_from_event
 
 logger = get_logger(__name__)
-
-# Max retries for the swept task while waiting for RECEIVED stage
-MAX_DEPOSIT_SWEPT_RETRIES = 5
-# Delay (seconds) between each retry within the held lock
-DEPOSIT_SWEPT_RETRY_DELAY_SECONDS = 10
 
 
 async def _initialize_deposit_transaction(
@@ -359,12 +354,13 @@ async def _process_deposit_swept_success_task_async(event_data: Dict[str, Any]):
 
         # --- Notify user ---
         if session_repo and notification_usecase and txn:
+            title, body = NotificationMessages.deposit_confirmed(event.data.amount, event.data.currency)
             await enqueue_notifications_for_user(
                 user_id=str(txn.wallet.user_id),
                 session_repo=session_repo,
                 notification_usecase=notification_usecase,
-                title="Deposit Confirmed ✅",
-                body=f"Your deposit of {event.data.amount} {event.data.currency} has been confirmed and added to your wallet.",
+                title=title,
+                body=body,
                 action=NotificationAction.DEPOSIT_CONFIRMED,
                 data={"transaction_id": str(txn.id)},
             )

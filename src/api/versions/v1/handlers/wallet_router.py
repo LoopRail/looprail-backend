@@ -24,7 +24,7 @@ from src.infrastructure.repositories import SessionRepository
 from src.infrastructure.services import AuthLockService
 from src.models import User
 from src.types import AccessToken, AssetId, InsufficientBalanceError, UserId
-from src.types.notification_types import NotificationAction
+from src.types.notification_types import NotificationAction, NotificationMessages
 from src.types.types import Currency
 from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
 from src.usecases.notification_usecases import NotificationUseCase
@@ -225,13 +225,13 @@ async def withdraw(
         withdrawal_request.authorization.user_agent,
     )
 
-    # Notify user their withdrawal has been submitted
+    title, body = NotificationMessages.withdrawal_initiated()
     await enqueue_notifications_for_user(
         user_id=str(user.id),
         session_repo=session_repo,
         notification_usecase=notification_usecase,
-        title="Withdrawal initiated",
-        body="Your withdrawal is being processed.",
+        title=title,
+        body=body,
         action=NotificationAction.WITHDRAWAL_INITIATED,
         data={"transaction_id": transaction_id or ""},
     )

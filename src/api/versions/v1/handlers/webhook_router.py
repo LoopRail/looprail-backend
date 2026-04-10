@@ -32,7 +32,7 @@ from src.infrastructure.services.resend_service import ResendService
 from src.infrastructure.settings import ENVIRONMENT
 from src.types.blockrader import WebhookEvent
 from src.types.common_types import Network
-from src.types.notification_types import NotificationAction
+from src.types.notification_types import NotificationAction, NotificationMessages
 from src.types.types import PaycrestOrderStatus, TransactionStatus
 from src.usecases.notification_usecases import NotificationUseCase
 from src.usecases.transaction_usecases import TransactionUsecase
@@ -93,12 +93,13 @@ async def handle_paycrest_webhook(
         )
         if transaction.bank_transfer and transaction.wallet:
             rcpt_name = transaction.bank_transfer.account_name
+            title, body = NotificationMessages.withdrawal_confirmed(rcpt_name)
             await enqueue_notifications_for_user(
                 user_id=str(transaction.wallet.user_id),
                 session_repo=session_repo,
                 notification_usecase=notification_usecase,
-                title="Funds Delivered",
-                body=f"Your transfer to {rcpt_name} has been completed successfully.",
+                title=title,
+                body=body,
                 action=NotificationAction.WITHDRAWAL_CONFIRMED,
                 data={"transaction_id": str(transaction.id)},
             )
