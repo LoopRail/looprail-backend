@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from src.api.dependencies.auth_deps import get_current_user
 from src.api.dependencies.usecases import get_transaction_usecase
-from src.dtos.transaction_dtos import TransactionReadList, TransactionResponseBuilder
+from src.dtos.transaction_dtos import TransactionDetailRead, TransactionReadList, TransactionResponseBuilder
 from src.infrastructure.logger import get_logger
 from src.models import User
 from src.types.common_types import TransactionId
@@ -14,7 +14,57 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
 
-@router.get("/transactions/{transaction_id}")
+@router.get(
+    "/transactions/{transaction_id}",
+    response_model=TransactionDetailRead,
+    openapi_extra={
+        "responses": {
+            "200": {
+                "content": {
+                    "application/json": {
+                        "example": {
+                            "id": "string",
+                            "wallet-id": "string",
+                            "asset-id": "string",
+                            "transaction-type": "crypto:send",
+                            "payment-type": "crypto:send",
+                            "method": "blockchain",
+                            "currency": "ngn",
+                            "status": "completed",
+                            "country": "string",
+                            "sender": "string",
+                            "receiver": "string",
+                            "amount": "string",
+                            "fee": "string",
+                            "reference": "string",
+                            "external-reference": "string",
+                            "narration": "string",
+                            "created-at": "2026-04-10T09:42:53.221Z",
+                            "updated-at": "2026-04-10T09:42:53.221Z",
+                            "completed-at": "2026-04-10T09:42:53.221Z",
+                            "transaction-hash": "string",
+                            "network": "mainnet",
+                            "confirmations": 0,
+                            "confirmed": False,
+                            "block-hash": "string",
+                            "block-number": 0,
+                            "gas-price": "string",
+                            "gas-fee": "string",
+                            "gas-used": "string",
+                            "chain-id": 0,
+                            "destination": {"additionalProp1": {}},
+                            "metadata": {"additionalProp1": {}},
+                            "error-code": "string",
+                            "error-message": "string",
+                            "is-crypto": True,
+                            "is-bank-transfer": True,
+                        }
+                    }
+                }
+            }
+        }
+    },
+)
 async def get_transaction(
     transaction_id: TransactionId,
     current_user: User = Depends(get_current_user),

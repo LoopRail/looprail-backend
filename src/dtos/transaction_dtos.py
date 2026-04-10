@@ -153,7 +153,6 @@ class TransactionRead(Base):
 
     # References
     reference: str
-    external_reference: Optional[str] = Field(default=None, alias="external-reference")
 
     # General
     narration: Optional[str] = None
@@ -177,9 +176,6 @@ class TransactionRead(Base):
 
     # Destination data (type-specific details stored as dict)
     destination: Optional[dict] = None
-
-    # Metadata
-    metadata: Optional[dict] = Field(default_factory=dict)
 
     # Error tracking
     error_code: Optional[str] = Field(default=None, alias="error-code")
@@ -319,12 +315,10 @@ class TransactionResponseBuilder:
             "amount": transaction.amount,
             "fee": transaction.fee,
             "reference": transaction.reference,
-            "external_reference": getattr(transaction, "external_reference", None),
             "narration": transaction.narration,
             "created_at": transaction.created_at,
             "updated_at": getattr(transaction, "updated_at", None),
             "completed_at": getattr(transaction, "completed_at", None),
-            "metadata": transaction.meta_data,
         }
 
         # Add blockchain fields if present
