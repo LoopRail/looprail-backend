@@ -69,17 +69,10 @@ class BaseClient(ABC):
         Returns:
             A tuple containing the HTTP response and an error, if any.
         """
-        logger.debug(
-            "Sending %s request to %s with data: %s and params: %s",
-            method,
-            url,
-            data,
-            req_params,
-        )
+        logger.info("→ %s %s", method, url)
         headers = self._get_headers()
         async with AsyncClient() as client:
             try:
-                logger.debug("Sending %s request to %s", method, url)
                 res = await client.request(
                     method,
                     url,
@@ -88,8 +81,9 @@ class BaseClient(ABC):
                     params=req_params,
                     timeout=30,
                 )
-                logger.debug(
-                    "Received response from %s with status code: %s",
+                logger.info(
+                    "← %s %s [%s]",
+                    method,
                     url,
                     res.status_code,
                 )
@@ -100,7 +94,7 @@ class BaseClient(ABC):
                 json.JSONDecodeError,
                 TypeError,
             ) as e:
-                logger.error("Request to %s failed: %s", url, e, exc_info=True)
+                logger.error("← %s %s failed: %s", method, url, e, exc_info=True)
                 return None, httpError(code=504, message=f"Request to {url} failed")
 
     def _process_response(
