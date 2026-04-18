@@ -432,11 +432,16 @@ async def login(
     latitude = geo_data.lat if geo_data and geo_data.status == "success" else None
     longitude = geo_data.lon if geo_data and geo_data.status == "success" else None
 
+    # Check if this device already has an active session for this user
+    existing_sessions = await session_usecase.get_user_sessions(user.id)
+    is_known_device = any(s.device_id == device_id for s in existing_sessions)
+
     session, raw_refresh_token, err = await session_usecase.create_session(
         user_id=user.id,
         device_id=device_id,
         platform=platform,
         ip_address=request.client.host,
+        user_agent=login_request.user_agent,
         allow_notifications=login_request.allow_notifications,
         fcm_token=login_request.fcm_token,
         country=country,
@@ -486,36 +491,35 @@ async def login(
         data=access_token_data, exp_minutes=config.jwt.access_token_expire_minutes
     )
 
-    if login_request.allow_notifications and login_request.fcm_token:
-        welcome_notification = PushNotificationDTO(
-            user_id=str(user.id),
-            token=login_request.fcm_token,
-            title="Welcome to Looprail!",
-            body="Welcome back! You've successfully logged in. Your gateway to seamless cross-border payments is open.",
-            type=NotificationType.PUSH,
+    if not is_known_device:
+        if login_request.allow_notifications and login_request.fcm_token:
+            welcome_notification = PushNotificationDTO(
+                user_id=str(user.id),
+                token=login_request.fcm_token,
+                title="Welcome to Looprail!",
+                body="Welcome back! You've successfully logged in. Your gateway to seamless cross-border payments is open.",
+                type=NotificationType.PUSH,
+            )
+            notification_usecase.enqueue_push(welcome_notification)
+            logger.info("Welcome push notification enqueued for user %s", user.id)
+
+        await send_transactional_email(
+            resend_service=resend_service,
+            to=user.email,
+            subject=NotificationMessages.email_login_alert().subject,
+            template_name=NotificationMessages.email_login_alert().template_name,
+            app_logo_url=config.app.full_logo_url or config.app.logo_url,
+            user_first_name=user.first_name,
+            login_time=datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
+            ip_address=login_request.ip_address or "Unknown",
+            location=location_str,
+            device_info=login_request.device_info,
         )
-        notification_usecase.enqueue_push(welcome_notification)
-        logger.info("Welcome push notification enqueued for user %s", user.id)
 
     logger.info(
         "User %s logged in successfully. Session created: %s",
         login_request.email,
         session.get_prefixed_id(),
-    )
-
-    # No need to fetch geolocation data again, it's already fetched above
-
-    await send_transactional_email(
-        resend_service=resend_service,
-        to=user.email,
-        subject=NotificationMessages.email_login_alert().subject,
-        template_name=NotificationMessages.email_login_alert().template_name,
-        app_logo_url=config.app.full_logo_url or config.app.logo_url,
-        user_first_name=user.first_name,
-        login_time=datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
-        ip_address=login_request.ip_address or "Unknown",
-        location=location_str,
-        device_info=login_request.device_info,
     )
 
     return {
