@@ -156,3 +156,12 @@ class AvailabilityResponse(Base):
     email: Optional[AvailabilityStatus] = None
     username: Optional[AvailabilityStatus] = None
     phone_number: Optional[AvailabilityStatus] = None
+
+
+class UpdateSessionNotificationsRequest(Base):
+    allow_notifications: bool
+    fcm_token: Optional[str] = None
+
+
+class UpdateEmailNotificationsRequest(Base):
+    email_notifications: bool

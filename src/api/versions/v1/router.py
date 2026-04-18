@@ -4,6 +4,7 @@ from src.api.versions.v1.handlers import (
     accounts_router,
     auth_router,
     misc_router,
+    session_router,
     transactions_router,
     verify_router,
     wallet_router,
@@ -23,3 +24,4 @@ v1_router.include_router(wallet_router.router)
 v1_router.include_router(verify_router.router)
 v1_router.include_router(webhook_router.router)
 v1_router.include_router(misc_router.router)
+v1_router.include_router(session_router.router)

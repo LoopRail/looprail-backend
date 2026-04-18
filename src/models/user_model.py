@@ -36,6 +36,7 @@ class User(Base, table=True):
     is_active: bool = Field(default=True)
     is_email_verified: bool = Field(default=False)
     has_completed_onboarding: bool = Field(default=False)
+    email_notifications: bool = Field(default=True)
 
     ledger_identity_id: str = Field(nullable=False, unique=True)
     onboarding_responses: List[str] = Field(
