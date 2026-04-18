@@ -186,7 +186,7 @@ async def withdraw(
             status_code = status.HTTP_400_BAD_REQUEST
         elif hasattr(err, "code") and err.code:
             status_code = err.code
-        
+
         response.status_code = status_code
 
         return WithdrawalResponse(
@@ -202,8 +202,6 @@ async def withdraw(
         withdrawal_request.authorization.ip_address,
         withdrawal_request.authorization.user_agent,
     )
-
-    withdrawal_request.currency = Currency.NAIRA  # NOTE: temp fix talk to mobile dev
 
     withdraw_queue = Queue("withdrawals", connection=rq_manager.get_connection())
     withdraw_queue.enqueue(

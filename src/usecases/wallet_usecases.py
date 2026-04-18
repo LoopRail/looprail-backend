@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal, ROUND_CEILING
+from decimal import ROUND_CEILING, Decimal
 from typing import Any, Dict, Optional, Self, Tuple
 from uuid import UUID
 
@@ -11,7 +11,6 @@ from src.dtos.transaction_dtos import (
     CryptoTransactionParams,
     WalletTransferParams,
 )
-from src.types.types import PaycrestOrderStatus
 from src.dtos.wallet_dtos import (
     BankTransferData,
     ExternalWalletTransferData,
@@ -70,7 +69,7 @@ from src.types.blockrader import (
 from src.types.common_types import AssetId, Network, UserId, WalletId
 from src.types.ledger_types import Ledger
 from src.types.paycrest import PaycrestRecipiant
-from src.types.types import WithdrawalMethod
+from src.types.types import PaycrestOrderStatus, WithdrawalMethod
 from src.usecases.transaction_usecases import TransactionUsecase
 from src.usecases.withdrawal_handlers.registry import WithdrawalHandlerRegistry
 from src.utils.country_utils import (
@@ -632,9 +631,7 @@ class WalletManagerUsecase:
                     return None, ValidationError(
                         f"Minimum bank transfer is {min_bank_ngn:f} {curr_code}"
                     )
-            elif (
-                withdrawal_request.currency == types.Currency.US_Dollar
-            ):
+            elif withdrawal_request.currency == types.Currency.US_Dollar:
                 if rate_resp and rate_resp.data:
                     min_bank_usd = (
                         min_bank_ngn / Decimal(str(rate_resp.data))
@@ -658,6 +655,9 @@ class WalletManagerUsecase:
             if amount_in_usd < Decimal(MIN_WALLET_TRANSFER_USD):
                 min_wallet_usd = Decimal(MIN_WALLET_TRANSFER_USD)
                 curr_code = str(withdrawal_request.currency).upper()
+                logger.info(
+                    f"withdrawal_request.currency: {withdrawal_request.currency}"
+                )
                 if (
                     withdrawal_request.currency == types.Currency.NAIRA
                     and rate_resp
@@ -696,9 +696,15 @@ class WalletManagerUsecase:
             effective_rate = None
             curr_is_usd = str(withdrawal_request.currency).upper() == "USD"
 
-            if asset.symbol.upper() != str(withdrawal_request.currency).upper() and not curr_is_usd:
+            if (
+                asset.symbol.upper() != str(withdrawal_request.currency).upper()
+                and not curr_is_usd
+            ):
                 if not rate_resp:
-                    rate_resp, _ = await self.service.paycrest_service.fetch_letest_usdc_rate(
+                    (
+                        rate_resp,
+                        _,
+                    ) = await self.service.paycrest_service.fetch_letest_usdc_rate(
                         amount=float(withdrawal_request.amount),
                         currency=str(withdrawal_request.currency).upper(),
                     )
@@ -707,7 +713,9 @@ class WalletManagerUsecase:
                     effective_rate = Decimal("1") / Decimal(str(rate_resp.data))
 
                 if not effective_rate:
-                    logger.error("Conversion rate missing for cross-currency withdrawal")
+                    logger.error(
+                        "Conversion rate missing for cross-currency withdrawal"
+                    )
                     return None, error("Conversion rate missing")
             if effective_rate is not None:
                 total_needed_minor = int(
@@ -749,7 +757,9 @@ class WalletManagerUsecase:
                     user.id,
                     user_wallet.address,
                 )
-                return None, error("Transfers to your own wallet address are not allowed")
+                return None, error(
+                    "Transfers to your own wallet address are not allowed"
+                )
         else:
             return None, error(
                 f"Invalid specific withdrawal data for method: {withdrawal_method}"
@@ -888,7 +898,9 @@ class WalletManagerUsecase:
         if withdrawal_fee > 0:
             # We need to distribute the minor units
             if effective_rate:
-                item_amount_minor = int(withdrawal_request.amount * effective_rate * asset.precision)
+                item_amount_minor = int(
+                    withdrawal_request.amount * effective_rate * asset.precision
+                )
                 fee_amount_minor = total_needed_minor - item_amount_minor
             else:
                 item_amount_minor = int(withdrawal_request.amount * asset.precision)
@@ -1244,7 +1256,6 @@ class WalletManagerUsecase:
             withdrawal_request.destination.data
         )
 
-
         country_code = get_country_code_by_currency(
             self.service.config.countries, withdrawal_request.currency
         )
@@ -1319,7 +1330,9 @@ class WalletManagerUsecase:
         if transaction.bank_transfer:
             transaction.bank_transfer.paycrest_txn_id = paycrest_order.data.payment_id
             transaction.bank_transfer.paycrest_status = PaycrestOrderStatus.INITIATED
-            await self.service.transaction_usecase.repo.update(transaction.bank_transfer)
+            await self.service.transaction_usecase.repo.update(
+                transaction.bank_transfer
+            )
 
         # Automatically fund the Paycrest order from the master wallet
         mw_tx_id, mw_err = await self._transfer_from_master_wallet(

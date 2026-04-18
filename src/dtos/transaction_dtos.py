@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import List, Optional, Union,Any
+from typing import Any, List, Optional, Union
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
@@ -8,13 +8,20 @@ from pydantic_extra_types.country import CountryShortName
 
 from src.dtos.base import Base
 from src.models.transaction_model import Transaction
-from src.types.common_types import Address, AssetId, Network, TransactionId, UserId, WalletId
+from src.types.common_types import (
+    Address,
+    AssetId,
+    Network,
+    TransactionId,
+    UserId,
+    WalletId,
+)
 from src.types.types import (
     Currency,
+    DepositStage,
     PaymentMethod,
     TransactionStatus,
     TransactionType,
-    DepositStage
 )
 
 
@@ -401,7 +408,10 @@ class TransactionResponseBuilder:
                 "memo": wt.memo,
             }
 
-        if has_relationship(transaction, "internal_transfer") and transaction.internal_transfer:
+        if (
+            has_relationship(transaction, "internal_transfer")
+            and transaction.internal_transfer
+        ):
             it = transaction.internal_transfer
             return {
                 "recipient-user-id": it.recipient_user_id,
