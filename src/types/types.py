@@ -116,6 +116,7 @@ class PaycrestOrderStatus(StrEnum):
 class Currency(StrEnum):
     NAIRA = "ngn"
     US_Dollar = "usd"
+    USDC = "usdc"
 
 
 class AssetType(StrEnum):
