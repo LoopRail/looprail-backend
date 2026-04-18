@@ -1,5 +1,5 @@
 [[ledgers]]
 name = "Customer Wallets Ledger"
-ledger_id = "ldg_68fc96d5-1c2c-4204-91a5-e6a0cb3a9c58" # TODO load from .env
+ledger_id = "ldg_b1114b38-545c-4f48-b0b5-786fe08347f8" # TODO load from .env
 meta_data = { description = "Ledger for managing customer wallets", application = "Wallet Management System" }
 
