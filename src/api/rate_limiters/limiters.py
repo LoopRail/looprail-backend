@@ -93,12 +93,12 @@ RATE_LIMIT_CONFIG: Dict[str, RateLimitSubjectConfig] = {
             redis_expiry_seconds=7200,
         ),
         ip=IpRateLimitConfig(
-            capacity=80,
-            refill_rate_per_hour=20,
+            capacity=200,
+            refill_rate_per_hour=100,
             redis_expiry_seconds=7200,
         ),
         progressive_delay=ProgressiveDelayConfig(
-            delays={1: 0, 2: 0, 3: 0, 4: 30, 5: 120, 6: 900, 7: 1800, 8: 3600},
+            delays={1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 30, 7: 120, 8: 900, 9: 1800, 10: 3600},
             attempts_redis_expiry_seconds=3600,
             last_time_redis_expiry_seconds=3600,
         ),

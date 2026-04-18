@@ -41,7 +41,7 @@ def custom_rate_limiter(
             *args,
             **kwargs,
         ):
-            if os.getenv("ENVIRONMENT") == ENVIRONMENT.TEST.value:
+            if os.getenv("ENVIRONMENT") in (ENVIRONMENT.TEST.value, ENVIRONMENT.DEVELOPMENT.value):
                 return await func(request, *args, **kwargs)
 
             custom_limiter: CustomRateLimiter = get_custom_rate_limiter(request)
