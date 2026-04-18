@@ -9,6 +9,7 @@ from src.api.dependencies import (
     get_auth_lock_service,
     get_config,
     get_current_session,
+    get_custom_rate_limiter,
     get_geolocation_service,
     get_jwt_usecase,
     get_notification_usecase,
@@ -18,22 +19,21 @@ from src.api.dependencies import (
     get_security_usecase,
     get_session_usecase,
     get_user_usecases,
-    get_custom_rate_limiter,
 )
 from src.api.internals import (
     send_otp_internal,
     set_send_otp_config,
     set_user_create_config,
 )
-from src.api.rate_limiters import (
-    add_rate_limiter,
-    custom_rate_limiter,
-    limiter,
-)
+from src.api.rate_limiters import add_rate_limiter, custom_rate_limiter, limiter
+from src.api.rate_limiters.limiters import CustomRateLimiter
 from src.dtos import (
     AuthTokensResponse,
     AuthWithTokensAndUserResponse,
+    AvailabilityResponse,
+    AvailabilityStatus,
     ChallengeResponse,
+    CheckAvailabilityRequest,
     CompleteOnboardingRequest,
     CreateUserResponse,
     LoginRequest,
@@ -42,15 +42,12 @@ from src.dtos import (
     PasscodeLoginRequest,
     PasscodeSetRequest,
     PasswordResetRequest,
-    PasswordResetVerifyRequest,
     PasswordResetResponse,
+    PasswordResetVerifyRequest,
     PushNotificationDTO,
     RefreshTokenRequest,
     SetTransactionPinRequest,
     UserCreate,
-    CheckAvailabilityRequest,
-    AvailabilityResponse,
-    AvailabilityStatus,
 )
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
@@ -59,7 +56,6 @@ from src.infrastructure.services import (
     GeolocationService,
     ResendService,
 )
-from src.api.rate_limiters.limiters import CustomRateLimiter
 from src.models import Session
 from src.types import (
     AccessToken,
@@ -67,9 +63,9 @@ from src.types import (
     NotificationType,
     OnBoardingToken,
     OnBoardingTokenSub,
-    OtpType,
-    OtpStatus,
     OTPError,
+    OtpStatus,
+    OtpType,
     Platform,
     TokenType,
     UserAlreadyExistsError,
@@ -77,6 +73,7 @@ from src.types import (
 )
 from src.types.common_types import DeviceID, SessionId
 from src.types.error import NotFoundError
+from src.types.notification_types import NotificationMessages
 from src.usecases import (
     JWTUsecase,
     NotificationUseCase,
@@ -246,8 +243,12 @@ async def complete_onboarding(
     # Fetch geolocation data
     geo_data, _ = await geo_service.get_location(request.client.host)
     country = geo_data.country if geo_data and geo_data.status == "success" else None
-    country_code = geo_data.countryCode if geo_data and geo_data.status == "success" else None
-    region_name = geo_data.regionName if geo_data and geo_data.status == "success" else None
+    country_code = (
+        geo_data.countryCode if geo_data and geo_data.status == "success" else None
+    )
+    region_name = (
+        geo_data.regionName if geo_data and geo_data.status == "success" else None
+    )
     city = geo_data.city if geo_data and geo_data.status == "success" else None
     latitude = geo_data.lat if geo_data and geo_data.status == "success" else None
     longitude = geo_data.lon if geo_data and geo_data.status == "success" else None
@@ -265,6 +266,13 @@ async def complete_onboarding(
         city=city,
         latitude=latitude,
         longitude=longitude,
+        device_model=user_data.device_info.model if user_data.device_info else None,
+        device_brand=user_data.device_info.brand if user_data.device_info else None,
+        device_manufacturer=user_data.device_info.manufacturer if user_data.device_info else None,
+        device_name=user_data.device_info.device if user_data.device_info else None,
+        device_product=user_data.device_info.product if user_data.device_info else None,
+        os_version=user_data.device_info.os_version if user_data.device_info else None,
+        sdk_int=user_data.device_info.sdk_int if user_data.device_info else None,
     )
     if err:
         logger.error(
@@ -414,8 +422,12 @@ async def login(
         location_str = f"{geo_data.city}, {geo_data.regionName}, {geo_data.country}"
 
     country = geo_data.country if geo_data and geo_data.status == "success" else None
-    country_code = geo_data.countryCode if geo_data and geo_data.status == "success" else None
-    region_name = geo_data.regionName if geo_data and geo_data.status == "success" else None
+    country_code = (
+        geo_data.countryCode if geo_data and geo_data.status == "success" else None
+    )
+    region_name = (
+        geo_data.regionName if geo_data and geo_data.status == "success" else None
+    )
     city = geo_data.city if geo_data and geo_data.status == "success" else None
     latitude = geo_data.lat if geo_data and geo_data.status == "success" else None
     longitude = geo_data.lon if geo_data and geo_data.status == "success" else None
@@ -433,6 +445,27 @@ async def login(
         city=city,
         latitude=latitude,
         longitude=longitude,
+        device_model=login_request.device_info.model
+        if login_request.device_info
+        else None,
+        device_brand=login_request.device_info.brand
+        if login_request.device_info
+        else None,
+        device_manufacturer=login_request.device_info.manufacturer
+        if login_request.device_info
+        else None,
+        device_name=login_request.device_info.device
+        if login_request.device_info
+        else None,
+        device_product=login_request.device_info.product
+        if login_request.device_info
+        else None,
+        os_version=login_request.device_info.os_version
+        if login_request.device_info
+        else None,
+        sdk_int=login_request.device_info.sdk_int
+        if login_request.device_info
+        else None,
     )
     if err:
         logger.error("Could not create session for user %s: %s", user.id, err.message)
@@ -475,13 +508,14 @@ async def login(
     await send_transactional_email(
         resend_service=resend_service,
         to=user.email,
-        subject="New Login to Your LoopRail Account",
-        template_name="login_alert",
+        subject=NotificationMessages.email_login_alert().subject,
+        template_name=NotificationMessages.email_login_alert().template_name,
         app_logo_url=config.app.full_logo_url or config.app.logo_url,
         user_first_name=user.first_name,
         login_time=datetime.now(timezone.utc).strftime("%d %b %Y, %H:%M UTC"),
         ip_address=login_request.ip_address or "Unknown",
         location=location_str,
+        device_info=login_request.device_info,
     )
 
     return {
@@ -870,8 +904,8 @@ async def request_password_reset(
     await send_transactional_email(
         resend_service=resend_service,
         to=user.email,
-        subject="Reset Your LoopRail Password",
-        template_name="password_reset_otp",
+        subject=NotificationMessages.email_password_reset().subject,
+        template_name=NotificationMessages.email_password_reset().template_name,
         app_logo_url=config.app.full_logo_url or config.app.logo_url,
         otp_code=otp_code,
     )

@@ -1,11 +1,11 @@
 import re
 import typing
 from enum import StrEnum
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, Literal, Optional, Union
 from uuid import UUID
 
 import phonenumbers
-from pydantic import BeforeValidator, GetCoreSchemaHandler
+from pydantic import BaseModel, BeforeValidator, GetCoreSchemaHandler
 from pydantic_core import core_schema
 from pydantic_extra_types.phone_numbers import PhoneNumberValidator
 from solders.pubkey import Pubkey
@@ -185,3 +185,13 @@ class ChallengeId(PrefixedId):
 
 class DeviceID(PrefixedId):
     prefix = "device_"
+
+
+class DeviceInfo(BaseModel):
+    model: Optional[str] = None
+    brand: Optional[str] = None
+    manufacturer: Optional[str] = None
+    device: Optional[str] = None
+    product: Optional[str] = None
+    os_version: Optional[str] = None
+    sdk_int: Optional[int] = None

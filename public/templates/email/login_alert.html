@@ -142,6 +142,16 @@
             <span class="info-value">{{ location }}</span>
           </div>
           {% endif %}
+          {% if device_info %}
+          <div class="info-row">
+            <span class="info-label">Device</span>
+            <span class="info-value">{{ device_info.brand }} {{ device_info.model }}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">OS Version</span>
+            <span class="info-value">Android {{ device_info.os_version }}</span>
+          </div>
+          {% endif %}
         </div>
 
         <p class="warning">

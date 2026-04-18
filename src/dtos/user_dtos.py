@@ -3,10 +3,10 @@ from datetime import date
 from typing import List, Optional
 
 from pydantic import EmailStr, Field, field_validator, model_validator
-from pydantic_extra_types.country import CountryShortName
+from pydantic_extra_types.country import CountryAlpha2
 
 from src.dtos.base import Base
-from src.types.common_types import PhoneNumber, RefreshTokenId, UserId
+from src.types.common_types import DeviceInfo, PhoneNumber, RefreshTokenId, UserId
 from src.types.error import error
 from src.types.types import Gender, KYCStatus
 from src.utils.app_utils import is_valid_email
@@ -24,6 +24,7 @@ class CompleteOnboardingRequest(Base):
     allow_notifications: bool
     fcm_token: Optional[str] = None
     questioner: list[str]
+    device_info: Optional[DeviceInfo] = None
 
     @model_validator(mode="after")
     def validate_notifications(self) -> "CompleteOnboardingRequest":
@@ -38,7 +39,7 @@ class UserCreate(Base):
     first_name: str
     last_name: str
     username: str = Field(min_length=4, max_length=16)
-    country_code: CountryShortName
+    country_code: CountryAlpha2
     gender: Gender
     phone_number: PhoneNumber
 
@@ -89,7 +90,7 @@ class UserProfilePublic(Base):
     city: Optional[str] = None
     state: Optional[str] = None
     postal_code: Optional[str] = None
-    country: CountryShortName
+    country: CountryAlpha2
     phone_number: PhoneNumber
     date_of_birth: Optional[date] = None
 
@@ -114,7 +115,7 @@ class UserProfileCreate(Base):
     city: Optional[str] = None
     state: Optional[str] = None
     postal_code: Optional[str] = None
-    country: CountryShortName
+    country: CountryAlpha2
     phone_number: PhoneNumber
     date_of_birth: Optional[date] = None
 
@@ -126,6 +127,8 @@ class LoginRequest(Base):
     user_agent: Optional[str] = None
     allow_notifications: bool = False
     fcm_token: Optional[str] = None
+    device_info: Optional[DeviceInfo] = None
+    device_info: Optional[DeviceInfo] = None
 
     @model_validator(mode="after")
     def validate_notifications(self) -> "CompleteOnboardingRequest":

@@ -6,7 +6,7 @@ from sqlalchemy import Column, DateTime
 from sqlmodel import Field, Relationship
 
 from src.models.base import Base, utc_now
-from src.types.common_types import DeviceID
+from src.types.common_types import DeviceID, DeviceInfo
 
 
 class Session(Base, table=True):
@@ -26,6 +26,14 @@ class Session(Base, table=True):
     city: Optional[str] = Field(default=None)
     latitude: Optional[float] = Field(default=None)
     longitude: Optional[float] = Field(default=None)
+
+    device_model: Optional[str] = Field(default=None)
+    device_brand: Optional[str] = Field(default=None)
+    device_manufacturer: Optional[str] = Field(default=None)
+    device_name: Optional[str] = Field(default=None)
+    device_product: Optional[str] = Field(default=None)
+    os_version: Optional[str] = Field(default=None)
+    sdk_int: Optional[int] = Field(default=None)
 
     allow_notifications: bool = Field(default=False)
     fcm_token: Optional[str] = Field(default=None)

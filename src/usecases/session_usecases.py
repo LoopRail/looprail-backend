@@ -45,6 +45,13 @@ class SessionUseCase:
         city: str | None = None,
         latitude: float | None = None,
         longitude: float | None = None,
+        device_model: str | None = None,
+        device_brand: str | None = None,
+        device_manufacturer: str | None = None,
+        device_name: str | None = None,
+        device_product: str | None = None,
+        os_version: str | None = None,
+        sdk_int: int | None = None,
     ) -> Tuple[Optional[Session], str, Error]:
         logger.debug(
             "Creating session for user %s on platform %s, device %s from IP %s",
@@ -89,6 +96,13 @@ class SessionUseCase:
             city=city,
             latitude=latitude,
             longitude=longitude,
+            device_model=device_model,
+            device_brand=device_brand,
+            device_manufacturer=device_manufacturer,
+            device_name=device_name,
+            device_product=device_product,
+            os_version=os_version,
+            sdk_int=sdk_int,
         )
         if err:
             logger.error(
