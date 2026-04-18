@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Optional
 from uuid import UUID
 
 from pydantic import EmailStr
-from pydantic_extra_types.country import CountryShortName
+from pydantic_extra_types.country import CountryAlpha2
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship
 
@@ -121,7 +121,7 @@ class UserProfile(Base, table=True):
     city: Optional[str] = None
     state: Optional[str] = None
     postal_code: Optional[str] = None
-    country: CountryShortName
+    country: CountryAlpha2
     phone_number: str = Field(nullable=False, unique=True)
     date_of_birth: Optional[date] = None
 
