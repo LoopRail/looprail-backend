@@ -368,16 +368,17 @@ async def _process_deposit_swept_success_task_async(event_data: Dict[str, Any]):
         if user_repo and resend_service and txn:
             user, _ = await user_repo.find_one(id=txn.wallet.user_id)
             if user:
-                await send_transactional_email(
-                    resend_service=resend_service,
-                    to=user.email,
-                    subject=NotificationMessages.email_deposit_confirmed().subject,
-                    template_name=NotificationMessages.email_deposit_confirmed().template_name,
-                    app_logo_url=config.app.full_logo_url or config.app.logo_url,
-                    amount=event.data.amount,
-                    currency=event.data.currency.upper(),
-                    transaction_id=str(txn.id),
-                )
+                if user.email_notifications:
+                    await send_transactional_email(
+                        resend_service=resend_service,
+                        to=user.email,
+                        subject=NotificationMessages.email_deposit_confirmed().subject,
+                        template_name=NotificationMessages.email_deposit_confirmed().template_name,
+                        app_logo_url=config.app.full_logo_url or config.app.logo_url,
+                        amount=event.data.amount,
+                        currency=event.data.currency.upper(),
+                        transaction_id=str(txn.id),
+                    )
 
 
 async def _process_deposit_success_task_async(event_data: Dict[str, Any]):

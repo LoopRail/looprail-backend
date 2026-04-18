@@ -65,16 +65,17 @@ async def _send_withdrawal_processed_email(
     user, _ = await user_repo.find_one(id=user_id)
     if user:
         app_settings = AppSettings()
-        await send_transactional_email(
-            resend_service=resend_service,
-            to=user.email,
-            subject=NotificationMessages.email_withdrawal_processed().subject,
-            template_name=NotificationMessages.email_withdrawal_processed().template_name,
-            app_logo_url=app_settings.logo_url,
-            amount=amount,
-            currency=currency.upper(),
-            transaction_id=transaction_id or "",
-        )
+        if user.email_notifications:
+            await send_transactional_email(
+                resend_service=resend_service,
+                to=user.email,
+                subject=NotificationMessages.email_withdrawal_processed().subject,
+                template_name=NotificationMessages.email_withdrawal_processed().template_name,
+                app_logo_url=app_settings.logo_url,
+                amount=amount,
+                currency=currency.upper(),
+                transaction_id=transaction_id or "",
+            )
 
 
 async def _process_withdrawal_task_async(
