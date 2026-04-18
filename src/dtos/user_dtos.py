@@ -104,6 +104,7 @@ class UserPublic(Base):
     gender: Gender
     is_email_verified: bool
     has_completed_onboarding: bool
+    email_notifications: bool = True
     profile: Optional[UserProfilePublic] = None
     wallets: Optional[List[dict]] = (
         None  # Uses dict to avoid circular importing WalletWithAssets, avoiding cyclic graph

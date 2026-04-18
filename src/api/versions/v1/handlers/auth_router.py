@@ -321,6 +321,7 @@ async def complete_onboarding(
         "session_id": session.get_prefixed_id(),
         "refresh-token": raw_refresh_token,
         "access-token": access_token,
+        "allow_notifications": session.allow_notifications,
         "user": public_user,
     }
 
@@ -527,6 +528,7 @@ async def login(
         "session_id": session.get_prefixed_id(),
         "access-token": access_token,
         "refresh-token": raw_refresh_token,
+        "allow_notifications": session.allow_notifications,
         "user": public_user,
     }
 
