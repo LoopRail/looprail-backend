@@ -1,3 +1,4 @@
+import os
 import time
 from typing import Callable
 
@@ -5,8 +6,25 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.infrastructure.logger import get_logger
+from src.infrastructure.settings import ENVIRONMENT
 
 logger = get_logger(__name__)
+
+
+REDACTED_HEADERS = {"authorization", "x-api-key", "cookie", "set-cookie"}
+
+
+def _redact_headers(headers: dict) -> dict:
+    if os.getenv("ENVIRONMENT") != ENVIRONMENT.PRODUCTION.value:
+        return headers
+    return {
+        k: "**redacted**" if k.lower() in REDACTED_HEADERS else v
+        for k, v in headers.items()
+    }
+    return {
+        k: "**redacted**" if k.lower() in REDACTED_HEADERS else v
+        for k, v in headers.items()
+    }
 
 
 class RequestLoggerMiddleware(BaseHTTPMiddleware):
@@ -18,7 +36,7 @@ class RequestLoggerMiddleware(BaseHTTPMiddleware):
             request.method,
             request.url.path,
             request.client.host if request.client else "unknown",
-            dict(request.headers),
+            _redact_headers(dict(request.headers)),
             dict(request.query_params),
         )
 
