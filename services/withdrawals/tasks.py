@@ -13,7 +13,7 @@ from src.infrastructure.repositories import SessionRepository, UserRepository
 from src.infrastructure.services.resend_service import ResendService
 from src.infrastructure.settings import AppSettings, RedisConfig, ResendConfig
 from src.types.common_types import UserId
-from src.types.notification_types import NotificationAction
+from src.types.notification_types import NotificationAction, NotificationMessages
 from src.utils.email_helpers import send_transactional_email
 
 logger = logging.getLogger(__name__)
@@ -68,8 +68,8 @@ async def _send_withdrawal_processed_email(
         await send_transactional_email(
             resend_service=resend_service,
             to=user.email,
-            subject="Your Withdrawal Has Been Processed",
-            template_name="withdrawal_processed",
+            subject=NotificationMessages.email_withdrawal_processed().subject,
+            template_name=NotificationMessages.email_withdrawal_processed().template_name,
             app_logo_url=app_settings.logo_url,
             amount=amount,
             currency=currency.upper(),
