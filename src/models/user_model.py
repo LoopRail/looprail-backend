@@ -2,8 +2,8 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING, List, Optional
 from uuid import UUID
 
-from pydantic import EmailStr
-from pydantic_extra_types.country import CountryAlpha2
+from pydantic import EmailStr, field_validator
+from pydantic_extra_types.country import CountryAlpha2, _index_by_alpha2
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Column, Field, Relationship
 
@@ -128,6 +128,17 @@ class UserProfile(Base, table=True):
 
     user_id: UUID = Field(foreign_key="users.id")
     user: User = Relationship(back_populates="profile")
+
+    @field_validator("country", mode="before")
+    @classmethod
+    def coerce_country_to_alpha2(cls, v: str) -> str:
+        if v and len(v) != 2:
+            _name_to_alpha2 = {
+                info.short_name.lower(): code
+                for code, info in _index_by_alpha2().items()
+            }
+            return _name_to_alpha2.get(v.lower(), v)
+        return v
 
 
 class UserBiometric(Base, table=True):
