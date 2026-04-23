@@ -64,9 +64,8 @@ class PaycrestService(PaycrestClient):
             logger.error("Could not fetch rates for payment order: %s", err.message)
             return None, error(f"Could not fetch rates: Error: {err.message}")
 
-        usdc_amount = float(Decimal(str(amount)) / Decimal(str(rate.data)))
         order_data = {
-            "amount": usdc_amount,
+            "amount": float(amount),
             "token": "USDC",
             "network": Chain.BASE.value,
             "rate": rate.data,
