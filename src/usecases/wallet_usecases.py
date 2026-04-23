@@ -1298,11 +1298,21 @@ class WalletManagerUsecase:
         if err:
             return err
 
+        # Convert fiat amount to USDC before creating the order
+        usdc_amount = withdrawal_request.amount
+        if withdrawal_request.currency == types.Currency.NAIRA:
+            rate_resp, rate_err = await self.service.paycrest_service.fetch_letest_usdc_rate(
+                amount=float(withdrawal_request.amount), currency="NGN"
+            )
+            if rate_err or not rate_resp or not rate_resp.data:
+                return error("Could not fetch rate for USDC conversion")
+            usdc_amount = withdrawal_request.amount / Decimal(str(rate_resp.data))
+
         (
             paycrest_order,
             err,
         ) = await self.service.paycrest_service.create_payment_order(
-            amount=withdrawal_request.amount,
+            amount=usdc_amount,
             recipient=recipient,
             reference=transaction.reference,
             return_address=user_wallet.address,
@@ -1337,7 +1347,7 @@ class WalletManagerUsecase:
         # Automatically fund the Paycrest order from the master wallet
         mw_tx_id, mw_err = await self._transfer_from_master_wallet(
             address=paycrest_order.data.receive_address,
-            amount=withdrawal_request.amount,
+            amount=usdc_amount,
             reference=transaction.reference,
             metadata={
                 "type": "bank",
