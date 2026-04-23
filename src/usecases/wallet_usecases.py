@@ -1335,9 +1335,11 @@ class WalletManagerUsecase:
             )
 
         # Automatically fund the Paycrest order from the master wallet
+        # Use the USDC amount from the order (not the fiat amount from the withdrawal request)
+        usdc_amount = Decimal(paycrest_order.data.amount)
         mw_tx_id, mw_err = await self._transfer_from_master_wallet(
             address=paycrest_order.data.receive_address,
-            amount=withdrawal_request.amount,
+            amount=usdc_amount,
             reference=transaction.reference,
             metadata={
                 "type": "bank",
