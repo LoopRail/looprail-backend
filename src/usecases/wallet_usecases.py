@@ -620,8 +620,19 @@ class WalletManagerUsecase:
                         amount_in_usd = withdrawal_request.amount / Decimal(
                             str(rate_resp.data)
                         )
-                    except Exception:
-                        pass
+                        logger.debug(
+                            "Converted NGN amount %s to USD %s at rate %s",
+                            withdrawal_request.amount,
+                            amount_in_usd,
+                            rate_resp.data,
+                        )
+                    except (ValueError, ArithmeticError) as e:
+                        logger.error(
+                            "Failed to convert NGN amount %s to USD using rate %s: %s",
+                            withdrawal_request.amount,
+                            rate_resp.data,
+                            e,
+                        )
 
         if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
             min_bank_ngn = Decimal(MIN_BANK_TRANSFER_NGN)
