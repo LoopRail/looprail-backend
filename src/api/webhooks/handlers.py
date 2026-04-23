@@ -71,9 +71,9 @@ async def handle_withdraw_success(
         logger.error(err)
         return
 
-    txn_type = None
-    if event.data.metadata and isinstance(event.data.metadata, dict):
-        txn_type = event.data.metadata.get("type")
+    # txn_type = None
+    # if event.data.metadata and isinstance(event.data.metadata, dict):
+    #     txn_type = event.data.metadata.get("type")
 
     logger.debug("Looking up local transaction by reference %s", event.data.reference)
     txn, err = await transaction_usecase.repo.find_one(reference=event.data.reference)
@@ -90,23 +90,26 @@ async def handle_withdraw_success(
     if event.data.hash:
         txn.transaction_hash = event.data.hash
 
-    if txn_type != "bank":
-        if txn.ledger_transaction_id:
-            _, ledger_err = await ledger_service.transactions.update_inflight_transaction(
+    if txn.ledger_transaction_id:
+        _, ledger_err = await ledger_service.transactions.update_inflight_transaction(
+            txn.ledger_transaction_id,
+            UpdateInflightTransactionRequest(status="commit"),
+        )
+        if ledger_err:
+            logger.error(
+                "Failed to commit inflight ledger transaction %s for event %s: %s",
                 txn.ledger_transaction_id,
-                UpdateInflightTransactionRequest(status="commit"),
+                event.data.id,
+                ledger_err.message,
             )
-            if ledger_err:
-                logger.error(
-                    "Failed to commit inflight ledger transaction %s for event %s: %s",
-                    txn.ledger_transaction_id,
-                    event.data.id,
-                    ledger_err.message,
-                )
-        txn.status = TransactionStatus.COMPLETED
-        logger.info("Local transaction %s marked as COMPLETED for event %s", txn.id, event.data.id)
-    else:
-        logger.info("Local transaction %s (bank transfer) status NOT updated via webhook", txn.id)
+    txn.status = TransactionStatus.COMPLETED
+    logger.info(
+        "Local transaction %s marked as COMPLETED for event %s", txn.id, event.data.id
+    )
+    # else:
+    #     logger.info("Local transaction %s (bank transfer) status NOT updated via webhook", txn.id)
+
+    # TODO: we need to mark bank transfers as prcessing here and mark wallet transfers as completed
 
     await transaction_usecase.repo.update(txn)
 
