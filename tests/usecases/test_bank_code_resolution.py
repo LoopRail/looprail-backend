@@ -206,3 +206,47 @@ class TestInstitutionCodeResolution:
 
         assert err is not None
         usecase.service.paycrest_service.create_payment_order.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_paycrest_txn_id_and_status_saved_on_bank_transfer(self):
+        """After order creation, bank_transfer.paycrest_txn_id and paycrest_status must be persisted."""
+        from src.types.types import PaycrestOrderStatus
+        from src.usecases.wallet_usecases import WalletManagerUsecase
+
+        banks = make_banks_data(
+            {"NG": [{"name": "Fidelity Bank", "id": "070", "code": "FIDTNGLA"}]}
+        )
+        usecase, country_code = self._build_usecase(banks, "NG")
+
+        bank_transfer = MagicMock()
+        reloaded_txn = MagicMock()
+        reloaded_txn.bank_transfer = bank_transfer
+        reloaded_txn.id = "txn-123"
+        reloaded_txn.wallet_id = "00000000-0000-0000-0000-000000000001"
+
+        usecase.service.paycrest_service.fetch_letest_usdc_rate = AsyncMock(
+            return_value=(MagicMock(data=Decimal("1500")), None)
+        )
+        usecase.service.transaction_usecase.repo.find_one = AsyncMock(
+            return_value=(reloaded_txn, None)
+        )
+        usecase.service.transaction_usecase.repo.update = AsyncMock(return_value=(MagicMock(), None))
+
+        withdrawal_request = make_withdrawal_request(bank_code="070")
+        transaction = make_transaction()
+
+        with patch(
+            "src.usecases.wallet_usecases.get_country_code_by_currency",
+            return_value=country_code,
+        ):
+            err = await WalletManagerUsecase._execute_bank_transfer_withdrawal(
+                usecase,
+                user=MagicMock(),
+                withdrawal_request=withdrawal_request,
+                transaction=transaction,
+            )
+
+        assert err is None
+        assert bank_transfer.paycrest_txn_id == "p1"
+        assert bank_transfer.paycrest_status == PaycrestOrderStatus.INITIATED
+        usecase.service.transaction_usecase.repo.update.assert_called_once_with(bank_transfer)
