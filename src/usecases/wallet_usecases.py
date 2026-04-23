@@ -1317,7 +1317,7 @@ class WalletManagerUsecase:
             )
             if rate_err or not rate_resp or not rate_resp.data:
                 return error("Could not fetch rate for USDC conversion")
-            usdc_amount = withdrawal_request.amount / Decimal(str(rate_resp.data))
+            usdc_amount = (withdrawal_request.amount / Decimal(str(rate_resp.data))).quantize(Decimal("0.00000001"))
 
         (
             paycrest_order,
