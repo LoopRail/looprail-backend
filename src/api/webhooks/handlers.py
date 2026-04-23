@@ -6,8 +6,8 @@ from src.infrastructure.logger import get_logger
 from src.infrastructure.redis import RQManager
 from src.infrastructure.repositories import AssetRepository, WalletRepository
 from src.infrastructure.services import LedgerService, LockService
-from src.types import NotFoundError, TransactionType, WorldLedger
-from src.types.blnk import RecordTransactionRequest
+from src.types import NotFoundError, WorldLedger
+from src.types.blnk import RecordTransactionRequest, UpdateInflightTransactionRequest
 from src.types.blockrader import (
     WebhookDepositSuccess,
     WebhookDepositSweptSuccess,
@@ -19,7 +19,6 @@ from src.types.blockrader import (
 from src.types.common_types import WalletId
 from src.types.types import TransactionStatus
 from src.usecases import TransactionUsecase
-from src.utils.transaction_utils import create_transaction_params_from_event
 
 logger = get_logger(__name__)
 
@@ -60,11 +59,8 @@ async def handle_deposit_success(
 async def handle_withdraw_success(
     event: WebhookWithdrawSuccess,
     ledger_service: LedgerService,
-    wallet_repo: WalletRepository,
-    asset_repo: AssetRepository,
     transaction_usecase: TransactionUsecase,
     lock_service: LockService,
-    config: Config,
     **kwargs,
 ):
     logger.info("Handling withdraw success event: %s", event.data.id)
@@ -75,108 +71,44 @@ async def handle_withdraw_success(
         logger.error(err)
         return
 
-    txn, err = await transaction_usecase.repo.find_one(transaction_hash=event.data.hash)
-    if err and err != NotFoundError:
-        logger.error("Transaction lookup failed for hash %s: %s", event.data.hash, err)
-        return
-
-    if txn:
-        logger.debug(
-            "Transaction found for hash %s: ID %s, status %s",
-            event.data.hash,
-            txn.id,
-            txn.status,
-        )
-
-    # Use metadata for wallet lookup to avoid main pool address issue
-    wallet_id = None
     txn_type = None
     if event.data.metadata and isinstance(event.data.metadata, dict):
-        wallet_id = event.data.metadata.get("wallet_id")
-        if wallet_id:
-            wallet_id = WalletId(wallet_id).clean()
         txn_type = event.data.metadata.get("type")
 
-    if wallet_id:
-        wallet, err = await wallet_repo.get(wallet_id)
-    else:
-        logger.warning(
-            "No wallet_id in metadata for withdrawal success event %s. Falling back to senderAddress lookup.",
-            event.data.id,
-        )
-        wallet, err = await wallet_repo.get_wallet_by_address(
-            address=event.data.senderAddress
-        )
-
-    if err:
+    logger.debug("Looking up local transaction by reference %s", event.data.reference)
+    txn, err = await transaction_usecase.repo.find_one(reference=event.data.reference)
+    if err or not txn:
         logger.error(
-            "Wallet lookup failed for withdrawal event %s: %s",
+            "Transaction with reference %s not found for event %s: %s",
+            event.data.reference,
             event.data.id,
-            err.message,
+            err.message if err else "not found",
         )
-        return
-    logger.debug("Wallet found: %s", wallet.get_prefixed_id())
-
-    logger.debug(
-        "Attempting to get asset %s for wallet %s",
-        event.data.asset.asset_id,
-        wallet.get_prefixed_id(),
-    )
-    asset, err = await asset_repo.find_one(
-        wallet_id=wallet.id, asset_id=event.data.asset.asset_id
-    )
-    if err:
-        logger.error(
-            "Asset with type %s not found for wallet %s: %s",
-            event.data.asset.asset_id,
-            wallet.get_prefixed_id(),
-            err.message,
-        )
-        return
-    logger.debug("Asset found: %s", asset.get_prefixed_id())
-
-    create_transaction_params = create_transaction_params_from_event(
-        event_data=event.data,
-        wallet=wallet,
-        asset_id=asset.id,
-        transaction_type=TransactionType.DEBIT,
-        countries=config.countries,
-    )
-
-    logger.debug(
-        "Creating/Updating local transaction record for event %s", event.data.id
-    )
-    txn, err = await transaction_usecase.create_transaction(create_transaction_params)
-    if err:
-        logger.error(
-            "Failed to create/update local transaction record for event %s: %s",
-            event.data.id,
-            err.message,
-        )
+        await lock.release(event.data.hash, lock_id)
         return
 
-    # Conditionally finalize status to COMPLETED
-    # Bank transfers are handled separately (not marked COMPLETED here)
-    if txn:
-        if event.data.hash:
-            txn.transaction_hash = event.data.hash
+    if event.data.hash:
+        txn.transaction_hash = event.data.hash
 
-        if txn_type != "bank":
-            txn.status = TransactionStatus.COMPLETED
-            logger.info(
-                "Local transaction %s marked as COMPLETED for event %s",
-                txn.id,
-                event.data.id,
+    if txn_type != "bank":
+        if txn.ledger_transaction_id:
+            _, ledger_err = await ledger_service.transactions.update_inflight_transaction(
+                txn.ledger_transaction_id,
+                UpdateInflightTransactionRequest(status="commit"),
             )
-        else:
-            logger.info(
-                "Local transaction %s (bank transfer) status NOT updated via webhook",
-                txn.id,
-            )
-
-        await transaction_usecase.repo.update(txn)
+            if ledger_err:
+                logger.error(
+                    "Failed to commit inflight ledger transaction %s for event %s: %s",
+                    txn.ledger_transaction_id,
+                    event.data.id,
+                    ledger_err.message,
+                )
+        txn.status = TransactionStatus.COMPLETED
+        logger.info("Local transaction %s marked as COMPLETED for event %s", txn.id, event.data.id)
     else:
-        logger.info("Local transaction record updated for event %s", event.data.id)
+        logger.info("Local transaction %s (bank transfer) status NOT updated via webhook", txn.id)
+
+    await transaction_usecase.repo.update(txn)
 
     err = await lock.release(event.data.hash, lock_id)
     if err:
