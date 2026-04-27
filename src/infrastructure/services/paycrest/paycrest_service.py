@@ -14,30 +14,21 @@ from src.types.paycrest import (
 
 logger = get_logger(__name__)
 
-PAYCREST_API_VERSION = "v1"
-BASE_URL = f"https://api.paycrest.io/{PAYCREST_API_VERSION}"
+BASE_URL = "https://api.paycrest.io/v2"
 
 
 class PaycrestClient(BaseClient):
     """A base client for interacting with the Paycrest API."""
 
     def __init__(self, config: PayCrestConfig) -> None:
-        """Initializes the Paycrest client.
-
-        Args:
-            config: The Paycrest configuration.
-            path: The base path for the API endpoints.
-        """
         self.config = config
         super().__init__("")
         logger.debug("PaycrestClient initialized.")
 
     def _get_base_url(self) -> str:
-        logger.debug("Getting Paycrest base URL: %s", BASE_URL)
         return BASE_URL
 
     def _get_headers(self) -> dict[str, str]:
-        logger.debug("Getting Paycrest headers.")
         return {
             "API-Key": self.config.paycrest_api_key,
             "Content-Type": "application/json",
@@ -52,32 +43,36 @@ class PaycrestService(PaycrestClient):
         reference: str,
         return_address: str,
     ) -> Tuple[Optional[CreateOrderResponse], Error]:
-        """Create a payment order to off-ramp tokens via Paycrest"""
+        """Create a payment order to off-ramp tokens via Paycrest (v2)."""
         logger.debug(
             "Creating payment order for amount %s, recipient %s, reference %s",
             amount,
             recipient,
             reference,
         )
-        rate, err = await self.fetch_letest_usdc_rate(amount, recipient.currency)
-        if err:
-            logger.error("Could not fetch rates for payment order: %s", err.message)
-            return None, error(f"Could not fetch rates: Error: {err.message}")
-
         order_data = {
-            "amount": float(amount),
-            "token": "USDC",
-            "network": Chain.BASE.value,
-            "rate": rate.data,
-            "recipient": recipient.model_dump(by_alias=True, exclude_none=True),
+            "amount": str(amount),
+            "source": {
+                "type": "crypto",
+                "currency": "USDC",
+                "network": Chain.BASE.value,
+                "refundAddress": return_address,
+            },
+            "destination": {
+                "type": "fiat",
+                "currency": recipient.currency.upper(),
+                "recipient": recipient.model_dump(
+                    by_alias=True,
+                    exclude={"currency_enum", "metadata"},
+                    exclude_none=True,
+                ),
+            },
             "reference": reference,
-            "returnAddress": return_address,
         }
         logger.debug("Sending payment order request with data: %s", order_data)
         response, err = await self._post(
             CreateOrderResponse, path_suffix="/sender/orders", data=order_data
         )
-        logger.info(response.data)
         if err:
             logger.error("Failed to create payment order: %s", err.message)
             return None, err
@@ -89,7 +84,7 @@ class PaycrestService(PaycrestClient):
     async def verify_account(
         self, account_number: str, institution: str
     ) -> Tuple[Optional[VerifyAccountResponse], Error]:
-        """Verify bank account details"""
+        """Verify bank account details."""
         logger.debug(
             "Verifying account for account number %s, institution %s",
             account_number,
@@ -110,24 +105,21 @@ class PaycrestService(PaycrestClient):
     async def fetch_letest_usdc_rate(
         self, amount: float, currency: str
     ) -> Tuple[Optional[FetchLatestRatesResponse], Error]:
-        """Verify bank account details"""
-        logger.debug("Fetching latest USDC rate for amount %s %s", amount, currency)
-        data = {
-            "token": "USDC",
-            "amount": amount,
-            "currency": currency,
-        }
+        """Fetch buy/sell rate quotes for USDC on Base (v2).
+        Amount must be in USDC — capped at 1000 per API requirements.
+        """
+        usdc_amount = min(1000.0, max(1.0, amount))
+        logger.debug("Fetching latest USDC rate for amount %s %s", usdc_amount, currency)
+        path = f"/rates/{Chain.BASE.value}/USDC/{usdc_amount}/{currency.upper()}"
         response, err = await self._get(
             FetchLatestRatesResponse,
-            path_suffix="/rates/{token}/{amount}/{currency}".format(**data),
-            req_params={
-                "network": Chain.BASE.value,
-            },
+            path_suffix=path,
+            req_params={"side": "sell"},
         )
         if err:
             logger.error(
                 "Failed to fetch latest USDC rate for amount %s %s: %s",
-                amount,
+                usdc_amount,
                 currency,
                 err.message,
             )
