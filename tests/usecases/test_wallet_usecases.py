@@ -3,6 +3,17 @@ from unittest.mock import AsyncMock, MagicMock
 from decimal import Decimal
 from uuid import uuid4
 
+
+def _mock_rate(rate_str: str):
+    """Build a mock FetchLatestRatesResponse with the given sell rate."""
+    mock_quote = MagicMock()
+    mock_quote.rate = rate_str
+    mock_data = MagicMock()
+    mock_data.sell = mock_quote
+    mock_resp = MagicMock()
+    mock_resp.data = mock_data
+    return mock_resp
+
 from src.usecases.wallet_usecases import WalletManagerUsecase
 from src.dtos.wallet_dtos import WithdrawalRequest, AuthorizationDetails, GenericWithdrawalRequest, TransferType
 from src.models.wallet_model import Wallet, Asset
