@@ -21,13 +21,24 @@ class PaycrestRecipiant(basePaycrestType):
         return self.currency_enum.value
 
 
-class PaycrestPaymentOrder(basePaycrestType):
-    payment_id: str = Field(alias="id")
-    amount: str
-    token: str
+class PaycrestProviderAccount(basePaycrestType):
     network: str
     receive_address: str
     valid_until: datetime
+
+
+class PaycrestPaymentOrder(basePaycrestType):
+    """v2 order response shape."""
+
+    payment_id: str = Field(alias="id")
+    amount: str
+    rate: str
     sender_fee: str
-    transaction_fee: int
+    transaction_fee: str
     reference: str
+    provider_account: PaycrestProviderAccount
+
+    @property
+    def receive_address(self) -> str:
+        """Convenience accessor kept for backward compat with existing call sites."""
+        return self.provider_account.receive_address

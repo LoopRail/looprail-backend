@@ -27,14 +27,50 @@ class OrderRequest(basePaycrestType):
     return_address: str
 
 
+# v2 nested source/destination objects
+class OrderSource(basePaycrestType):
+    type: str = "crypto"
+    currency: str
+    network: str
+    refund_address: str
+
+
+class OrderDestinationRecipient(basePaycrestType):
+    institution: str
+    account_identifier: str
+    account_name: str
+    memo: str
+
+
+class OrderDestination(basePaycrestType):
+    type: str = "fiat"
+    currency: str
+    recipient: OrderDestinationRecipient
+
+
 class CreateOrderRequest(basePaycrestType):
     amount: Decimal
-    recipient: PaycrestRecipiant
+    source: OrderSource
+    destination: OrderDestination
+    reference: str
 
 
 class CreateOrderResponse(basePaycrestResponse):
     data: PaycrestPaymentOrder
 
 
+# v2 rates: data is {buy: {rate, ...}, sell: {rate, ...}}
+class RateQuote(basePaycrestType):
+    rate: str
+    provider_ids: list[str] = []
+    order_type: str | None = None
+    refund_timeout_minutes: int | None = None
+
+
+class RatesData(basePaycrestType):
+    buy: RateQuote | None = None
+    sell: RateQuote | None = None
+
+
 class FetchLatestRatesResponse(basePaycrestResponse):
-    data: str
+    data: RatesData
