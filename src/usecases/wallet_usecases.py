@@ -609,30 +609,36 @@ class WalletManagerUsecase:
             withdrawal_request.currency == types.Currency.US_Dollar
             and withdrawal_method == WithdrawalMethod.BANK_TRANSFER
         ):
-            rate_amount = max(1.0, float(withdrawal_request.amount))
             rate_resp, err = await self.service.paycrest_service.fetch_letest_usdc_rate(
-                amount=rate_amount,
+                amount=float(withdrawal_request.amount),
                 currency="NGN",
             )
-            if not err and rate_resp and rate_resp.data:
-                if withdrawal_request.currency == types.Currency.NAIRA:
-                    try:
-                        amount_in_usd = withdrawal_request.amount / Decimal(
-                            str(rate_resp.data)
-                        )
-                        logger.debug(
-                            "Converted NGN amount %s to USD %s at rate %s",
-                            withdrawal_request.amount,
-                            amount_in_usd,
-                            rate_resp.data,
-                        )
-                    except (ValueError, ArithmeticError) as e:
-                        logger.error(
-                            "Failed to convert NGN amount %s to USD using rate %s: %s",
-                            withdrawal_request.amount,
-                            rate_resp.data,
-                            e,
-                        )
+
+        def _sell_rate() -> Decimal | None:
+            """Return the sell rate as Decimal, or None if unavailable."""
+            if rate_resp and rate_resp.data and rate_resp.data.sell:
+                return Decimal(str(rate_resp.data.sell.rate))
+            return None
+
+        sell_rate = _sell_rate()
+
+        if sell_rate is not None:
+            if withdrawal_request.currency == types.Currency.NAIRA:
+                try:
+                    amount_in_usd = withdrawal_request.amount / sell_rate
+                    logger.debug(
+                        "Converted NGN amount %s to USD %s at rate %s",
+                        withdrawal_request.amount,
+                        amount_in_usd,
+                        sell_rate,
+                    )
+                except (ValueError, ArithmeticError) as e:
+                    logger.error(
+                        "Failed to convert NGN amount %s to USD using rate %s: %s",
+                        withdrawal_request.amount,
+                        sell_rate,
+                        e,
+                    )
 
         if withdrawal_method == WithdrawalMethod.BANK_TRANSFER:
             min_bank_ngn = Decimal(MIN_BANK_TRANSFER_NGN)
@@ -643,9 +649,9 @@ class WalletManagerUsecase:
                         f"Minimum bank transfer is {min_bank_ngn:f} {curr_code}"
                     )
             elif withdrawal_request.currency == types.Currency.US_Dollar:
-                if rate_resp and rate_resp.data:
+                if sell_rate is not None:
                     min_bank_usd = (
-                        min_bank_ngn / Decimal(str(rate_resp.data))
+                        min_bank_ngn / sell_rate
                     ).quantize(Decimal("0.01"))
                     if withdrawal_request.amount < min_bank_usd:
                         return None, ValidationError(
@@ -655,9 +661,9 @@ class WalletManagerUsecase:
             if amount_in_usd > Decimal(BANK_TRANSFER_FEE_THRESHOLD_USD):
                 withdrawal_fee = Decimal(BANK_TRASNFER_WITHDRAWAL_FEE)
                 if withdrawal_request.currency == types.Currency.NAIRA:
-                    if rate_resp and rate_resp.data:
+                    if sell_rate is not None:
                         withdrawal_fee = (
-                            Decimal("0.1") * Decimal(str(rate_resp.data))
+                            Decimal("0.1") * sell_rate
                         ).quantize(Decimal("0.01"))
                     else:
                         withdrawal_fee = Decimal("150")
@@ -671,11 +677,10 @@ class WalletManagerUsecase:
                 )
                 if (
                     withdrawal_request.currency == types.Currency.NAIRA
-                    and rate_resp
-                    and rate_resp.data
+                    and sell_rate is not None
                 ):
                     min_wallet_ngn = (
-                        min_wallet_usd * Decimal(str(rate_resp.data))
+                        min_wallet_usd * sell_rate
                     ).quantize(Decimal("1e1"), rounding=ROUND_CEILING)
                     return None, ValidationError(
                         f"Minimum wallet transfer is {int(min_wallet_ngn):,} {curr_code}"
@@ -720,8 +725,8 @@ class WalletManagerUsecase:
                         currency=str(withdrawal_request.currency).upper(),
                     )
 
-                if rate_resp and rate_resp.data:
-                    effective_rate = Decimal("1") / Decimal(str(rate_resp.data))
+                if rate_resp and rate_resp.data and rate_resp.data.sell:
+                    effective_rate = Decimal("1") / Decimal(str(rate_resp.data.sell.rate))
 
                 if not effective_rate:
                     logger.error(
@@ -1251,12 +1256,12 @@ class WalletManagerUsecase:
         transaction: Transaction,
     ) -> Optional[Error]:
         """Handles external payment initiation for bank transfers via Paycrest."""
-        if transaction.network == Network.TESTNET:
-            logger.info(
-                "Skipping Paycrest payment order for testnet transaction %s",
-                transaction.id,
-            )
-            return None
+        # if transaction.network == Network.TESTNET:
+        #     logger.info(
+        #         "Skipping Paycrest payment order for testnet transaction %s",
+        #         transaction.id,
+        #     )
+        #     return None
 
         logger.info(
             "Initiating Paycrest payment order for bank transfer withdrawal %s",
@@ -1309,19 +1314,17 @@ class WalletManagerUsecase:
         if err:
             return err
 
-        # Convert fiat amount to USDC before creating the order
+        # For NGN withdrawals, convert to USDC using the sell rate.
+        # For USD/USDC withdrawals, amount is already in USDC.
         usdc_amount = withdrawal_request.amount
         if withdrawal_request.currency == types.Currency.NAIRA:
-            (
-                rate_resp,
-                rate_err,
-            ) = await self.service.paycrest_service.fetch_letest_usdc_rate(
+            rate_resp, rate_err = await self.service.paycrest_service.fetch_letest_usdc_rate(
                 amount=float(withdrawal_request.amount), currency="NGN"
             )
-            if rate_err or not rate_resp or not rate_resp.data:
+            if rate_err or not rate_resp or not rate_resp.data or not rate_resp.data.sell:
                 return error("Could not fetch rate for USDC conversion")
             usdc_amount = (
-                withdrawal_request.amount / Decimal(str(rate_resp.data))
+                withdrawal_request.amount / Decimal(str(rate_resp.data.sell.rate))
             ).quantize(Decimal("0.00000001"))
 
         (
@@ -1353,15 +1356,32 @@ class WalletManagerUsecase:
             transaction.id,
         )
 
-        transaction, _ = await self.service.transaction_usecase.repo.find_one(
+        transaction, err = await self.service.transaction_usecase.repo.find_one(
             id=transaction.id, load=["bank_transfer"]
         )
+
+        if err:
+            logger.error(
+                "Failed to retrieve transaction %s for withdrawal processing: %s",
+                transaction.id,
+                err.message,
+            )
+            return err
+
         if transaction and transaction.bank_transfer:
             transaction.bank_transfer.paycrest_txn_id = paycrest_order.data.payment_id
             transaction.bank_transfer.paycrest_status = PaycrestOrderStatus.INITIATED
-            await self.service.transaction_usecase.repo.update(
+            _, err = await self.service.transaction_usecase.repo.update(
                 transaction.bank_transfer
             )
+
+            if err:
+                logger.error(
+                    "Failed to update transaction %s with paycrest_txn_id: %s",
+                    transaction.id,
+                    paycrest_order.data.payment_id,
+                )
+                return err
 
         # Automatically fund the Paycrest order from the master wallet
         mw_tx_id, mw_err = await self._transfer_from_master_wallet(
@@ -1381,12 +1401,12 @@ class WalletManagerUsecase:
                 paycrest_order.data.payment_id,
                 mw_err.message,
             )
-        else:
-            logger.info(
-                "Master wallet transfer initiated for order %s. MW TX ID: %s",
-                paycrest_order.data.payment_id,
-                mw_tx_id,
-            )
+            return error(f"Master wallet transfer failed: {mw_err.message}")
+        logger.info(
+            "Master wallet transfer initiated for order %s. MW TX ID: %s",
+            paycrest_order.data.payment_id,
+            mw_tx_id,
+        )
 
         return None
 
