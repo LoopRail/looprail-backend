@@ -51,4 +51,4 @@ async def get_rates(
     logger.info(
         "Successfully fetched rates for amount %s %s: %s", amount, currency, rate.data
     )
-    return {"rate": f"{round(float(rate.data.sell.rate) * amount, 2):,}"}
+    return {"rate": round(float(rate.data.sell.rate) * amount, 2)}
