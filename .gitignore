@@ -40,3 +40,5 @@ test.db
 
 preview_emails/
 dump.rdb
+
+kiro.json
