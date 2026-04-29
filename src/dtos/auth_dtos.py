@@ -1,10 +1,11 @@
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from src.dtos.base import Base
 from src.dtos.user_dtos import UserPublic
 from src.types.common_types import DeviceID
+from src.utils.auth_utils import validate_password_strength
 
 
 class MessageResponse(Base):
@@ -66,7 +67,23 @@ class PasswordResetRequest(Base):
 
 class PasswordResetVerifyRequest(Base):
     code: str
+
+
+class PasswordResetVerifyResponse(Base):
+    message: str
+    reset_token: str
+
+
+class PasswordResetConfirmRequest(Base):
     new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        err = validate_password_strength(v)
+        if err:
+            raise err
+        return v
 
 
 class PasswordResetResponse(Base):

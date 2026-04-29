@@ -179,6 +179,10 @@ class AccessTokenSub(PrefixedId):
     prefix = "access_ses_"
 
 
+class PasswordResetTokenSub(PrefixedId):
+    prefix = "pwdreset_usr_"
+
+
 class ChallengeId(PrefixedId):
     prefix = "chl_"
 

@@ -41,9 +41,11 @@ from src.dtos import (
     OtpCreate,
     PasscodeLoginRequest,
     PasscodeSetRequest,
+    PasswordResetConfirmRequest,
     PasswordResetRequest,
     PasswordResetResponse,
     PasswordResetVerifyRequest,
+    PasswordResetVerifyResponse,
     PushNotificationDTO,
     RefreshTokenRequest,
     SetTransactionPinRequest,
@@ -66,6 +68,8 @@ from src.types import (
     OTPError,
     OtpStatus,
     OtpType,
+    PasswordResetToken,
+    PasswordResetTokenSub,
     Platform,
     TokenType,
     UserAlreadyExistsError,
@@ -893,6 +897,14 @@ async def request_password_reset(
         )
         return {"message": "If your email is registered, you will receive an OTP code."}
 
+    err = await otp_usecases.delete_otp(user_email=user.email)
+    if err and err != NotFoundError:
+        logger.error("Failed to delete existing OTP for %s: %s", user.email, err.message)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"message": "Could not generate OTP"},
+        )
+
     otp_code, token, err = await otp_usecases.generate_otp(
         user_email=user.email, otp_type=OtpType.PASSWORD_RESET
     )
@@ -916,7 +928,7 @@ async def request_password_reset(
         otp_code=otp_code,
     )
 
-    logger.info("Password reset OTP sent to %s. Token: %s", user.email, token)
+    logger.info("Password reset OTP sent to %s. Token: %s, OTP: %s", user.email, token, otp_code)
     return {
         "message": "If your email is registered, you will receive an OTP code.",
         "otp_token": token,
@@ -925,7 +937,7 @@ async def request_password_reset(
 
 @router.post(
     "/password-reset/verify",
-    response_model=MessageResponse,
+    response_model=PasswordResetVerifyResponse,
     response_model_exclude_none=True,
 )
 @limiter.limit("3/minute")
@@ -935,13 +947,15 @@ async def verify_password_reset(
     otp_token: str = Depends(get_otp_token),
     otp_usecases: OtpUseCase = Depends(get_otp_usecase),
     user_usecases: UserUseCase = Depends(get_user_usecases),
+    jwt_usecase: JWTUsecase = Depends(get_jwt_usecase),
+    config: Config = Depends(get_config),
 ):
     logger.info("Verifying password reset OTP for token: %s", otp_token)
 
     otp, err = await otp_usecases.get_otp(otp_token, OtpType.PASSWORD_RESET)
     if err:
         logger.error("Error getting OTP for token %s: %s", otp_token, err)
-        raise OTPError("Invalid OTP token")
+        raise OTPError("Invalid OTP")
 
     if otp.is_expired():
         otp.status = OtpStatus.EXPIRED
@@ -963,19 +977,66 @@ async def verify_password_reset(
 
     await otp_usecases.delete_otp(otp.user_email)
 
+    user, err = await user_usecases.get_user_by_email(otp.user_email)
+    if err or not user:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "User not found"},
+        )
+
+    token_data = PasswordResetToken(
+        sub=PasswordResetTokenSub.new(user.id),
+        user_id=user.get_prefixed_id(),
+        token_type=TokenType.PASSWORD_RESET_TOKEN,
+    )
+    reset_token = jwt_usecase.create_token(
+        data=token_data,
+        exp_minutes=config.jwt.password_reset_token_expire_minutes,
+    )
+
+    logger.info("Password reset token issued for user: %s", otp.user_email)
+    return {"message": "OTP verified successfully.", "reset_token": reset_token}
+
+
+@router.post(
+    "/password-reset/confirm",
+    response_model=MessageResponse,
+    response_model_exclude_none=True,
+)
+@limiter.limit("3/minute")
+async def confirm_password_reset(
+    request: Request,
+    confirm_request: PasswordResetConfirmRequest,
+    token: PasswordResetToken = Depends(BearerToken[PasswordResetToken](PasswordResetToken)),
+    user_usecases: UserUseCase = Depends(get_user_usecases),
+):
+    logger.info("Confirming password reset for user: %s", token.user_id)
+
+    if token.token_type != TokenType.PASSWORD_RESET_TOKEN:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"message": "Invalid token"},
+        )
+
+    user, err = await user_usecases.get_user_by_id(token.user_id.clean())
+    if err or not user:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"message": "User not found"},
+        )
+
     _, err = await user_usecases.reset_password(
-        email=otp.user_email, new_password=verify_request.new_password
+        email=user.email,
+        new_password=confirm_request.new_password,
     )
     if err:
-        logger.error(
-            "Failed to reset password for user %s: %s", otp.user_email, err.message
-        )
+        logger.error("Failed to reset password for user %s: %s", token.user_id, err.message)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"message": "Failed to reset password"},
         )
 
-    logger.info("Password reset successfully for user: %s", otp.user_email)
+    logger.info("Password reset successfully for user: %s", token.user_id)
     return {"message": "Password reset successfully"}
 
 

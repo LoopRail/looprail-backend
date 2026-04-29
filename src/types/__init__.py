@@ -11,6 +11,7 @@ from src.types.common_types import (
     IdentiyType,
     OnBoardingTokenSub,
     OtpId,
+    PasswordResetTokenSub,
     PaymentOrderId,
     PhoneNumber,
     ReferenceId,
@@ -43,7 +44,7 @@ from src.types.error import (
 from src.types.http_types import HTTPMethod
 from src.types.ledger_types import LedgerConfig
 from src.types.notification_types import NotificationType
-from src.types.token_types import AccessToken, OnBoardingToken, Token
+from src.types.token_types import AccessToken, OnBoardingToken, PasswordResetToken, Token
 from src.types.types import (
     AssetType,
     Chain,
@@ -67,6 +68,7 @@ from src.types.types import (
 __all__ = [
     "AccessToken",
     "OnBoardingToken",
+    "PasswordResetToken",
     "Token",
     "WithdrawalMethod",
     "LockedAccount",
@@ -124,6 +126,7 @@ __all__ = [
     "UserProfileId",
     "AccessTokenSub",
     "OnBoardingTokenSub",
+    "PasswordResetTokenSub",
     "ChallengeId",
     "DeviceID",
     "ValidationError",

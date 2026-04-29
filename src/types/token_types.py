@@ -2,7 +2,7 @@ from typing import ClassVar, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
-from src.types.common_types import AccessTokenSub, OnBoardingTokenSub, SessionId, UserId
+from src.types.common_types import AccessTokenSub, OnBoardingTokenSub, PasswordResetTokenSub, SessionId, UserId
 from src.types.error import ValidationError
 from src.types.types import Platform, TokenType
 from src.utils.string_utils import kebab_case
@@ -21,7 +21,7 @@ class Token(BaseModel):
         use_enum_values=True,
     )
 
-    sub: Union[OnBoardingTokenSub, AccessTokenSub]
+    sub: Union[OnBoardingTokenSub, AccessTokenSub, PasswordResetTokenSub]
     token_type: TokenType = Field(default=TokenType.ONBOARDING_TOKEN, alias="token")
 
     @field_validator("sub", mode="before")
@@ -87,3 +87,11 @@ class AccessToken(Token):
     user_id: UserId
     session_id: SessionId
     platform: Platform
+
+
+class PasswordResetToken(Token):
+    __sub_prefix__: ClassVar[str] = "pwdreset_usr_"
+    __expected_token_type__: ClassVar[TokenType] = TokenType.PASSWORD_RESET_TOKEN
+
+    token_type: TokenType = Field(default=TokenType.PASSWORD_RESET_TOKEN, alias="token")
+    user_id: UserId

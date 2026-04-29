@@ -11,9 +11,11 @@ from src.dtos.auth_dtos import (
     MessageResponse,
     PasscodeLoginRequest,
     PasscodeSetRequest,
+    PasswordResetConfirmRequest,
     PasswordResetRequest,
     PasswordResetResponse,
     PasswordResetVerifyRequest,
+    PasswordResetVerifyResponse,
 )
 from src.dtos.notification_dtos import PushNotificationDTO
 from src.dtos.otp_dtos import OtpCreate, OTPSuccessResponse, VerifyOtpRequest
@@ -83,11 +85,8 @@ __all__ = [
     "WalletTransferParams",
     "PasswordResetRequest",
     "PasswordResetVerifyRequest",
-    "PasswordResetResponse",
-    "InternalTransferParams",
-    "DepositParams",
-    "PasswordResetRequest",
-    "PasswordResetVerifyRequest",
+    "PasswordResetVerifyResponse",
+    "PasswordResetConfirmRequest",
     "PasswordResetResponse",
     "InternalTransferParams",
     "DepositParams",

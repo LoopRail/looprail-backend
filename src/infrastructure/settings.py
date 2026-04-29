@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from src.infrastructure.constants import (
     ACCESS_TOKEN_EXP_MINS,
     ONBOARDING_TOKEN_EXP_MINS,
+    PASSWORD_RESET_TOKEN_EXP_MINS,
     REFRESH_TOKEN_EXP_DAYS,
 )
 from src.types.ledger_types import LedgerConfig
@@ -74,6 +75,7 @@ class JWTConfig(ServerConfig):
     access_token_expire_minutes: int = ACCESS_TOKEN_EXP_MINS
     onboarding_token_expire_minutes: int = ONBOARDING_TOKEN_EXP_MINS
     refresh_token_expires_in_days: int = REFRESH_TOKEN_EXP_DAYS
+    password_reset_token_expire_minutes: int = PASSWORD_RESET_TOKEN_EXP_MINS
 
 
 class OTPConfig(ServerConfig):

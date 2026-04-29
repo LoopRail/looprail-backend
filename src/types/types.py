@@ -200,6 +200,7 @@ class TokenType(StrEnum):
     ONBOARDING_TOKEN = "onboarding-token"
     ACCESS_TOKEN = "access-token"
     REFRESH_TOKEN = "refresh-token"
+    PASSWORD_RESET_TOKEN = "password-reset-token"
 
 
 class Platform(StrEnum):
