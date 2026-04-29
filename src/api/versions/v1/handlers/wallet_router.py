@@ -11,11 +11,13 @@ from src.api.dependencies import (
     get_notification_usecase,
     get_rq_manager,
     get_session_repository,
+    get_transaction_usecase,
     get_user_usecases,
     get_wallet_manager_usecase,
 )
 from src.api.rate_limiters.rate_limiter import custom_rate_limiter
 from src.dtos import AssetBalance, WalletPublic, WithdrawalResponse
+from src.dtos.transaction_dtos import TransactionResponseBuilder
 from src.dtos.wallet_dtos import WithdrawalRequest
 from src.infrastructure.config_settings import Config
 from src.infrastructure.logger import get_logger
@@ -26,7 +28,7 @@ from src.models import User
 from src.types import AccessToken, AssetId, InsufficientBalanceError, UserId
 from src.types.notification_types import NotificationAction, NotificationMessages
 from src.types.types import Currency
-from src.usecases import UserUseCase, WalletManagerUsecase, WalletService
+from src.usecases import TransactionUsecase, UserUseCase, WalletManagerUsecase, WalletService
 from src.usecases.notification_usecases import NotificationUseCase
 from src.utils.notification_helpers import enqueue_notifications_for_user
 
@@ -97,6 +99,7 @@ async def withdraw(
     auth_lock_service: AuthLockService = Depends(withdraw_auth_lock),
     session_repo: SessionRepository = Depends(get_session_repository),
     notification_usecase: NotificationUseCase = Depends(get_notification_usecase),
+    transaction_usecase: TransactionUsecase = Depends(get_transaction_usecase),
 ) -> WithdrawalResponse:
     withdrawal_request.authorization.ip_address = request.client.host
     withdrawal_request.authorization.user_agent = request.headers.get("user-agent")
@@ -194,6 +197,9 @@ async def withdraw(
             message="Withdrawal request failed",
         )
     transaction_id = resp.get("transaction_id")
+    transaction, _ = await transaction_usecase.get_transaction_by_id(
+        transaction_id=transaction_id
+    )
     logger.info(
         "Withdrawal initiated successfully for user %s (email: %s), transaction ID: %s. IP: %s, User-Agent: %s",
         user.id,
@@ -234,7 +240,26 @@ async def withdraw(
         data={"transaction_id": transaction_id or ""},
     )
 
+    if transaction and specific_withdrawal:
+        if str(specific_withdrawal.event) == "withdraw:bank-transfer":
+            d = specific_withdrawal.data
+            transaction.destination_data = {
+                "bank-code": d.bank_code,
+                "bank-name": d.bank_name,
+                "account-number": d.account_number,
+                "account-name": d.account_name,
+                "provider": "paycrest",
+            }
+        elif str(specific_withdrawal.event) == "withdraw:external-wallet":
+            d = specific_withdrawal.data
+            transaction.destination_data = {
+                "wallet-address": d.address,
+                "network": str(d.chain),
+                "memo": None,
+            }
+
     return WithdrawalResponse(
         message="Withdrawal processing initiated successfully.",
         transaction_id=transaction_id,
+        transaction=TransactionResponseBuilder.from_transaction(transaction) if transaction else None,
     )

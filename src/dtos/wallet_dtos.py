@@ -155,5 +155,6 @@ class WalletWithAssets(Base):
 
 class WithdrawalResponse(Base):
     transaction_id: Optional[TransactionId] = None
+    transaction: Optional[Any] = None
     error: Optional[str] = None
     message: str
