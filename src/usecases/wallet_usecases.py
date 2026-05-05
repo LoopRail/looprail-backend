@@ -650,9 +650,7 @@ class WalletManagerUsecase:
                     )
             elif withdrawal_request.currency == types.Currency.US_Dollar:
                 if sell_rate is not None:
-                    min_bank_usd = (
-                        min_bank_ngn / sell_rate
-                    ).quantize(Decimal("0.01"))
+                    min_bank_usd = (min_bank_ngn / sell_rate).quantize(Decimal("0.01"))
                     if withdrawal_request.amount < min_bank_usd:
                         return None, ValidationError(
                             f"Minimum bank transfer is {min_bank_usd:f} {curr_code}"
@@ -662,9 +660,9 @@ class WalletManagerUsecase:
                 withdrawal_fee = Decimal(BANK_TRASNFER_WITHDRAWAL_FEE)
                 if withdrawal_request.currency == types.Currency.NAIRA:
                     if sell_rate is not None:
-                        withdrawal_fee = (
-                            Decimal("0.1") * sell_rate
-                        ).quantize(Decimal("0.01"))
+                        withdrawal_fee = (Decimal("0.1") * sell_rate).quantize(
+                            Decimal("0.01")
+                        )
                     else:
                         withdrawal_fee = Decimal("150")
 
@@ -673,15 +671,16 @@ class WalletManagerUsecase:
                 min_wallet_usd = Decimal(MIN_WALLET_TRANSFER_USD)
                 curr_code = str(withdrawal_request.currency).upper()
                 logger.info(
-                    f"withdrawal_request.currency: {withdrawal_request.currency}"
+                    "withdrawal_request.currency: %s",
+                    withdrawal_request.currency,
                 )
                 if (
                     withdrawal_request.currency == types.Currency.NAIRA
                     and sell_rate is not None
                 ):
-                    min_wallet_ngn = (
-                        min_wallet_usd * sell_rate
-                    ).quantize(Decimal("1e1"), rounding=ROUND_CEILING)
+                    min_wallet_ngn = (min_wallet_usd * sell_rate).quantize(
+                        Decimal("1e1"), rounding=ROUND_CEILING
+                    )
                     return None, ValidationError(
                         f"Minimum wallet transfer is {int(min_wallet_ngn):,} {curr_code}"
                     )
@@ -726,7 +725,9 @@ class WalletManagerUsecase:
                     )
 
                 if rate_resp and rate_resp.data and rate_resp.data.sell:
-                    effective_rate = Decimal("1") / Decimal(str(rate_resp.data.sell.rate))
+                    effective_rate = Decimal("1") / Decimal(
+                        str(rate_resp.data.sell.rate)
+                    )
 
                 if not effective_rate:
                     logger.error(
@@ -1318,10 +1319,18 @@ class WalletManagerUsecase:
         # For USD/USDC withdrawals, amount is already in USDC.
         usdc_amount = withdrawal_request.amount
         if withdrawal_request.currency == types.Currency.NAIRA:
-            rate_resp, rate_err = await self.service.paycrest_service.fetch_letest_usdc_rate(
+            (
+                rate_resp,
+                rate_err,
+            ) = await self.service.paycrest_service.fetch_letest_usdc_rate(
                 amount=float(withdrawal_request.amount), currency="NGN"
             )
-            if rate_err or not rate_resp or not rate_resp.data or not rate_resp.data.sell:
+            if (
+                rate_err
+                or not rate_resp
+                or not rate_resp.data
+                or not rate_resp.data.sell
+            ):
                 return error("Could not fetch rate for USDC conversion")
             usdc_amount = (
                 withdrawal_request.amount / Decimal(str(rate_resp.data.sell.rate))

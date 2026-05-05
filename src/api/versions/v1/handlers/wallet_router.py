@@ -27,8 +27,12 @@ from src.infrastructure.services import AuthLockService
 from src.models import User
 from src.types import AccessToken, AssetId, InsufficientBalanceError, UserId
 from src.types.notification_types import NotificationAction, NotificationMessages
-from src.types.types import Currency
-from src.usecases import TransactionUsecase, UserUseCase, WalletManagerUsecase, WalletService
+from src.usecases import (
+    TransactionUsecase,
+    UserUseCase,
+    WalletManagerUsecase,
+    WalletService,
+)
 from src.usecases.notification_usecases import NotificationUseCase
 from src.utils.notification_helpers import enqueue_notifications_for_user
 
@@ -261,5 +265,7 @@ async def withdraw(
     return WithdrawalResponse(
         message="Withdrawal processing initiated successfully.",
         transaction_id=transaction_id,
-        transaction=TransactionResponseBuilder.from_transaction(transaction) if transaction else None,
+        transaction=TransactionResponseBuilder.from_transaction(transaction)
+        if transaction
+        else None,
     )
